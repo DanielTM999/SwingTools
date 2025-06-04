@@ -3,15 +3,12 @@ package dtm.stools.activity;
 import dtm.stools.configs.SystemTrayConfiguration;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
-import dtm.stools.core.DomViewer;
 import dtm.stools.core.TrayEventType;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
-import dtm.stools.models.DomViewerConcret;
 import dtm.stools.models.SystemTrayConfigurationConcrete;
 import lombok.NonNull;
 import lombok.SneakyThrows;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
