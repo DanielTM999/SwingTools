@@ -19,10 +19,8 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
                 controllerClass = (Class<T>) type;
             }
         }catch (Exception e){
-            throw new DelegatedWindowException("Falha ao obter o controller", e);
+            throw new DelegatedWindowException("Falha ao obter o tipo de controller", e);
         }
-
-        onCreateController();
     }
 
     protected abstract T newController();
@@ -30,6 +28,7 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
     @Override
     public void init() {
         super.init();
+        onCreateController();
         controller.onInit(this);
     }
 
