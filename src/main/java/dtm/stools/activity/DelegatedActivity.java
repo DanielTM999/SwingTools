@@ -44,6 +44,12 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
         controller.onLostFocus(this);
     }
 
+    @Override
+    protected void onLoad() {
+        super.onLoad();
+        this.controller.onLoad(this);
+    }
+
     private void onCreateController(){
         controller = newController();
         if(controller == null)  throw new DelegatedWindowException("Falha ao obter o controller", new NullPointerException("controller null"));
