@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@SuppressWarnings("unchecked")
 public abstract class Activity extends JFrame implements IWindow {
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final SystemTrayConfiguration systemTrayConfiguration;
@@ -62,19 +63,18 @@ public abstract class Activity extends JFrame implements IWindow {
 
     @Override
     public void dispose() {
+        if (!executorService.isShutdown()) executorService.shutdownNow();
         safelyRemoveTrayIcon();
         WindowContext.removeWindow(this);
         super.dispose();
     }
 
-    @SuppressWarnings("unchecked")
+
     @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
         if (loadDomList != null) {
-            try(executorService){
-                loadDomList.get();
-            }
+            loadDomList.get();
         } else {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
@@ -82,7 +82,6 @@ public abstract class Activity extends JFrame implements IWindow {
         return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
     }
 
-    @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
     public <T extends Component> T findById(@NonNull String id) {

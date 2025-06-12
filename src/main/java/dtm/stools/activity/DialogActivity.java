@@ -1,5 +1,6 @@
 package dtm.stools.activity;
 
+
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
 import dtm.stools.exceptions.DomElementNotFoundException;
@@ -15,30 +16,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class FragmentActivity extends JDialog implements IWindow {
-
+@SuppressWarnings("unchecked")
+public abstract class DialogActivity extends JDialog implements IWindow {
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
     private Future<Void> loadDomList;
 
-    protected FragmentActivity(){
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-        this.domViewer = new ConcurrentHashMap<>();
-        WindowContext.pushWindow(this);
-        addEvents();
-    }
-
-    protected FragmentActivity(JFrame owner, boolean modal){
-        super(owner, modal);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-        this.domViewer = new ConcurrentHashMap<>();
-        WindowContext.pushWindow(this);
-        addEvents();
-    }
-
-    protected FragmentActivity(JFrame owner, String title, boolean modal){
-        super(owner, title, modal);
+    protected DialogActivity() {
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         WindowContext.pushWindow(this);
@@ -46,10 +33,12 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
     }
 
     @Override
-    public void init(){
-        onDrawing();
-        loadDomList = loadDomView();
-        SwingUtilities.invokeLater(() -> setVisible(true));
+    public void init() {
+        if (initialized.compareAndSet(false, true)) {
+            onDrawing();
+            loadDomList = loadDomView();
+            SwingUtilities.invokeLater(() -> setVisible(true));
+        }
     }
 
     @Override
@@ -59,7 +48,6 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         super.dispose();
     }
 
-    @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
@@ -69,22 +57,16 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
 
-        return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
+        return domViewer.getOrDefault(id, Collections.emptyList());
     }
 
-    @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
     public <T extends Component> T findById(@NonNull String id) {
         List<Component> components = findAllById(id);
-
-        if(!components.isEmpty()){
-            return (T)components.getFirst();
-        }
-
+        if (!components.isEmpty()) return (T) components.getFirst();
         throw new DomElementNotFoundException("Componente com id '" + id + "' não encontrado.");
     }
-
 
     @Override
     public void reloadDomElements() {
@@ -95,36 +77,26 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         setupWindow();
     }
 
-    protected void onLoad(){}
+    protected void onLoad() {}
 
-    protected void onClose(){}
+    protected void onClose() {}
 
-    protected void onLostFocus(){}
+    protected void onLostFocus() {}
 
-    private void addEvents(){
+    protected void onError(Throwable error) {}
+
+    private void addEvents() {
         this.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                onClose();
-            }
-
-            @Override
-            public void windowOpened(WindowEvent e) {
-                onLoad();
-            }
-
-            @Override
-            public void windowLostFocus(WindowEvent e) {
-                onLostFocus();
-            }
-
+            @Override public void windowClosing(WindowEvent e) { onClose(); }
+            @Override public void windowOpened(WindowEvent e) { onLoad(); }
+            @Override public void windowLostFocus(WindowEvent e) { onLostFocus(); }
         });
     }
 
     private void setupWindow() {
-        setSize(800, 600);
+        setSize(600, 400);
         setLocationRelativeTo(null);
-        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
     }
 
     private Future<Void> loadDomView(){
@@ -164,6 +136,5 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
             }
         }
     }
-
 
 }

@@ -44,9 +44,7 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
     @Override
     public List<Component> findAllById(@NonNull String id) {
         if (loadDomList != null) {
-            try(executorService){
-                loadDomList.get();
-            }
+            loadDomList.get();
         } else {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
@@ -72,6 +70,11 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
         loadDomList = loadDomView();
     }
 
+    @Override
+    public void dispose() {
+        if (!executorService.isShutdown()) executorService.shutdownNow();
+        super.dispose();
+    }
 
     protected void onDrawing() {
         setupWindow();

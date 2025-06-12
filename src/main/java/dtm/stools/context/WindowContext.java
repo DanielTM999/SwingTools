@@ -1,6 +1,7 @@
 package dtm.stools.context;
 
 import java.util.Deque;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -149,5 +150,64 @@ public final class WindowContext {
 
         return true;
     }
+
+    /**
+     * Reanexa uma pilha de janelas ao contexto, empilhando todos os elementos na ordem da pilha.
+     * O topo da pilha fornecida será o topo da pilha no contexto após a operação.
+     *
+     * @param windows a pilha de janelas a ser reanexada
+     * @param <T> o tipo da janela
+     */
+    public static <T extends IWindow> void reattachStack(Stack<T> windows) {
+        while (!windows.isEmpty()) {
+            windowContextStack.push(windows.pop());
+        }
+    }
+
+
+    /**
+     * Remove e retorna uma pilha de janelas do contexto até encontrar a primeira janela
+     * que seja uma instância da classe alvo especificada, incluindo essa janela.
+     *
+     * Durante o processo, janelas finalizadas (não displayable) são ignoradas e descartadas.
+     *
+     * Caso a janela alvo não seja encontrada, todas as janelas removidas temporariamente
+     * são reempilhadas na ordem original, e uma pilha vazia é retornada.
+     *
+     * @param <T>        o tipo da janela buscada, que estende {@link IWindow}
+     * @param targetClass a classe da janela alvo a ser buscada na pilha
+     * @return uma {@link Stack} contendo as janelas desempilhadas, com a janela alvo no topo;
+     *         ou uma pilha vazia se a janela alvo não for encontrada
+     */
+    @SuppressWarnings("unchecked")
+    public static <T extends IWindow> Stack<T> popUntilWindow(Class<T> targetClass) {
+        Stack<IWindow> tempStack = new Stack<>();
+        Stack<T> resultStack = new Stack<>();
+
+        while (!windowContextStack.isEmpty()) {
+            IWindow topWindow = windowContextStack.pop();
+
+            if (!topWindow.isDisplayable()) {
+                continue;
+            }
+
+            tempStack.push(topWindow);
+
+            if (targetClass.isInstance(topWindow)) {
+                while (!tempStack.isEmpty()) {
+                    IWindow w = tempStack.pop();
+                    resultStack.push((T) w);
+                }
+                return resultStack;
+            }
+        }
+
+        while (!tempStack.isEmpty()) {
+            windowContextStack.push(tempStack.pop());
+        }
+
+        return new Stack<>();
+    }
+
 
 }
