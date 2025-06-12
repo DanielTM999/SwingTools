@@ -16,4 +16,5 @@ public interface IWindow {
     default <T extends IWindow> void runOnUi(Consumer<T> action){
         SwingUtilities.invokeLater(() -> action.accept((T)this));
     }
+    void reloadDomElements();
 }

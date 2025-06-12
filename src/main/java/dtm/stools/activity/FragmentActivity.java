@@ -61,7 +61,7 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
     @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
-    public <T extends Component> T findById(@NonNull String id) {
+    public List<Component> findAllById(@NonNull String id) {
         if (loadDomList != null) {
             try(executorService){
                 loadDomList.get();
@@ -70,12 +70,26 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
 
-        List<Component> components = domViewer.get(id);
-        if (components != null && !components.isEmpty()) {
-            return (T) components.getFirst();
+        return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
+    }
+
+    @SuppressWarnings("unchecked")
+    @SneakyThrows
+    @Override
+    public <T extends Component> T findById(@NonNull String id) {
+        List<Component> components = findAllById(id);
+
+        if(!components.isEmpty()){
+            return (T)components.getFirst();
         }
 
         throw new DomElementNotFoundException("Componente com id '" + id + "' não encontrado.");
+    }
+
+
+    @Override
+    public void reloadDomElements() {
+        loadDomList = loadDomView();
     }
 
     protected void onDrawing() {

@@ -95,6 +95,10 @@ public abstract class Activity extends JFrame implements IWindow {
         throw new DomElementNotFoundException("Componente com id '" + id + "' não encontrado.");
     }
 
+    @Override
+    public void reloadDomElements() {
+        loadDomList = loadDomView();
+    }
 
     protected boolean isSystemTrayEnable(){
         return systemTrayConfiguration.isAvaiable();
