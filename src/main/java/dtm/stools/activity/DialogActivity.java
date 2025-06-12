@@ -10,7 +10,12 @@ import lombok.SneakyThrows;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.WindowFocusListener;
+import java.awt.event.WindowListener;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +31,14 @@ public abstract class DialogActivity extends JDialog implements IWindow {
     private Future<Void> loadDomList;
 
     protected DialogActivity() {
+        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+        this.domViewer = new ConcurrentHashMap<>();
+        WindowContext.pushWindow(this);
+        addEvents();
+    }
+
+    protected DialogActivity(Frame frame) {
+        super(frame);
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         WindowContext.pushWindow(this);
@@ -71,6 +84,34 @@ public abstract class DialogActivity extends JDialog implements IWindow {
     @Override
     public void reloadDomElements() {
         loadDomList = loadDomView();
+    }
+
+
+    public boolean setPseudoOwner(Frame owner){
+        try{
+            this.setLocationRelativeTo(owner);
+            owner.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) {
+                    DialogActivity.this.dispose();
+                }
+            });
+
+            owner.addWindowFocusListener(new WindowFocusListener() {
+                @Override
+                public void windowGainedFocus(WindowEvent e) {
+                    DialogActivity.this.toFront();
+                }
+                @Override
+                public void windowLostFocus(WindowEvent e) {
+
+                }
+            });
+
+            return true;
+        }catch (Exception e){
+            return false;
+        }
     }
 
     protected void onDrawing() {
