@@ -17,8 +17,9 @@ public final class WindowContext {
      * Adiciona uma nova janela ao topo da pilha de contexto.
      *
      * @param window a janela a ser empilhada
+     * @param <T> o tipo da janela
      */
-    public static void pushWindow(IWindow window) {
+    public static <T extends IWindow> void pushWindow(T window) {
         windowContextStack.push(window);
     }
 
@@ -26,9 +27,10 @@ public final class WindowContext {
      * Remove uma janela específica da pilha, independentemente de sua posição.
      *
      * @param window a janela a ser removida
+     * @param <T> o tipo da janela
      * @return true se a janela foi removida com sucesso; false caso contrário
      */
-    public static boolean removeWindow(IWindow window) {
+    public static <T extends IWindow> boolean removeWindow(T window) {
         return windowContextStack.remove(window);
     }
 
@@ -44,28 +46,34 @@ public final class WindowContext {
     /**
      * Remove e retorna a janela do topo da pilha (a janela mais recente).
      *
+     * @param <T> o tipo da janela
      * @return a janela removida, ou null se a pilha estiver vazia
      */
-    public static IWindow popWindow() {
-        return windowContextStack.poll();
+    @SuppressWarnings("unchecked")
+    public static <T extends IWindow> T popWindow() {
+        return (T) windowContextStack.poll();
     }
 
     /**
      * Retorna a janela do topo da pilha sem removê-la.
      *
+     * @param <T> o tipo da janela
      * @return a janela no topo, ou null se a pilha estiver vazia
      */
-    public static IWindow peekWindow() {
-        return windowContextStack.peek();
+    @SuppressWarnings("unchecked")
+    public static <T extends IWindow> T peekWindow() {
+        return (T) windowContextStack.peek();
     }
 
     /**
      * Retorna a janela imediatamente abaixo do topo da pilha (penúltima inserida),
      * sem removê-la.
      *
+     * @param <T> o tipo da janela
      * @return a penúltima janela ou null se houver menos de duas janelas na pilha
      */
-    public static IWindow peekLastWindow() {
+    @SuppressWarnings("unchecked")
+    public static <T extends IWindow> T peekLastWindow() {
         if (windowContextStack.size() < 2) {
             return null;
         }
@@ -73,7 +81,7 @@ public final class WindowContext {
         var iterator = windowContextStack.iterator();
         iterator.next();
 
-        return iterator.next();
+        return (T) iterator.next();
     }
 
     /**
@@ -106,9 +114,10 @@ public final class WindowContext {
      * Se a pilha estiver vazia, a janela será adicionada no topo.
      *
      * @param window a janela a ser reanexada
+     * @param <T> o tipo da janela
      * @return true se a janela foi reanexada com sucesso; false se a janela não está displayable e não pôde ser reanexada
      */
-    public static boolean reattachWindow(IWindow window) {
+    public static <T extends IWindow> boolean reattachWindow(T window) {
         return reattachWindow(window, 1);
     }
 
@@ -119,10 +128,11 @@ public final class WindowContext {
      *
      * @param window a janela a ser reanexada
      * @param index a posição desejada (0 = topo)
+     * @param <T> o tipo da janela
      * @return true se a janela foi reanexada com sucesso; false se a janela não está displayable e não pôde ser reanexada
      */
-    public static boolean reattachWindow(IWindow window, int index) {
-        if(!window.isDisplayable()) return false;
+    public static <T extends IWindow> boolean reattachWindow(T window, int index) {
+        if (!window.isDisplayable()) return false;
         Deque<IWindow> tempStack = new ConcurrentLinkedDeque<>();
         int currentIndex = 0;
 
@@ -139,6 +149,5 @@ public final class WindowContext {
 
         return true;
     }
-
 
 }

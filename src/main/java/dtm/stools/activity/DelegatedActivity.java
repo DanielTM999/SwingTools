@@ -25,6 +25,12 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
 
     protected abstract T newController();
 
+    protected void sendServerEvent(Object eventArgs){
+        if(controller != null) controller.onReciveWindowEvent(this, eventArgs);
+    }
+
+    public void onRecieveServerEvent(Object eventArgs){}
+
     @Override
     public void init() {
         super.init();
@@ -54,4 +60,5 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
         controller = newController();
         if(controller == null)  throw new DelegatedWindowException("Falha ao obter o controller", new NullPointerException("controller null"));
     }
+
 }
