@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 public interface IWindow {
     void init();
     void dispose();
+    boolean isDisplayable();
     default <T extends Component> T findById(@NonNull String id){return null;};
     default <T extends Component> List<T> findAllById(@NonNull String id){return null;};
     default <T extends IWindow> void runOnUi(Consumer<T> action){

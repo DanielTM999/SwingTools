@@ -106,9 +106,10 @@ public final class WindowContext {
      * Se a pilha estiver vazia, a janela será adicionada no topo.
      *
      * @param window a janela a ser reanexada
+     * @return true se a janela foi reanexada com sucesso; false se a janela não está displayable e não pôde ser reanexada
      */
-    public static void reattachWindow(IWindow window) {
-        reattachWindow(window, 1);
+    public static boolean reattachWindow(IWindow window) {
+        return reattachWindow(window, 1);
     }
 
     /**
@@ -118,8 +119,10 @@ public final class WindowContext {
      *
      * @param window a janela a ser reanexada
      * @param index a posição desejada (0 = topo)
+     * @return true se a janela foi reanexada com sucesso; false se a janela não está displayable e não pôde ser reanexada
      */
-    public static void reattachWindow(IWindow window, int index) {
+    public static boolean reattachWindow(IWindow window, int index) {
+        if(!window.isDisplayable()) return false;
         Deque<IWindow> tempStack = new ConcurrentLinkedDeque<>();
         int currentIndex = 0;
 
@@ -133,6 +136,8 @@ public final class WindowContext {
         while (!tempStack.isEmpty()) {
             windowContextStack.push(tempStack.pop());
         }
+
+        return true;
     }
 
 
