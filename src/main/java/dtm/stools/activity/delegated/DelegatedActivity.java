@@ -1,11 +1,12 @@
-package dtm.stools.activity;
+package dtm.stools.activity.delegated;
 
-import dtm.stools.controllers.AbstractActivityController;
+import dtm.stools.activity.Activity;
+import dtm.stools.controllers.AbstractController;
 import dtm.stools.exceptions.DelegatedWindowException;
-
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
-public abstract class DelegatedActivity<T extends AbstractActivityController> extends Activity{
+public abstract class DelegatedActivity<T extends AbstractController<Activity>> extends Activity implements DelegatedWindow {
 
     protected Class<T> controllerClass;
     protected T controller;
@@ -15,7 +16,8 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
         try {
             java.lang.reflect.Type superclass = getClass().getGenericSuperclass();
             if (superclass instanceof ParameterizedType parameterizedType) {
-                java.lang.reflect.Type type = parameterizedType.getActualTypeArguments()[0];
+                java.lang.reflect.Type[] classTypes = parameterizedType.getActualTypeArguments();
+                java.lang.reflect.Type type = (classTypes.length > 0) ? classTypes[0] : null;
                 controllerClass = (Class<T>) type;
             }
         }catch (Exception e){
@@ -25,11 +27,10 @@ public abstract class DelegatedActivity<T extends AbstractActivityController> ex
 
     protected abstract T newController();
 
-    protected void sendServerEvent(Object eventArgs){
+    @Override
+    public void sendServerEvent(Object eventArgs){
         if(controller != null) controller.onReciveWindowEvent(this, eventArgs);
     }
-
-    public void onRecieveServerEvent(Object eventArgs){}
 
     @Override
     public void init() {
