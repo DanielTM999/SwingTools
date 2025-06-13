@@ -42,6 +42,14 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         addEvents();
     }
 
+    protected DialogActivity(Frame frame, String title) {
+        super(frame, title);
+        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+        this.domViewer = new ConcurrentHashMap<>();
+        WindowContext.pushWindow(this);
+        addEvents();
+    }
+
     @Override
     public void init() {
         if (initialized.compareAndSet(false, true)) {
