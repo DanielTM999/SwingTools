@@ -108,9 +108,9 @@ public abstract class Activity extends JFrame implements IWindow {
         setupSystemTray();
     }
 
-    protected void onLoad(){}
+    protected void onLoad(WindowEvent e){}
 
-    protected void onClose(){
+    protected void onClose(WindowEvent e){
         if(systemTrayConfiguration.isAvaiable()){
             int option = JOptionPane.showOptionDialog(
                     this,
@@ -131,9 +131,9 @@ public abstract class Activity extends JFrame implements IWindow {
         }
     }
 
-    protected void onLostFocus(){}
+    protected void onLostFocus(WindowEvent e){}
 
-    protected void onFocus() {}
+    protected void onFocus(WindowEvent e) {}
 
     protected void onError(Throwable error){}
 
@@ -225,19 +225,19 @@ public abstract class Activity extends JFrame implements IWindow {
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                onClose();
+                onClose(e);
             }
 
             @Override
             public void windowOpened(WindowEvent e) {
-                onLoad();
+                onLoad(e);
             }
 
             @Override
-            public void windowLostFocus(WindowEvent e) { onLostFocus();}
+            public void windowLostFocus(WindowEvent e) { onLostFocus(e);}
 
             @Override
-            public void windowGainedFocus(WindowEvent e) { onFocus();}
+            public void windowGainedFocus(WindowEvent e) { onFocus(e);}
         });
     }
 

@@ -6,6 +6,7 @@ import dtm.stools.controllers.AbstractController;
 import dtm.stools.exceptions.DelegatedWindowException;
 
 import java.awt.*;
+import java.awt.event.WindowEvent;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
@@ -44,20 +45,20 @@ public abstract class DelegatedDialogActivity<T extends AbstractController<Dialo
     }
 
     @Override
-    protected void onClose() {
-        super.onClose();
+    protected void onClose(WindowEvent e) {
+        super.onClose(e);
         controller.onClose(this);
     }
 
     @Override
-    protected void onLostFocus() {
-        super.onLostFocus();
+    protected void onLostFocus(WindowEvent e) {
+        super.onLostFocus(e);
         controller.onLostFocus(this);
     }
 
     @Override
-    protected void onLoad() {
-        super.onLoad();
+    protected void onLoad(WindowEvent e) {
+        super.onLoad(e);
         this.controller.onLoad(this);
     }
 

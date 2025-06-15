@@ -81,33 +81,33 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
         addEvents();
     }
 
-    protected void onLoad(){}
+    protected void onLoad(WindowEvent e){}
 
-    protected void onClose(){}
+    protected void onClose(WindowEvent e){}
 
-    protected void onLostFocus(){}
+    protected void onLostFocus(WindowEvent e){}
 
-    protected void onFocus() {}
+    protected void onFocus(WindowEvent e) {}
 
     private void addEvents(){
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                onClose();
+                onClose(e);
             }
 
             @Override
             public void windowOpened(WindowEvent e) {
-                onLoad();
+                onLoad(e);
             }
 
             @Override
             public void windowLostFocus(WindowEvent e) {
-                onLostFocus();
+                onLostFocus(e);
             }
             @Override
             public void windowGainedFocus(WindowEvent e) {
-                onFocus();
+                onFocus(e);
             }
         });
     }

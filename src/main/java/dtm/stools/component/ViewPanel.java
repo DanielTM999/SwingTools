@@ -72,15 +72,18 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
 
     protected void onDrawing(){
         enableFocusListenerIfFocusable();
+        enableClickListener();
     }
 
     protected void onLoad() {}
 
     protected void onRemoved() {}
 
-    protected void onLostFocus() {}
+    protected void onLostFocus(FocusEvent e) {}
 
-    protected void onFocus() {}
+    protected void onFocus(FocusEvent e) {}
+
+    protected void onClick(java.awt.event.MouseEvent event){}
 
     private void setupHierarchyListener() {
         this.addHierarchyListener(e -> {
@@ -94,17 +97,26 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
         });
     }
 
+    protected void enableClickListener() {
+        this.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                onClick(e);
+            }
+        });
+    }
+
     protected void enableFocusListenerIfFocusable() {
         if(this.isFocusable()){
             this.addFocusListener(new FocusListener() {
                 @Override
                 public void focusGained(FocusEvent e) {
-                    onFocus();
+                    onFocus(e);
                 }
 
                 @Override
                 public void focusLost(FocusEvent e) {
-                    onLostFocus();
+                    onLostFocus(e);
                 }
             });
         }

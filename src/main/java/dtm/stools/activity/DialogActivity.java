@@ -123,22 +123,22 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         setupWindow();
     }
 
-    protected void onLoad() {}
+    protected void onLoad(WindowEvent e) {}
 
-    protected void onClose() {}
+    protected void onClose(WindowEvent e) {}
 
-    protected void onLostFocus() {}
+    protected void onLostFocus(WindowEvent e) {}
 
-    protected void onFocus() {}
+    protected void onFocus(WindowEvent e) {}
 
     protected void onError(Throwable error) {}
 
     private void addEvents() {
         this.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override public void windowClosing(WindowEvent e) { onClose(); }
-            @Override public void windowOpened(WindowEvent e) { onLoad(); }
-            @Override public void windowLostFocus(WindowEvent e) { onLostFocus(); }
-            @Override public void windowGainedFocus(WindowEvent e) { onFocus();}
+            @Override public void windowClosing(WindowEvent e) { onClose(e); }
+            @Override public void windowOpened(WindowEvent e) { onLoad(e); }
+            @Override public void windowLostFocus(WindowEvent e) { onLostFocus(e); }
+            @Override public void windowGainedFocus(WindowEvent e) { onFocus(e);}
         });
     }
 

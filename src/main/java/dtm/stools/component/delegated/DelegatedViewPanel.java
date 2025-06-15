@@ -4,6 +4,7 @@ import dtm.stools.component.ViewPanel;
 import dtm.stools.controllers.component.AbstractViewController;
 import dtm.stools.exceptions.DelegatedWindowException;
 
+import java.awt.event.FocusEvent;
 import java.lang.reflect.ParameterizedType;
 
 @SuppressWarnings("unchecked")
@@ -44,14 +45,14 @@ public abstract class DelegatedViewPanel<T extends AbstractViewController<ViewPa
     }
 
     @Override
-    protected void onLostFocus() {
-        super.onLostFocus();
+    protected void onLostFocus(FocusEvent e) {
+        super.onLostFocus(e);
         controller.onLostFocus();
     }
 
     @Override
-    protected void onFocus() {
-        super.onFocus();
+    protected void onFocus(FocusEvent e) {
+        super.onFocus(e);
         controller.onFocus();
     }
 
