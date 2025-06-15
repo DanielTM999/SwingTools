@@ -1,7 +1,7 @@
-package dtm.stools.activity;
+package dtm.stools.component;
 
 import dtm.stools.context.IWindow;
-import dtm.stools.context.WindowContext;
+import dtm.stools.context.IWindowComponent;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
 import lombok.NonNull;
@@ -9,57 +9,43 @@ import lombok.SneakyThrows;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.awt.event.HierarchyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class FragmentActivity extends JDialog implements IWindow {
+@SuppressWarnings("unchecked")
+public abstract class ViewPanel extends JPanel implements IWindowComponent {
 
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
     private Future<Void> loadDomList;
 
-    protected FragmentActivity(){
+    protected ViewPanel() {
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
-        WindowContext.pushWindow(this);
-        addEvents();
-    }
-
-    protected FragmentActivity(JFrame owner, boolean modal){
-        super(owner, modal);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-        this.domViewer = new ConcurrentHashMap<>();
-        WindowContext.pushWindow(this);
-        addEvents();
-    }
-
-    protected FragmentActivity(JFrame owner, String title, boolean modal){
-        super(owner, title, modal);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-        this.domViewer = new ConcurrentHashMap<>();
-        WindowContext.pushWindow(this);
-        addEvents();
+        setupHierarchyListener();
     }
 
     @Override
-    public void init(){
+    public void addNotify() {
+        super.addNotify();
         onDrawing();
-        loadDomList = loadDomView();
-        SwingUtilities.invokeLater(() -> setVisible(true));
+        reloadDomElements();
     }
 
     @Override
-    public void dispose() {
-        if (!executorService.isShutdown()) executorService.shutdownNow();
-        WindowContext.removeWindow(this);
-        super.dispose();
+    public void removeNotify() {
+        super.removeNotify();
+        onRemoved();
     }
 
-    @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
@@ -68,76 +54,67 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         } else {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
-
-        return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
+        return domViewer.getOrDefault(id, Collections.emptyList());
     }
 
-    @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
     public <T extends Component> T findById(@NonNull String id) {
         List<Component> components = findAllById(id);
-
-        if(!components.isEmpty()){
-            return (T)components.getFirst();
-        }
-
+        if (!components.isEmpty()) return (T) components.getFirst();
         throw new DomElementNotFoundException("Componente com id '" + id + "' não encontrado.");
     }
-
 
     @Override
     public void reloadDomElements() {
         loadDomList = loadDomView();
     }
 
-    protected void onDrawing() {
-        setupWindow();
+    protected void onDrawing(){
+        enableFocusListenerIfFocusable();
     }
 
-    protected void onLoad(){}
+    protected void onLoad() {}
 
-    protected void onClose(){}
+    protected void onRemoved() {}
 
-    protected void onLostFocus(){}
+    protected void onLostFocus() {}
 
     protected void onFocus() {}
 
-    private void addEvents(){
-        this.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                onClose();
-            }
-
-            @Override
-            public void windowOpened(WindowEvent e) {
-                onLoad();
-            }
-
-            @Override
-            public void windowLostFocus(WindowEvent e) {
-                onLostFocus();
-            }
-
-            @Override
-            public void windowGainedFocus(WindowEvent e) {
-                onFocus();
+    private void setupHierarchyListener() {
+        this.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                if (this.isShowing()) {
+                    onLoad();
+                } else {
+                    onRemoved();
+                }
             }
         });
     }
 
-    private void setupWindow() {
-        setSize(800, 600);
-        setLocationRelativeTo(null);
-        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+    protected void enableFocusListenerIfFocusable() {
+        if(this.isFocusable()){
+            this.addFocusListener(new FocusListener() {
+                @Override
+                public void focusGained(FocusEvent e) {
+                    onFocus();
+                }
+
+                @Override
+                public void focusLost(FocusEvent e) {
+                    onLostFocus();
+                }
+            });
+        }
     }
 
-    private Future<Void> loadDomView(){
+    private Future<Void> loadDomView() {
         return CompletableFuture.runAsync(this::loadThis, executorService);
     }
 
-    private void loadThis(){
+    private void loadThis() {
         List<Component> rootList = this.domViewer.computeIfAbsent("root", k ->
                 Collections.synchronizedList(new ArrayList<>())
         );
@@ -151,7 +128,6 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         }
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
     }
 
     private void collectComponentsRecursive(Component component) {
@@ -170,6 +146,5 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
             }
         }
     }
-
 
 }

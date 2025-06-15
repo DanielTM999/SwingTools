@@ -129,6 +129,8 @@ public abstract class DialogActivity extends JDialog implements IWindow {
 
     protected void onLostFocus() {}
 
+    protected void onFocus() {}
+
     protected void onError(Throwable error) {}
 
     private void addEvents() {
@@ -136,6 +138,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
             @Override public void windowClosing(WindowEvent e) { onClose(); }
             @Override public void windowOpened(WindowEvent e) { onLoad(); }
             @Override public void windowLostFocus(WindowEvent e) { onLostFocus(); }
+            @Override public void windowGainedFocus(WindowEvent e) { onFocus();}
         });
     }
 

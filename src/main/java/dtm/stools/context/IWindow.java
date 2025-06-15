@@ -1,9 +1,8 @@
 package dtm.stools.context;
 
 import lombok.NonNull;
-
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.SwingUtilities;
+import java.awt.Component;
 import java.util.List;
 import java.util.function.Consumer;
 

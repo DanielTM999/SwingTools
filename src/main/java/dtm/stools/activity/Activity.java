@@ -133,6 +133,8 @@ public abstract class Activity extends JFrame implements IWindow {
 
     protected void onLostFocus(){}
 
+    protected void onFocus() {}
+
     protected void onError(Throwable error){}
 
     protected void onSystemTrayClick(MouseEvent event, TrayEventType eventType){
@@ -232,10 +234,10 @@ public abstract class Activity extends JFrame implements IWindow {
             }
 
             @Override
-            public void windowLostFocus(WindowEvent e) {
-                onLostFocus();
-            }
+            public void windowLostFocus(WindowEvent e) { onLostFocus();}
 
+            @Override
+            public void windowGainedFocus(WindowEvent e) { onFocus();}
         });
     }
 

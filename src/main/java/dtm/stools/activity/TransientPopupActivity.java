@@ -87,6 +87,8 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
 
     protected void onLostFocus(){}
 
+    protected void onFocus() {}
+
     private void addEvents(){
         this.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -102,6 +104,10 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
             @Override
             public void windowLostFocus(WindowEvent e) {
                 onLostFocus();
+            }
+            @Override
+            public void windowGainedFocus(WindowEvent e) {
+                onFocus();
             }
         });
     }
