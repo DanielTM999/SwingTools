@@ -6,6 +6,7 @@ import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
+import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -75,7 +76,6 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         super.dispose();
     }
 
-    @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
         if (domElementLoader.isInitialized()) {
@@ -87,7 +87,6 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         return domViewer.getOrDefault(id, Collections.emptyList());
     }
 
-    @SneakyThrows
     @Override
     public <T extends Component> T findById(@NonNull String id) {
         List<Component> components = findAllById(id);
@@ -115,6 +114,20 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         }
     }
 
+    @Override
+    public <T> T getFromClient(String key) {
+        return getFromClient(key, null);
+    }
+
+    @Override
+    public <T> T getFromClient(String key, T defaultValue) {
+        final Object value = clientSideElements.getOrDefault(key, defaultValue);
+        try{
+            return (T)value;
+        }catch (Exception e){
+            throw new InvalidClientSideElementException(key, value, e);
+        }
+    }
 
     public boolean setPseudoOwner(Frame owner){
         try{

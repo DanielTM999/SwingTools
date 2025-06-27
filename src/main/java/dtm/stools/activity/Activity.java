@@ -7,6 +7,7 @@ import dtm.stools.context.WindowContext;
 import dtm.stools.context.enums.TrayEventType;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
+import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
 import dtm.stools.models.SystemTrayConfigurationConcrete;
 import lombok.NonNull;
@@ -77,8 +78,6 @@ public abstract class Activity extends JFrame implements IWindow {
         super.dispose();
     }
 
-
-    @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
         if (domElementLoader.isInitialized()) {
@@ -90,7 +89,6 @@ public abstract class Activity extends JFrame implements IWindow {
         return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
     }
 
-    @SneakyThrows
     @Override
     public <T extends Component> T findById(@NonNull String id) {
         List<Component> components = findAllById(id);
@@ -119,6 +117,21 @@ public abstract class Activity extends JFrame implements IWindow {
             return true;
         }else{
             return clientSideElements.putIfAbsent(key, value) == null;
+        }
+    }
+
+    @Override
+    public <T> T getFromClient(String key) {
+        return getFromClient(key, null);
+    }
+
+    @Override
+    public <T> T getFromClient(String key, T defaultValue) {
+        final Object value = clientSideElements.getOrDefault(key, defaultValue);
+        try{
+            return (T)value;
+        }catch (Exception e){
+            throw new InvalidClientSideElementException(key, value, e);
         }
     }
 

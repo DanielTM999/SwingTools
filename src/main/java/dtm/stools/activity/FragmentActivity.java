@@ -5,14 +5,13 @@ import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
+import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
 import lombok.NonNull;
 import lombok.SneakyThrows;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowEvent;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +19,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+@SuppressWarnings("unchecked")
 public abstract class FragmentActivity extends JDialog implements IWindow {
     private final Map<String, Object> clientSideElements;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -72,8 +72,6 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         super.dispose();
     }
 
-    @SuppressWarnings("unchecked")
-    @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
         if (domElementLoader.isInitialized()) {
@@ -84,8 +82,6 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
     }
 
-    @SuppressWarnings("unchecked")
-    @SneakyThrows
     @Override
     public <T extends Component> T findById(@NonNull String id) {
         List<Component> components = findAllById(id);
@@ -101,6 +97,37 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
     @Override
     public void reloadDomElements() {
         domElementLoader.reload();
+    }
+
+    @Override
+    public boolean putInClient(String key, Object value) {
+        return putInClient(key, value, false);
+    }
+
+    @Override
+    public boolean putInClient(String key, Object value, boolean replace) {
+        if (replace) {
+            clientSideElements.put(key, value);
+            return true;
+        }else{
+            return clientSideElements.putIfAbsent(key, value) == null;
+        }
+    }
+
+
+    @Override
+    public <T> T getFromClient(String key) {
+        return getFromClient(key, null);
+    }
+
+    @Override
+    public <T> T getFromClient(String key, T defaultValue) {
+        final Object value = clientSideElements.getOrDefault(key, defaultValue);
+        try{
+            return (T)value;
+        }catch (Exception e){
+            throw new InvalidClientSideElementException(key, value, e);
+        }
     }
 
     protected void onDrawing() {
