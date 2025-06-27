@@ -1,9 +1,11 @@
 package dtm.stools.activity;
 
+import dtm.stools.context.DomElementLoader;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
+import dtm.stools.internal.DomElementLoaderService;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
@@ -16,17 +18,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 public abstract class TransientPopupActivity extends JWindow implements IWindow {
-
+    private final Map<String, Object> clientSideElements;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
-    private Future<Void> loadDomList;
+    private final DomElementLoader domElementLoader;
 
     public TransientPopupActivity(){
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
+        this.clientSideElements = new ConcurrentHashMap<>();
+        this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
     }
 
@@ -34,7 +39,7 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
     public void init(){
         if(initialized.compareAndSet(false, true)) {
             onDrawing();
-            loadDomList = loadDomView();
+            this.domElementLoader.load();
             SwingUtilities.invokeLater(() -> setVisible(true));
         }
     }
@@ -43,8 +48,8 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
     @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
-        if (loadDomList != null) {
-            loadDomList.get();
+        if (domElementLoader.isInitialized()) {
+            if(!domElementLoader.isLoad())domElementLoader.completeLoad();
         } else {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
@@ -67,13 +72,28 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
 
     @Override
     public void reloadDomElements() {
-        loadDomList = loadDomView();
+        domElementLoader.reload();
     }
 
     @Override
     public void dispose() {
         if (!executorService.isShutdown()) executorService.shutdownNow();
         super.dispose();
+    }
+
+    @Override
+    public boolean putInClient(String key, Object value) {
+        return putInClient(key, value, false);
+    }
+
+    @Override
+    public boolean putInClient(String key, Object value, boolean replace) {
+        if (replace) {
+            clientSideElements.put(key, value);
+            return true;
+        }else{
+            return clientSideElements.putIfAbsent(key, value) == null;
+        }
     }
 
     protected void onDrawing() {
@@ -88,6 +108,18 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
     protected void onLostFocus(WindowEvent e){}
 
     protected void onFocus(WindowEvent e) {}
+
+    protected ExecutorService getMainExecutor(){
+        return executorService;
+    }
+
+    protected CompletableFuture<?> runOnWindowExecutor(Runnable command){
+        return CompletableFuture.runAsync(command, executorService);
+    }
+
+    protected <T> CompletableFuture<T> runOnWindowExecutor(Supplier<T> command){
+        return CompletableFuture.supplyAsync(command, executorService);
+    }
 
     private void addEvents(){
         this.addWindowListener(new java.awt.event.WindowAdapter() {
@@ -116,44 +148,5 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
         setSize(800, 600);
         setLocationRelativeTo(null);
     }
-
-    private Future<Void> loadDomView(){
-        return CompletableFuture.runAsync(this::loadThis, executorService);
-    }
-
-    private void loadThis(){
-        List<Component> rootList = this.domViewer.computeIfAbsent("root", k ->
-                Collections.synchronizedList(new ArrayList<>())
-        );
-        rootList.add(this);
-
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (Component component : this.getComponents()) {
-            futures.add(CompletableFuture.runAsync(() ->
-                            collectComponentsRecursive(component)
-                    , executorService));
-        }
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-    }
-
-    private void collectComponentsRecursive(Component component) {
-        if (component == null) return;
-
-        String name = component.getName();
-        if (name != null && !name.isBlank()) {
-            domViewer
-                    .computeIfAbsent(name, k -> Collections.synchronizedList(new ArrayList<>()))
-                    .add(component);
-        }
-
-        if (component instanceof Container container) {
-            for (Component child : container.getComponents()) {
-                collectComponentsRecursive(child);
-            }
-        }
-    }
-
 
 }

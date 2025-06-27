@@ -1,11 +1,13 @@
 package dtm.stools.activity;
 
 import dtm.stools.configs.SystemTrayConfiguration;
+import dtm.stools.context.DomElementLoader;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
-import dtm.stools.core.TrayEventType;
+import dtm.stools.context.enums.TrayEventType;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
+import dtm.stools.internal.DomElementLoaderService;
 import dtm.stools.models.SystemTrayConfigurationConcrete;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -21,14 +23,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 @SuppressWarnings("unchecked")
 public abstract class Activity extends JFrame implements IWindow {
+    private final Map<String, Object> clientSideElements;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final SystemTrayConfiguration systemTrayConfiguration;
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
-    private Future<Void> loadDomList;
+    private final DomElementLoader domElementLoader;
     protected SystemTray tray;
     protected Image trayImage;
     protected TrayIcon trayIcon;
@@ -37,7 +41,9 @@ public abstract class Activity extends JFrame implements IWindow {
     protected Activity(){
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
+        this.clientSideElements = new ConcurrentHashMap<>();
         this.systemTrayConfiguration = new SystemTrayConfigurationConcrete();
+        this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
         addEvents();
     }
@@ -46,7 +52,9 @@ public abstract class Activity extends JFrame implements IWindow {
         super(title);
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
+        this.clientSideElements = new ConcurrentHashMap<>();
         this.systemTrayConfiguration = new SystemTrayConfigurationConcrete();
+        this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
         addEvents();
     }
@@ -56,7 +64,7 @@ public abstract class Activity extends JFrame implements IWindow {
         if(initialized.compareAndSet(false, true)) {
             applySystemTrayConfiguration(systemTrayConfiguration);
             onDrawing();
-            loadDomList = loadDomView();
+            this.domElementLoader.load();
             SwingUtilities.invokeLater(() -> setVisible(true));
         };
     }
@@ -73,8 +81,8 @@ public abstract class Activity extends JFrame implements IWindow {
     @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
-        if (loadDomList != null) {
-            loadDomList.get();
+        if (domElementLoader.isInitialized()) {
+            if(!domElementLoader.isLoad())domElementLoader.completeLoad();
         } else {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
@@ -96,7 +104,22 @@ public abstract class Activity extends JFrame implements IWindow {
 
     @Override
     public void reloadDomElements() {
-        loadDomList = loadDomView();
+        domElementLoader.reload();
+    }
+
+    @Override
+    public boolean putInClient(String key, Object value) {
+        return putInClient(key, value, false);
+    }
+
+    @Override
+    public boolean putInClient(String key, Object value, boolean replace) {
+        if (replace) {
+            clientSideElements.put(key, value);
+            return true;
+        }else{
+            return clientSideElements.putIfAbsent(key, value) == null;
+        }
     }
 
     protected boolean isSystemTrayEnable(){
@@ -214,6 +237,18 @@ public abstract class Activity extends JFrame implements IWindow {
         System.exit(0);
     }
 
+    protected ExecutorService getMainExecutor(){
+        return executorService;
+    }
+
+    protected CompletableFuture<?> runOnWindowExecutor(Runnable command){
+        return CompletableFuture.runAsync(command, executorService);
+    }
+
+    protected <T> CompletableFuture<T> runOnWindowExecutor(Supplier<T> command){
+        return CompletableFuture.supplyAsync(command, executorService);
+    }
+
     private void setupSystemTray(){
         if(!systemTrayConfiguration.isAvaiable()) return;
         tray = SystemTray.getSystemTray();
@@ -252,44 +287,5 @@ public abstract class Activity extends JFrame implements IWindow {
             tray.remove(trayIcon);
         }
     }
-
-    private Future<Void> loadDomView(){
-        return CompletableFuture.runAsync(this::loadThis, executorService);
-    }
-
-    private void loadThis(){
-        List<Component> rootList = this.domViewer.computeIfAbsent("root", k ->
-                Collections.synchronizedList(new ArrayList<>())
-        );
-        rootList.add(this);
-
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (Component component : this.getComponents()) {
-            futures.add(CompletableFuture.runAsync(() ->
-                            collectComponentsRecursive(component)
-                    , executorService));
-        }
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-    }
-
-    private void collectComponentsRecursive(Component component) {
-        if (component == null) return;
-
-        String name = component.getName();
-        if (name != null && !name.isBlank()) {
-            domViewer
-                    .computeIfAbsent(name, k -> Collections.synchronizedList(new ArrayList<>()))
-                    .add(component);
-        }
-
-        if (component instanceof Container container) {
-            for (Component child : container.getComponents()) {
-                collectComponentsRecursive(child);
-            }
-        }
-    }
-
 
 }

@@ -1,4 +1,4 @@
-package dtm.stools.core;
+package dtm.stools.context.enums;
 
 public enum TrayEventType {
     MOUSE_CLICKED,
