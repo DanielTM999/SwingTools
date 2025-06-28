@@ -1,9 +1,11 @@
 package dtm.stools.component;
 
+import dtm.stools.context.DomElementLoader;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.IWindowComponent;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
+import dtm.stools.internal.DomComponentElementLoaderService;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
@@ -21,15 +23,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("unchecked")
 public abstract class ViewPanel extends JPanel implements IWindowComponent {
-
-    private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
-    private Future<Void> loadDomList;
+    private final DomElementLoader domElementLoader;
 
     protected ViewPanel() {
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
+        this.domElementLoader = new DomComponentElementLoaderService<>(this, domViewer, executorService);
         setupHierarchyListener();
     }
 
@@ -49,8 +50,8 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
     @SneakyThrows
     @Override
     public List<Component> findAllById(@NonNull String id) {
-        if (loadDomList != null) {
-            loadDomList.get();
+        if (domElementLoader.isInitialized()) {
+            if(!domElementLoader.isLoad())domElementLoader.completeLoad();
         } else {
             throw new DomNotLoadException("DomView ainda não foi iniciado.");
         }
@@ -67,7 +68,7 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
 
     @Override
     public void reloadDomElements() {
-        loadDomList = loadDomView();
+        domElementLoader.reload();
     }
 
     protected void onDrawing(){

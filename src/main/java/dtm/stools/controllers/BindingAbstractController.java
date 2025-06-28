@@ -96,5 +96,4 @@ public abstract class BindingAbstractController<T extends IWindow> extends Abstr
         }
     }
 
-
 }

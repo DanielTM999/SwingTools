@@ -3,6 +3,7 @@ package dtm.stools.internal;
 import dtm.stools.context.DomElementLoader;
 import lombok.SneakyThrows;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,18 +14,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class DomElementLoaderService<T extends Window> implements DomElementLoader {
+public class DomComponentElementLoaderService<T extends JComponent> implements DomElementLoader {
     private final ExecutorService executorService;
     private final AtomicBoolean initialized;
     private final Map<String, List<Component>> domViewer;
-    private final T window;
+    private final T jComponent;
     private Future<Void> loadDomList;
 
-    public DomElementLoaderService(T window, Map<String, List<Component>> domMap, ExecutorService executorService){
+    public DomComponentElementLoaderService(T jComponent, Map<String, List<Component>> domMap, ExecutorService executorService){
         this.initialized = new AtomicBoolean(false);
         this.domViewer = domMap;
         this.executorService = executorService;
-        this.window = window;
+        this.jComponent = jComponent;
     }
 
 
@@ -76,10 +77,10 @@ public class DomElementLoaderService<T extends Window> implements DomElementLoad
         List<Component> rootList = this.domViewer.computeIfAbsent("root", k ->
                 Collections.synchronizedList(new ArrayList<>())
         );
-        rootList.add(window);
+        rootList.add(jComponent);
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (Component component : window.getComponents()) {
+        for (Component component : jComponent.getComponents()) {
             futures.add(CompletableFuture.runAsync(() -> collectComponentsRecursive(component), executorService));
         }
 
