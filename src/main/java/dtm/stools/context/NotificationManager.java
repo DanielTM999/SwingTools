@@ -3,12 +3,14 @@ package dtm.stools.context;
 import dtm.stools.activity.NotificationActivity;
 import lombok.NonNull;
 
+import java.util.*;
 import javax.swing.*;
+import java.awt.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Queue;
+import java.util.Timer;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 public final class NotificationManager {
@@ -38,14 +40,54 @@ public final class NotificationManager {
     }
 
     public static void startNotification(@NonNull NotificationActivity notificationActivity){
+        startNotification(notificationActivity, -1);
+    }
+
+    public static void startNotification(@NonNull NotificationActivity notificationActivity, long time){
+        startNotification(notificationActivity, time, TimeUnit.MILLISECONDS);
+    }
+
+    public static void startNotification(@NonNull NotificationActivity notificationActivity, long time, TimeUnit timeUnit){
         SwingUtilities.invokeLater(() -> {
             notificationActivity.init();
             notificationActivities.add(notificationActivity);
+
+            if (time > 0) {
+                long durationMillis = timeUnit.toMillis(time);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        SwingUtilities.invokeLater(() -> {
+                            notificationActivity.dispose();
+                            notificationActivities.remove(notificationActivity);
+                        });
+                    }
+                }, durationMillis);
+            }
         });
+
     }
 
     public static void remove(@NonNull NotificationActivity notificationActivity){
         notificationActivities.remove(notificationActivity);
+    }
+
+    public static void shutdown(){
+        shutdown(null);
+    }
+
+    public static void shutdown(Runnable onShutdown){
+        CompletableFuture.runAsync(() -> {
+            try{
+                while (!notificationActivities.isEmpty()){
+                    LockSupport.parkNanos(100);
+                }
+                scheduler.shutdown();
+                if(onShutdown != null){
+                    onShutdown.run();
+                }
+            }catch (Exception ignored){}
+        });
     }
 
     public static void setNotificationGap(int gap){
@@ -57,9 +99,11 @@ public final class NotificationManager {
         if (scheduledRearrange != null && !scheduledRearrange.isDone()) {
             scheduledRearrange.cancel(false);
         }
-        scheduledRearrange = scheduler.schedule(() -> {
-            SwingUtilities.invokeLater(NotificationManager::rearrangeNotifications);
-        }, 200, TimeUnit.MILLISECONDS);
+        if(!scheduler.isShutdown() && !scheduler.isTerminated()){
+            scheduledRearrange = scheduler.schedule(() -> {
+                SwingUtilities.invokeLater(NotificationManager::rearrangeNotifications);
+            }, 200, TimeUnit.MILLISECONDS);
+        }
     }
 
     private static void rearrangeNotifications() {

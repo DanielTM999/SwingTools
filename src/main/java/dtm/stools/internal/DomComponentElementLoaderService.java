@@ -70,6 +70,9 @@ public class DomComponentElementLoaderService<T extends JComponent> implements D
     }
 
     private Future<Void> loadDomView(){
+        if (executorService.isShutdown() || executorService.isTerminated()) {
+            throw new IllegalStateException("ExecutorService já foi desligado");
+        }
         return CompletableFuture.runAsync(this::loadThis, executorService);
     }
 

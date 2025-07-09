@@ -45,19 +45,19 @@ public abstract class DelegatedDialogActivity<T extends AbstractController<Dialo
     }
 
     @Override
-    protected void onClose(WindowEvent e) {
+    protected void onClose(WindowEvent e) throws Exception{
         super.onClose(e);
         controller.onClose(this);
     }
 
     @Override
-    protected void onLostFocus(WindowEvent e) {
+    protected void onLostFocus(WindowEvent e) throws Exception{
         super.onLostFocus(e);
         controller.onLostFocus(this);
     }
 
     @Override
-    protected void onLoad(WindowEvent e) {
+    protected void onLoad(WindowEvent e) throws Exception{
         super.onLoad(e);
         this.controller.onLoad(this);
     }

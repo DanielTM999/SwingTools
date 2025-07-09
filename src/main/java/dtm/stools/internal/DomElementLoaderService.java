@@ -69,6 +69,9 @@ public class DomElementLoaderService<T extends Window> implements DomElementLoad
     }
 
     private Future<Void> loadDomView(){
+        if (executorService.isShutdown() || executorService.isTerminated()) {
+            throw new IllegalStateException("ExecutorService já foi desligado");
+        }
         return CompletableFuture.runAsync(this::loadThis, executorService);
     }
 

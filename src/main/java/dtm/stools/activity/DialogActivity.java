@@ -4,10 +4,12 @@ package dtm.stools.activity;
 import dtm.stools.context.DomElementLoader;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
+import dtm.stools.context.WindowExecutor;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
+import dtm.stools.internal.window.ActivityWindowExecutor;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
@@ -30,6 +32,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
     private final DomElementLoader domElementLoader;
+    private final WindowExecutor windowExecutor;
 
     protected DialogActivity() {
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
@@ -37,7 +40,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
-        addEvents();
+        this.windowExecutor = new ActivityWindowExecutor(this::onError);
     }
 
     protected DialogActivity(Frame frame) {
@@ -47,7 +50,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
-        addEvents();
+        this.windowExecutor = new ActivityWindowExecutor(this::onError);
     }
 
     protected DialogActivity(Frame frame, String title) {
@@ -57,6 +60,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
+        this.windowExecutor = new ActivityWindowExecutor(this::onError);
         addEvents();
     }
 
@@ -65,6 +69,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         if (initialized.compareAndSet(false, true)) {
             onDrawing();
             this.domElementLoader.load();
+            addEvents();
             SwingUtilities.invokeLater(() -> setVisible(true));
         }
     }
@@ -129,6 +134,11 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         }
     }
 
+    @Override
+    public WindowExecutor getWindowExecutor() {
+        return windowExecutor;
+    }
+
     public boolean setPseudoOwner(Frame owner){
         try{
             this.setLocationRelativeTo(owner);
@@ -160,15 +170,29 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         setupWindow();
     }
 
-    protected void onLoad(WindowEvent e) {}
+    protected void onLoad(WindowEvent e) throws Exception {}
 
-    protected void onClose(WindowEvent e) {}
+    protected void onClose(WindowEvent e) throws Exception {}
 
-    protected void onLostFocus(WindowEvent e) {}
+    protected void onLostFocus(WindowEvent e) throws Exception {}
 
-    protected void onFocus(WindowEvent e) {}
+    protected void onFocus(WindowEvent e) throws Exception {}
 
-    protected void onError(Throwable error) {}
+    /**
+     * Manipula erros ocorridos na atividade.
+     * Deve ser sobrescrito para tratamento personalizado.
+     *
+     * <p>Por padrão, relança a exceção recebida.
+     *
+     * @param error Exceção ou erro capturado.
+     */
+    protected void onError(String action, Throwable error){
+        if (error instanceof RuntimeException) {
+            throw (RuntimeException) error;
+        } else {
+            throw new RuntimeException("Unhandled exception in {" + getClass() + "}", error);
+        }
+    }
 
     protected ExecutorService getMainExecutor(){
         return executorService;
@@ -184,10 +208,25 @@ public abstract class DialogActivity extends JDialog implements IWindow {
 
     private void addEvents() {
         this.addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override public void windowClosing(WindowEvent e) { onClose(e); }
-            @Override public void windowOpened(WindowEvent e) { onLoad(e); }
-            @Override public void windowLostFocus(WindowEvent e) { onLostFocus(e); }
-            @Override public void windowGainedFocus(WindowEvent e) { onFocus(e);}
+            @Override
+            public void windowClosing(WindowEvent e) {
+                windowExecutor.execute(() -> onClose(e), "onClose");
+            }
+
+            @Override
+            public void windowOpened(WindowEvent e) {
+                windowExecutor.execute(() -> onLoad(e), "onLoad");
+            }
+
+            @Override
+            public void windowLostFocus(WindowEvent e) {
+                windowExecutor.execute(() -> onLostFocus(e), "onLostFocus");
+            }
+
+            @Override
+            public void windowGainedFocus(WindowEvent e) {
+                windowExecutor.execute(() -> onFocus(e), "onFocus");
+            }
         });
     }
 

@@ -11,6 +11,7 @@ public interface IWindow {
     void init();
     void dispose();
     boolean isDisplayable();
+    void setVisible(boolean visibility);
     
     boolean putInClient(String key, Object value);
     boolean putInClient(String key, Object value, boolean replace);
@@ -21,4 +22,6 @@ public interface IWindow {
     default <T extends Component> List<T> findAllById(@NonNull String id){return null;};
     default <T extends IWindow> void runOnUi(Consumer<T> action){SwingUtilities.invokeLater(() -> action.accept((T)this));}
     void reloadDomElements();
+
+    default WindowExecutor getWindowExecutor(){return null;};
 }

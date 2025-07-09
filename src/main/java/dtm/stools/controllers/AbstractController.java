@@ -7,9 +7,9 @@ import dtm.stools.context.IWindow;
 
 public abstract class AbstractController<T extends IWindow> {
     public abstract void onInit(T activity);
-    public void onLoad(T activity){}
-    public void onClose(T activity){}
-    public void onLostFocus(T activity){}
+    public void onLoad(T activity) throws Exception{}
+    public void onClose(T activity) throws Exception{}
+    public void onLostFocus(T activity) throws Exception{}
     public void onReciveWindowEvent(T activity, Object args){}
     public void sendWindowEvent(T activity, Object args){
         if(activity instanceof DelegatedWindow delegatedWindow){

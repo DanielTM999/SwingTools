@@ -3,10 +3,12 @@ package dtm.stools.activity;
 import dtm.stools.context.DomElementLoader;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
+import dtm.stools.context.WindowExecutor;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
+import dtm.stools.internal.window.ActivityWindowExecutor;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import javax.swing.*;
@@ -26,6 +28,7 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
     private final DomElementLoader domElementLoader;
+    private final WindowExecutor windowExecutor;
 
     protected FragmentActivity(){
         this.executorService = Executors.newVirtualThreadPerTaskExecutor();
@@ -33,7 +36,7 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
-        addEvents();
+        this.windowExecutor = new ActivityWindowExecutor(this::onError);
     }
 
     protected FragmentActivity(JFrame owner, boolean modal){
@@ -43,7 +46,7 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
-        addEvents();
+        this.windowExecutor = new ActivityWindowExecutor(this::onError);
     }
 
     protected FragmentActivity(JFrame owner, String title, boolean modal){
@@ -53,7 +56,7 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
         WindowContext.pushWindow(this);
-        addEvents();
+        this.windowExecutor = new ActivityWindowExecutor(this::onError);
     }
 
     @Override
@@ -61,6 +64,7 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         if (initialized.compareAndSet(false, true)) {
             onDrawing();
             this.domElementLoader.load();
+            addEvents();
             SwingUtilities.invokeLater(() -> setVisible(true));
         }
     }
@@ -130,6 +134,11 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
         }
     }
 
+    @Override
+    public WindowExecutor getWindowExecutor() {
+        return windowExecutor;
+    }
+
     protected void onDrawing() {
         setupWindow();
     }
@@ -141,6 +150,40 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
     protected void onLostFocus(WindowEvent e){}
 
     protected void onFocus(WindowEvent e) {}
+
+    /**
+     * Manipula erros ocorridos na atividade.
+     * Deve ser sobrescrito para tratamento personalizado de erros relacionados ao ciclo de vida da janela.
+     *
+     * <p>Por padrão, este método apenas relança a exceção recebida.
+     * Caso o desenvolvedor deseje adicionar lógica personalizada (como logging, notificações ou integração com serviços externos),
+     * isso pode ser feito sobrescrevendo este método.
+     * Se não tratado, o erro será relançado para o fluxo superior.</p>
+     *
+     * <strong>Nota:</strong> Este método trata exclusivamente falhas internas da estrutura da aplicação,
+     * como erros durante {@code init()}, {@code onDrawing()}, {@code dispose()}, entre outros
+     * pontos do ciclo de vida da {@code Activity}.
+     * <br>
+     * <strong>Ele <u>não</u> captura exceções lançadas por componentes adicionados pelo desenvolvedor</strong>,
+     * como listeners personalizados, ações em botões ou lógicas arbitrárias associadas à interface gráfica.
+     * <br>
+     * Para esses casos, é responsabilidade do desenvolvedor implementar o tratamento local dessas exceções.
+     *
+     * @implNote Este método não cobre exceções geradas por interações arbitrárias definidas pelo usuário.
+     * Tais exceções devem ser tratadas diretamente onde ocorrem ou encapsuladas em um mecanismo específico de captura.
+     *
+     * @param action Ação identificadora onde o erro ocorreu.
+     * @param error  Exceção ou erro capturado.
+     */
+    protected void onError(String action, Throwable error) {
+        if (error instanceof RuntimeException) {
+            throw (RuntimeException) error;
+        } else {
+            String className = getClass().getName();
+            String message = "Unhandled exception in [" + className + "] during action [" + action + "]";
+            throw new RuntimeException(message, error);
+        }
+    }
 
     protected ExecutorService getMainExecutor(){
         return executorService;

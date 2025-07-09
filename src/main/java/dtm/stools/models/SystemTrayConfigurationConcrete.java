@@ -9,7 +9,8 @@ public class SystemTrayConfigurationConcrete implements SystemTrayConfiguration 
 
     private boolean systemTrayEnable;
     private boolean removeOnRestore;
-    private ImageIcon imageIcon;
+    private boolean alwaysVisible;
+    private Image image;
 
     @Override
     public void enableSystemTray() {
@@ -22,7 +23,7 @@ public class SystemTrayConfigurationConcrete implements SystemTrayConfiguration 
     }
 
     @Override
-    public boolean removeOnRestore() {
+    public boolean isRemoveOnRestore() {
         return removeOnRestore;
     }
 
@@ -32,17 +33,32 @@ public class SystemTrayConfigurationConcrete implements SystemTrayConfiguration 
     }
 
     @Override
-    public ImageIcon getImageIcon() {
-        return imageIcon;
+    public boolean isAlwaysVisible() {
+        return this.alwaysVisible;
+    }
+
+    @Override
+    public void setAlwaysVisible(boolean alwaysVisible) {
+        this.alwaysVisible = alwaysVisible;
+    }
+
+    @Override
+    public Image getImage() {
+        return image;
     }
 
     @Override
     public void setImageIcon(ImageIcon icon) {
-        this.imageIcon = icon;
+        this.image = (icon != null) ? icon.getImage() : null;
+    }
+
+    @Override
+    public void setImageIcon(Image image) {
+        this.image = image;
     }
 
     @Override
     public boolean isAvaiable() {
-        return SystemTray.isSupported() && systemTrayEnable && (imageIcon != null);
+        return SystemTray.isSupported() && systemTrayEnable;
     }
 }
