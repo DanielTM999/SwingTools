@@ -81,6 +81,7 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
     @Override
     public void dispose() {
         if (!executorService.isShutdown()) executorService.shutdownNow();
+        WindowContext.removeWindow(this);
         super.dispose();
     }
 

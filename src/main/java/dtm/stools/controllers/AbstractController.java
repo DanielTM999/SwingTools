@@ -10,10 +10,10 @@ public abstract class AbstractController<T extends IWindow> {
     public void onLoad(T activity) throws Exception{}
     public void onClose(T activity) throws Exception{}
     public void onLostFocus(T activity) throws Exception{}
-    public void onReciveWindowEvent(T activity, Object args){}
-    public void sendWindowEvent(T activity, Object args){
+    public void onReciveEvent(T activity, Object args){}
+    public void sendEvent(T activity, Object args){
         if(activity instanceof DelegatedWindow delegatedWindow){
-            delegatedWindow.onRecieveServerEvent(args);
+            delegatedWindow.onRecieveEvent(args);
         }
     }
 }

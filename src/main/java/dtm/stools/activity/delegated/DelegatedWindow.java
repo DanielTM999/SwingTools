@@ -1,6 +1,6 @@
 package dtm.stools.activity.delegated;
 
 public interface DelegatedWindow {
-    default void onRecieveServerEvent(Object eventArgs){};
-    void sendServerEvent(Object eventArgs);
+    default void onRecieveEvent(Object eventArgs){};
+    void sendEvent(Object eventArgs);
 }

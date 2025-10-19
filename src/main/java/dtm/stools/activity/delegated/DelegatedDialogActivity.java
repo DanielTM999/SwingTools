@@ -33,8 +33,8 @@ public abstract class DelegatedDialogActivity<T extends AbstractController<Dialo
     protected abstract T newController();
 
     @Override
-    public void sendServerEvent(Object eventArgs){
-        if(controller != null) controller.onReciveWindowEvent(this, eventArgs);
+    public void sendEvent(Object eventArgs){
+        if(controller != null) controller.onReciveEvent(this, eventArgs);
     }
 
     @Override
