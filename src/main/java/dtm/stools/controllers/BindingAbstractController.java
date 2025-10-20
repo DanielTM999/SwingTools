@@ -19,6 +19,7 @@ public abstract class BindingAbstractController<T extends IWindow> extends Abstr
 
     @Override
     public void onInit(T activity) {
+        super.onInit(activity);
         onBindingElements(activity);
     }
 
