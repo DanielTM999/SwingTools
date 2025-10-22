@@ -30,8 +30,11 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
     private final DomElementLoader domElementLoader;
     private final WindowExecutor windowExecutor;
 
+    {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    }
+
     protected FragmentActivity(){
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
@@ -41,7 +44,6 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
 
     protected FragmentActivity(JFrame owner, boolean modal){
         super(owner, modal);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
@@ -51,7 +53,6 @@ public abstract class FragmentActivity extends JDialog implements IWindow {
 
     protected FragmentActivity(JFrame owner, String title, boolean modal){
         super(owner, title, modal);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);

@@ -34,8 +34,11 @@ public abstract class DialogActivity extends JDialog implements IWindow {
     private final DomElementLoader domElementLoader;
     private final WindowExecutor windowExecutor;
 
+    {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    }
+
     protected DialogActivity() {
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
@@ -45,7 +48,6 @@ public abstract class DialogActivity extends JDialog implements IWindow {
 
     protected DialogActivity(Frame frame) {
         super(frame);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
@@ -55,7 +57,6 @@ public abstract class DialogActivity extends JDialog implements IWindow {
 
     protected DialogActivity(Frame frame, String title) {
         super(frame, title);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);

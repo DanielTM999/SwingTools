@@ -41,9 +41,11 @@ public abstract class Activity extends JFrame implements IWindow {
     protected Image trayImage;
     protected TrayIcon trayIcon;
 
+    {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    }
 
     protected Activity(){
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.systemTrayConfiguration = new SystemTrayConfigurationConcrete();
@@ -53,8 +55,7 @@ public abstract class Activity extends JFrame implements IWindow {
     }
 
     protected Activity(String title){
-        super(title);
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+        super(title);;
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.systemTrayConfiguration = new SystemTrayConfigurationConcrete();

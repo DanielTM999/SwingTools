@@ -32,8 +32,11 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
     private final DomElementLoader domElementLoader;
     private final WindowExecutor windowExecutor;
 
+    {
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    }
+
     public TransientPopupActivity(){
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
         this.domViewer = new ConcurrentHashMap<>();
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomElementLoaderService<>(this, this.domViewer, this.executorService);
