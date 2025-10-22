@@ -1,13 +1,9 @@
 package dtm.stools.internal.window;
 
-import dtm.stools.activity.Activity;
 import dtm.stools.context.WindowExecutor;
 import dtm.stools.models.ThrowableRunnable;
 import dtm.stools.models.ThrowableSupplier;
-
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class ActivityWindowExecutor implements WindowExecutor {
 
@@ -15,6 +11,15 @@ public class ActivityWindowExecutor implements WindowExecutor {
 
     public ActivityWindowExecutor(BiConsumer<String, Throwable> errorAction){
         this.onErrorReference = errorAction;
+    }
+
+    @Override
+    public void execute(ThrowableRunnable runnable) {
+        try{
+            runnable.run();
+        }catch (Throwable throwable){
+            callExceptionHandler("undefined", throwable);
+        }
     }
 
     @Override
