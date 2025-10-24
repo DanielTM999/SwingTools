@@ -118,7 +118,7 @@ public abstract class Activity extends JFrame implements IWindow {
                 throw new DomNotLoadException("DomView ainda não foi iniciado.");
             }
             return domViewer.getOrDefault(id, Collections.EMPTY_LIST);
-        }, "findAllById");
+       }, "findAllById");
     }
 
     /**

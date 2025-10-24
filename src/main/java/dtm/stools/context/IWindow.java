@@ -4,6 +4,7 @@ import lombok.NonNull;
 import javax.swing.SwingUtilities;
 import java.awt.Component;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @SuppressWarnings("unchecked")

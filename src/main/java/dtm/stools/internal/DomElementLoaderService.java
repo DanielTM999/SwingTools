@@ -3,6 +3,7 @@ package dtm.stools.internal;
 import dtm.stools.context.DomElementLoader;
 import lombok.SneakyThrows;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -94,17 +95,33 @@ public class DomElementLoaderService<T extends Window> implements DomElementLoad
         if (component == null) return;
 
         String name = component.getName();
-        if (name != null && !name.isBlank()) {
-            domViewer
-                    .computeIfAbsent(name, k -> Collections.synchronizedList(new ArrayList<>()))
-                    .add(component);
+        if (name == null || name.isBlank()) {
+            name = component.getClass().getSimpleName() + "@" + Integer.toHexString(component.hashCode());
         }
+
+        domViewer.computeIfAbsent(name, k -> Collections.synchronizedList(new ArrayList<>()))
+                .add(component);
 
         if (component instanceof Container container) {
             for (Component child : container.getComponents()) {
                 collectComponentsRecursive(child);
             }
         }
+
+        if (component instanceof JMenu menu) {
+            for (int i = 0; i < menu.getItemCount(); i++) {
+                JMenuItem item = menu.getItem(i);
+                collectComponentsRecursive(item);
+            }
+        }
+
+        if (component instanceof JMenuBar menuBar) {
+            for (int i = 0; i < menuBar.getMenuCount(); i++) {
+                JMenu menu = menuBar.getMenu(i);
+                collectComponentsRecursive(menu);
+            }
+        }
+
     }
 
 
