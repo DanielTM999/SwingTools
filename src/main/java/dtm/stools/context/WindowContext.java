@@ -1,6 +1,10 @@
 package dtm.stools.context;
 
+import dtm.stools.internal.wrapper.ConcurrentWeakReferenceDeque;
+import dtm.stools.internal.wrapper.ConcurrentWeakReferenceQueue;
+
 import java.util.Deque;
+import java.util.Queue;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -10,7 +14,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  */
 public final class WindowContext {
 
-    private static final Deque<IWindow> windowContextStack = new ConcurrentLinkedDeque<>();
+    private static final Deque<IWindow> windowContextStack = new ConcurrentWeakReferenceDeque<>();
 
     private WindowContext() {}
 
@@ -52,7 +56,7 @@ public final class WindowContext {
      */
     @SuppressWarnings("unchecked")
     public static <T extends IWindow> T popWindow() {
-        return (T) windowContextStack.poll();
+        return (T) windowContextStack.pop();
     }
 
     /**

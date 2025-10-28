@@ -1,6 +1,8 @@
 package dtm.stools.context;
 
 import dtm.stools.activity.NotificationActivity;
+import dtm.stools.internal.wrapper.ConcurrentWeakReferenceDeque;
+import dtm.stools.internal.wrapper.ConcurrentWeakReferenceQueue;
 import lombok.NonNull;
 
 import java.util.*;
@@ -16,7 +18,7 @@ import java.util.stream.Collectors;
 public final class NotificationManager {
     private static final AtomicInteger gap = new AtomicInteger(10);
     private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private static final Queue<NotificationActivity> notificationActivities = new ConcurrentLinkedQueue<>(){
+    private static final Queue<NotificationActivity> notificationActivities = new ConcurrentWeakReferenceDeque<>(){
         @Override
         public boolean remove(Object o) {
             boolean result =  super.remove(o);
