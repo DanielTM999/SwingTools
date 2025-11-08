@@ -18,15 +18,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-public class CurrencyField extends JTextField implements EventListenerComponent {
+public class CurrencyField extends MaskedTextField {
 
-    private final NumberFormat currencyFormatter;
+    private final AtomicReference<NumberFormat> currencyFormatterRef;
     private final int decimalPlaces;
     @Getter
     private BigDecimal value;
-    private final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
     private boolean isUpdating = false;
     private String valueOnFocusGain;
 
@@ -36,8 +36,8 @@ public class CurrencyField extends JTextField implements EventListenerComponent 
 
     public CurrencyField(Locale locale) {
         super();
-        this.currencyFormatter = NumberFormat.getCurrencyInstance(locale);
-        this.decimalPlaces = currencyFormatter.getMaximumFractionDigits();
+        this.currencyFormatterRef = new AtomicReference<>(NumberFormat.getCurrencyInstance(locale));
+        this.decimalPlaces = currencyFormatterRef.get().getMaximumFractionDigits();
         this.value = BigDecimal.ZERO.setScale(decimalPlaces, RoundingMode.HALF_UP);
         this.valueOnFocusGain = formatValue(this.value);
 
@@ -63,13 +63,11 @@ public class CurrencyField extends JTextField implements EventListenerComponent 
         });
     }
 
-    @Override
-    public void addEventListner(String eventType, Consumer<EventComponent> event) {
-        if (eventType == null || eventType.isEmpty() || event == null) return;
-
-        if (eventType.equals(EventType.CHANGE) || eventType.equals(EventType.INPUT)) {
-            listeners.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(event);
-        }
+    public void setValueLocale(Locale locale){
+        if(locale == null) return;
+        NumberFormat numberFormat = NumberFormat.getCurrencyInstance(locale);
+        if(numberFormat == null) return;
+        this.currencyFormatterRef.set(numberFormat);
     }
 
     public void setValue(BigDecimal value) {
@@ -85,52 +83,12 @@ public class CurrencyField extends JTextField implements EventListenerComponent 
         valueOnFocusGain = getText();
 
         if (!Objects.equals(oldValue, this.value)) {
-            dispachEvent(EventType.CHANGE, null);
+            dispachEvent(EventType.CHANGE, this::getValue);
         }
     }
 
     private String formatValue(BigDecimal val) {
-        return currencyFormatter.format(val);
-    }
-
-    private void dispachEvent(String eventType, AWTEvent originalEvent) {
-        List<Consumer<EventComponent>> consumers = listeners.get(eventType);
-
-        if (consumers != null && !consumers.isEmpty()) {
-            EventComponent event = new EventComponent() {
-                private final long timestamp = System.currentTimeMillis();
-
-                @Override
-                public Component getComponent() {
-                    return CurrencyField.this;
-                }
-
-                @Override
-                public Object getValue() {
-                    return CurrencyField.this.getValue();
-                }
-
-                @SuppressWarnings("unchecked")
-                @Override
-                public <T> T tryGetValue() {
-                    try {
-                        return (T) getValue();
-                    } catch (ClassCastException e) {
-                        return null;
-                    }
-                }
-
-                @Override
-                public String getEventType() {
-                    return eventType;
-                }
-
-            };
-
-            SwingUtilities.invokeLater(() -> {
-                consumers.forEach(listener -> listener.accept(event));
-            });
-        }
+        return currencyFormatterRef.get().format(val);
     }
 
     private class CurrencyDocumentFilter extends DocumentFilter {

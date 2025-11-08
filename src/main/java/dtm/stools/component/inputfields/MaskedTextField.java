@@ -60,6 +60,15 @@ public class MaskedTextField extends JTextFieldListener {
     }
 
     /**
+     * Cria um novo campo de texto com máscara.
+     *
+     * @param mask A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
+     */
+    public MaskedTextField(String mask, int columns) {
+        this(mask, '_', columns);
+    }
+
+    /**
      * Cria um novo campo de texto com máscara e placeholder customizado.
      *
      * @param mask        A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
