@@ -1,4 +1,4 @@
-package dtm.stools.component.inputfields.events;
+package dtm.stools.component.events;
 
 import java.awt.*;
 

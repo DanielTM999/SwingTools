@@ -1,6 +1,6 @@
 package dtm.stools.component.inputfields.datefield;
 
-import dtm.stools.component.inputfields.events.EventListenerComponent;
+import dtm.stools.component.events.EventListenerComponent;
 
 import java.awt.*;
 import java.time.LocalDate;

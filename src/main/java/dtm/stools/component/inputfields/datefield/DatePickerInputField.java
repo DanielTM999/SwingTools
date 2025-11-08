@@ -1,8 +1,8 @@
 package dtm.stools.component.inputfields.datefield;
 
 import dtm.stools.component.inputfields.MaskedTextField;
-import dtm.stools.component.inputfields.events.EventComponent;
-import dtm.stools.component.inputfields.events.EventType;
+import dtm.stools.component.events.EventComponent;
+import dtm.stools.component.events.EventType;
 
 import javax.swing.*;
 import javax.swing.border.Border;

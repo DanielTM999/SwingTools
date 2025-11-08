@@ -1,6 +1,6 @@
 package dtm.stools.component.inputfields;
 
-import dtm.stools.component.inputfields.events.EventType;
+import dtm.stools.component.events.EventType;
 import lombok.Setter;
 
 import javax.swing.*;
@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -31,6 +32,7 @@ public class SearchTextField<T> extends MaskedTextField{
     private final AtomicInteger maxResults;
     private final ExecutorService executor;
     private final AtomicInteger searchId;
+    private final AtomicBoolean showPopupEnable;
     private Function<T, String> displayFunction = Object::toString;
     private BiPredicate<String, String> searchStrategy = (text, value) -> value.toLowerCase().contains(text.toLowerCase());
 
@@ -69,6 +71,7 @@ public class SearchTextField<T> extends MaskedTextField{
         this.searchId = new AtomicInteger(0);
         this.minLength = new AtomicInteger(2);
         this.maxResults = new AtomicInteger(50);
+        this.showPopupEnable = new AtomicBoolean(true);
         this.executor = Executors.newSingleThreadExecutor();
         this.dataSources = Collections.synchronizedList(new ArrayList<>());
         this.searchOptions = new CopyOnWriteArrayList<>();
@@ -109,7 +112,7 @@ public class SearchTextField<T> extends MaskedTextField{
             if (selectingFromList) return;
 
             String text = getText().trim();
-            if (text.length() >= minLength.get()) {
+            if (text.length() >= minLength.get() && this.showPopupEnable.get()) {
                 int currentSearch = searchId.incrementAndGet();
                 executor.submit(() -> {
                     List<T> results = search(text);
@@ -231,6 +234,10 @@ public class SearchTextField<T> extends MaskedTextField{
     /** Fecha o popup de sugestões */
     public void closePopup() {
         suggestionPopup.setVisible(false);
+    }
+
+    public void setShowPopup(boolean show){
+        this.showPopupEnable.set(show);
     }
 
     @Override

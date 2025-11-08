@@ -1,8 +1,8 @@
 package dtm.stools.component.inputfields;
 
-import dtm.stools.component.inputfields.events.EventComponent;
-import dtm.stools.component.inputfields.events.EventListenerComponent;
-import dtm.stools.component.inputfields.events.EventType;
+import dtm.stools.component.events.EventComponent;
+import dtm.stools.component.events.EventListenerComponent;
+import dtm.stools.component.events.EventType;
 import lombok.Getter;
 import java.math.RoundingMode;
 import javax.swing.*;

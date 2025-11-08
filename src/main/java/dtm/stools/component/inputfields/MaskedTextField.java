@@ -1,18 +1,13 @@
 package dtm.stools.component.inputfields;
 
-import dtm.stools.component.inputfields.events.EventComponent;
-import dtm.stools.component.inputfields.events.EventListenerComponent;
-import dtm.stools.component.inputfields.events.EventType;
+import dtm.stools.component.events.EventComponent;
+import dtm.stools.component.events.EventType;
 import dtm.stools.component.inputfields.filters.ListenerDocumentFilter;
-
 import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -29,22 +24,15 @@ import java.util.function.Consumer;
  * <li><b>'?'</b> - Representa uma letra (sem conversão)</li>
  * <li><b>'*'</b> - Representa qualquer caractere</li>
  * </ul>
- *
- * <p><b>Exemplos de Máscara:</b>
- * <ul>
- * <li><b>CPF:</b> "###.###.###-##"</li>
- * <li><b>CNPJ:</b> "##.###.###/####-##"</li>
- * <li><b>Data:</b> "##/##/####"</li>
- * <li><b>Telefone:</b> "(##) #####-####"</li>
- * <li><b>Placa:</b> "UUU-####"</li>
- * </ul>
  */
-public class MaskedTextField extends JTextField implements EventListenerComponent {
+public class MaskedTextField extends JTextFieldListener {
 
     private final String mask;
     private final char placeholder;
-    private final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
     private String valueOnFocusGain;
+
+    private String placeholderText;
+    private Color placeholderColor = Color.GRAY;
 
     /**
      * Cria um novo campo de texto sem máscara.
@@ -79,7 +67,7 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
             setText(createEmptyMask());
         }else{
             ((AbstractDocument) getDocument()).setDocumentFilter(new ListenerDocumentFilter(() -> {
-                dispachEvent(EventType.INPUT);
+                dispachEvent(EventType.INPUT, this::getCleanText);
             }));
         }
 
@@ -88,16 +76,63 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
             @Override
             public void focusGained(FocusEvent e) {
                 valueOnFocusGain = getCleanText();
+                repaint();
             }
 
             @Override
             public void focusLost(FocusEvent e) {
                 if (!getCleanText().equals(valueOnFocusGain)) {
-                    dispachEvent(EventType.CHANGE);
+                    dispachEvent(EventType.CHANGE, MaskedTextField.this::getCleanText);
                     valueOnFocusGain = getCleanText();
                 }
+                repaint();
             }
         });
+    }
+
+
+    /**
+     * Define o texto do placeholder que é exibido quando o campo está vazio e sem foco.
+     * Esta função só funciona se o campo NÃO tiver uma máscara.
+     * Nenhum evento (INPUT, CHANGE) é disparado.
+     *
+     * @param placeholderText O texto a ser exibido.
+     */
+    public void setPlaceholder(String placeholderText) {
+        this.placeholderText = placeholderText;
+        repaint();
+    }
+
+    /**
+     * Define a cor do texto do placeholder.
+     *
+     * @param placeholderColor A cor a ser usada.
+     */
+    public void setPlaceholderColor(Color placeholderColor) {
+        this.placeholderColor = placeholderColor;
+        repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        if (mask == null && placeholderText != null && !placeholderText.isEmpty() && getText().isEmpty() && !hasFocus()) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(placeholderColor);
+
+            g2.setFont(getFont().deriveFont(Font.ITALIC));
+
+            Insets insets = getInsets();
+            FontMetrics fm = g2.getFontMetrics();
+            int x = insets.left + 5;
+
+            int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+
+            g2.drawString(placeholderText, x, y);
+            g2.dispose();
+        }
     }
 
     @Override
@@ -165,7 +200,7 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
         valueOnFocusGain = newValue;
 
         if (!oldValue.equals(newValue)) {
-            dispachEvent(EventType.CHANGE);
+            dispachEvent(EventType.CHANGE, MaskedTextField.this::getCleanText);
         }
     }
 
@@ -221,47 +256,6 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
         return position;
     }
 
-    private void dispachEvent(String eventType){
-        if (listeners != null && !listeners.isEmpty()) {
-            List<Consumer<EventComponent>> listeners = this.listeners.get(eventType);
-            if(listeners != null && !listeners.isEmpty()){
-                EventComponent event = new EventComponent() {
-                    @Override
-                    public Component getComponent() {
-                        return MaskedTextField.this;
-                    }
-
-                    @Override
-                    public Object getValue() {
-                        return getCleanText();
-                    }
-
-                    @SuppressWarnings("unchecked")
-                    @Override
-                    public <T> T tryGetValue() {
-                        try {
-                            return (T) getCleanText();
-                        } catch (Exception e) {
-                            return null;
-                        }
-                    }
-
-                    @Override
-                    public String getEventType() {
-                        return eventType;
-                    }
-                };
-                listeners.forEach(listener -> {
-                    try{
-                        listener.accept(event);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
-            }
-        }
-    }
-
     private class MaskDocumentFilter extends DocumentFilter {
 
         @Override
@@ -308,7 +302,7 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
             fb.remove(0, fb.getDocument().getLength());
             fb.insertString(0, newText.toString(), attrs);
 
-            dispachEvent(EventType.INPUT);
+            dispachEvent(EventType.INPUT, MaskedTextField.this::getCleanText);
 
             final int finalPosition = Math.min(position, mask.length());
             SwingUtilities.invokeLater(() -> MaskedTextField.this.setCaretPosition(finalPosition));
@@ -334,7 +328,7 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
             fb.remove(0, fb.getDocument().getLength());
             fb.insertString(0, newText.toString(), null);
 
-            dispachEvent(EventType.INPUT);
+            dispachEvent(EventType.INPUT, MaskedTextField.this::getCleanText);
 
             final int finalOffset = offset;
             SwingUtilities.invokeLater(() -> MaskedTextField.this.setCaretPosition(finalOffset));
