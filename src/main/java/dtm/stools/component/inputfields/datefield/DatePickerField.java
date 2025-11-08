@@ -1,11 +1,10 @@
-package dtm.stools.component.textfields.datefield;
+package dtm.stools.component.inputfields.datefield;
 
-import dtm.stools.component.textfields.events.EventListenerComponent;
+import dtm.stools.component.inputfields.events.EventListenerComponent;
 
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.function.Consumer;
 
 public interface DatePickerField extends EventListenerComponent {
     void setEditable(boolean editable);
@@ -59,7 +58,7 @@ public interface DatePickerField extends EventListenerComponent {
     Component getComponent();
 
     static DatePickerField createOf(){
-        return new DatePickerFieldImple();
+        return new DatePickerInputField();
     }
 
     static DatePickerField createOf(String pattern){
@@ -71,6 +70,6 @@ public interface DatePickerField extends EventListenerComponent {
     }
 
     static DatePickerField createOf(String pattern, Dimension componentDimension, Dimension calendarButtonDimension){
-        return new DatePickerFieldImple(pattern, componentDimension, calendarButtonDimension);
+        return new DatePickerInputField(pattern, componentDimension, calendarButtonDimension);
     }
 }

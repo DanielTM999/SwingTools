@@ -1,8 +1,9 @@
-package dtm.stools.component.textfields;
+package dtm.stools.component.inputfields;
 
-import dtm.stools.component.textfields.events.EventComponent;
-import dtm.stools.component.textfields.events.EventListenerComponent;
-import dtm.stools.component.textfields.events.EventType;
+import dtm.stools.component.inputfields.events.EventComponent;
+import dtm.stools.component.inputfields.events.EventListenerComponent;
+import dtm.stools.component.inputfields.events.EventType;
+import dtm.stools.component.inputfields.filters.ListenerDocumentFilter;
 
 import javax.swing.*;
 import javax.swing.text.*;
@@ -62,16 +63,6 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
         this(mask, '_');
     }
 
-    @Override
-    public void addEventListner(String eventType, Consumer<EventComponent> event) {
-        if(eventType == null || eventType.isEmpty()) return;
-
-
-        if (eventType.equals(EventType.CHANGE) || eventType.equals(EventType.INPUT)) {
-            listeners.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(event);
-        }
-    }
-
     /**
      * Cria um novo campo de texto com máscara e placeholder customizado.
      *
@@ -86,6 +77,10 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
         if (mask != null && !mask.isEmpty()) {
             ((AbstractDocument) getDocument()).setDocumentFilter(new MaskDocumentFilter());
             setText(createEmptyMask());
+        }else{
+            ((AbstractDocument) getDocument()).setDocumentFilter(new ListenerDocumentFilter(() -> {
+                dispachEvent(EventType.INPUT);
+            }));
         }
 
         this.valueOnFocusGain = getCleanText();
@@ -103,6 +98,16 @@ public class MaskedTextField extends JTextField implements EventListenerComponen
                 }
             }
         });
+    }
+
+    @Override
+    public void addEventListner(String eventType, Consumer<EventComponent> event) {
+        if(eventType == null || eventType.isEmpty()) return;
+
+
+        if (eventType.equals(EventType.CHANGE) || eventType.equals(EventType.INPUT)) {
+            listeners.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(event);
+        }
     }
 
     /**

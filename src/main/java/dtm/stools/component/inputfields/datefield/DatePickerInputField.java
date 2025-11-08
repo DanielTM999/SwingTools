@@ -1,8 +1,8 @@
-package dtm.stools.component.textfields.datefield;
+package dtm.stools.component.inputfields.datefield;
 
-import dtm.stools.component.textfields.MaskedTextField;
-import dtm.stools.component.textfields.events.EventComponent;
-import dtm.stools.component.textfields.events.EventType;
+import dtm.stools.component.inputfields.MaskedTextField;
+import dtm.stools.component.inputfields.events.EventComponent;
+import dtm.stools.component.inputfields.events.EventType;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  * Implementação do componente de seleção de data (DatePickerField).
  * (Baseado na classe DatePickerField anterior)
  */
-public class DatePickerFieldImple extends JPanel implements DatePickerField {
+public class DatePickerInputField extends JPanel implements DatePickerField {
 
     private final String format;
     private final boolean hasTime;
@@ -72,15 +72,15 @@ public class DatePickerFieldImple extends JPanel implements DatePickerField {
     private static final String VIEW_MONTHS = "MONTHS";
     private static final String VIEW_YEARS = "YEARS";
 
-    public DatePickerFieldImple() {
+    public DatePickerInputField() {
         this("dd/MM/yyyy", null, null);
     }
 
-    public DatePickerFieldImple(String format) {
+    public DatePickerInputField(String format) {
         this(format, null, null);
     }
 
-    public DatePickerFieldImple(String format, Dimension componentDimension, Dimension calendarButtonDimension) {
+    public DatePickerInputField(String format, Dimension componentDimension, Dimension calendarButtonDimension) {
         this.format = format;
         this.hasTime = format.contains("HH") || format.contains("hh");
         this.currentYearMonth = YearMonth.now();
@@ -778,7 +778,7 @@ public class DatePickerFieldImple extends JPanel implements DatePickerField {
             EventComponent event = new EventComponent() {
                 @Override
                 public Component getComponent() {
-                    return DatePickerFieldImple.this;
+                    return DatePickerInputField.this;
                 }
 
                 @Override

@@ -1,4 +1,4 @@
-package dtm.stools.component.textfields.events;
+package dtm.stools.component.inputfields.events;
 
 import java.util.function.Consumer;
 
