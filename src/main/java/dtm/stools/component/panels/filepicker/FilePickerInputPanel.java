@@ -8,6 +8,8 @@ import dtm.stools.component.panels.filepicker.models.FileWrapperTableModel;
 import dtm.stools.component.panels.filepicker.renderers.*;
 import dtm.stools.component.panels.filepicker.utils.FileTreeNode;
 import dtm.stools.component.panels.filepicker.utils.FileWrapper;
+import lombok.Getter;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -39,9 +41,13 @@ public class FilePickerInputPanel extends PanelEventListener {
 
     private final ExecutorService executor;
     private final Set<File> selectedFiles;
+
+    @Getter
     private final Path basePath;
+
     private final AtomicReference<FileSelectionMode> fileSelectionModeAtomicReference;
     private final AtomicBoolean multiSelect;
+    private final AtomicBoolean required;
     private final AtomicBoolean showHiddenFiles;
 
     private Path navigatorPath;
@@ -112,6 +118,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         this.fileSelectionModeAtomicReference = new AtomicReference<>(FileSelectionMode.FILES_AND_DIRECTORIES);
         this.multiSelect = new AtomicBoolean(true);
         this.showHiddenFiles = new AtomicBoolean(false);
+        this.required = new AtomicBoolean(true);
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
 
         if (path != null && Files.exists(path) && Files.isDirectory(path)) {
@@ -132,7 +139,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         setMultiSelectionEnabled(true);
         navigateTo(navigatorPath);
     }
-    
+
 
     public void setOnEndSelection(Consumer<FilePickerInputPanel> listener) {
         this.onEndSelectionListener = listener;
@@ -173,6 +180,10 @@ public class FilePickerInputPanel extends PanelEventListener {
             btnShowHidden.setSelected(show);
         }
         navigateTo(navigatorPath);
+    }
+
+    public void setRequired(boolean required){
+        this.required.set(required);
     }
 
     public Set<File> getSelectedFiles() {
@@ -952,6 +963,14 @@ public class FilePickerInputPanel extends PanelEventListener {
             if (wrapper != null && isFileTypeValid(wrapper.getFile())) {
                 selectedFiles.add(wrapper.getFile());
             }
+        }
+
+        if(selectedFiles.isEmpty() && required.get()){
+            String message = multiSelect.get()
+                    ? "Selecione ao menos 1 arquivo."
+                    : "Selecione um arquivo.";
+            JOptionPane.showMessageDialog(this, message, "Seleção Obrigatória", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
         if (onEndSelectionListener != null) {
