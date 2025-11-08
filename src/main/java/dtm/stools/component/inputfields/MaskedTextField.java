@@ -43,6 +43,14 @@ public class MaskedTextField extends JTextFieldListener {
     }
 
     /**
+     * Cria um novo campo de texto sem máscara e com colunas.
+     * Funciona como um JTextField normal.
+     */
+    public MaskedTextField(int columns) {
+        this(null, '_', columns);
+    }
+
+    /**
      * Cria um novo campo de texto com máscara.
      *
      * @param mask A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
@@ -59,6 +67,46 @@ public class MaskedTextField extends JTextFieldListener {
      */
     public MaskedTextField(String mask, char placeholder) {
         super();
+        this.mask = mask;
+        this.placeholder = placeholder;
+
+        if (mask != null && !mask.isEmpty()) {
+            ((AbstractDocument) getDocument()).setDocumentFilter(new MaskDocumentFilter());
+            setText(createEmptyMask());
+        }else{
+            ((AbstractDocument) getDocument()).setDocumentFilter(new ListenerDocumentFilter(() -> {
+                dispachEvent(EventType.INPUT, this::getCleanText);
+            }));
+        }
+
+        this.valueOnFocusGain = getCleanText();
+        addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                valueOnFocusGain = getCleanText();
+                repaint();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (!getCleanText().equals(valueOnFocusGain)) {
+                    dispachEvent(EventType.CHANGE, MaskedTextField.this::getCleanText);
+                    valueOnFocusGain = getCleanText();
+                }
+                repaint();
+            }
+        });
+    }
+
+    /**
+     * Cria um novo campo de texto com máscara e placeholder customizado.
+     *
+     * @param mask        A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
+     * @param placeholder O caractere que representa posições vazias.
+     * @param columns O numero de colunas
+     */
+    public MaskedTextField(String mask, char placeholder, int columns) {
+        super(columns);
         this.mask = mask;
         this.placeholder = placeholder;
 

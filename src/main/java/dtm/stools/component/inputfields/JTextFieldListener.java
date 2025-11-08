@@ -16,6 +16,12 @@ import java.util.function.Supplier;
 public class JTextFieldListener extends JTextField implements EventListenerComponent {
     protected final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
 
+    public JTextFieldListener(){}
+
+    public JTextFieldListener(int columns){
+        super(columns);
+    }
+
     @Override
     public void addEventListner(String eventType, Consumer<EventComponent> event) {
         if(eventType == null || eventType.isEmpty()) return;
