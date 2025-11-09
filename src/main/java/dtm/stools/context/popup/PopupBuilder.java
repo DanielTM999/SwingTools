@@ -10,19 +10,18 @@ public final class PopupBuilder {
     private final JDialog dialog;
     private final JPanel contentPanel;
     private JComponent content;
-    private int width = 200;
-    private int height = 120;
+    private int width = 400;
+    private int height = 400;
     private boolean modal = false;
-    private boolean undecorated = true;
-    private boolean resizable = false;
+    private boolean undecorated = false;
+    private boolean resizable = true;
     private Component parent;
     private String title;
-    private Long autoCloseDelay; // tempo opcional de fechamento
+    private Long autoCloseDelay;
 
     private PopupBuilder() {
         dialog = new JDialog();
         contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(Color.WHITE); // tela branca por padrão
         dialog.setContentPane(contentPanel);
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     }
@@ -31,7 +30,6 @@ public final class PopupBuilder {
         return new PopupBuilder();
     }
 
-    // --- propriedades básicas ---
     public PopupBuilder title(String title) {
         this.title = title;
         return this;
@@ -63,13 +61,11 @@ public final class PopupBuilder {
         return this;
     }
 
-    // --- conteúdo ---
     public PopupBuilder content(JComponent component) {
         this.content = component;
         return this;
     }
 
-    // --- timer opcional ---
     public PopupBuilder autoCloseAfter(long millis) {
         this.autoCloseDelay = millis;
         return this;
