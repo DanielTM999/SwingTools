@@ -3,7 +3,10 @@ package dtm.stools.component.inputfields;
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.inputfields.filters.ListenerDocumentFilter;
+import lombok.Getter;
+
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
@@ -31,6 +34,16 @@ public class MaskedTextField extends JTextFieldListener {
     private final char placeholder;
     private String valueOnFocusGain;
 
+    /**
+     * -- GETTER --
+     *  Verifica se o campo está em modo somente leitura.
+     *
+     * @return true se o campo é somente leitura, false caso contrário
+     */
+    @Getter
+    private boolean readOnly = false;
+    private Border originalBorder;
+    private Border readOnlyBorder;
     private String placeholderText;
     private Color placeholderColor = Color.GRAY;
 
@@ -168,6 +181,64 @@ public class MaskedTextField extends JTextFieldListener {
     public void setPlaceholderColor(Color placeholderColor) {
         this.placeholderColor = placeholderColor;
         repaint();
+    }
+
+    /**
+     * Define se o campo é somente leitura.
+     * Quando readOnly = true, o campo fica com borda pontilhada e não permite edição.
+     *
+     * @param readOnly true para tornar o campo somente leitura, false para permitir edição
+     */
+    public void setReadonly(boolean readOnly) {
+        this.readOnly = readOnly;
+
+        if (originalBorder == null) {
+            originalBorder = getBorder();
+        }
+
+        if (readOnly) {
+            setEditable(false);
+
+            Color borderColor = UIManager.getColor("TextField.border");
+            if (borderColor == null) {
+                borderColor = UIManager.getColor("controlShadow");
+            }
+            if (borderColor == null) {
+                borderColor = Color.GRAY;
+            }
+
+            readOnlyBorder = BorderFactory.createDashedBorder(
+                    borderColor,
+                    1.0f,
+                    3.0f,
+                    3.0f,
+                    false
+            );
+
+            setBorder(readOnlyBorder);
+
+            Color disabledBg = UIManager.getColor("TextField.disabledBackground");
+            if (disabledBg == null) {
+                disabledBg = UIManager.getColor("control");
+            }
+            if (disabledBg != null) {
+                setBackground(disabledBg);
+            }
+        } else {
+            setEditable(true);
+            setBorder(originalBorder);
+
+            Color normalBg = UIManager.getColor("TextField.background");
+            if (normalBg != null) {
+                setBackground(normalBg);
+            }
+        }
+
+        repaint();
+    }
+
+    public boolean isReadonly(){
+        return readOnly;
     }
 
     @Override

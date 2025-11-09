@@ -28,10 +28,18 @@ public class PanelEventListener extends JPanel implements EventListenerComponent
     public void addNotify() {
         super.addNotify();
         SwingUtilities.invokeLater(() -> {
-
             dispachEvent(EventType.LOAD, this, this);
         });
     }
+
+    protected void dispachEvent(String eventType, Object value){
+        dispachEvent(eventType, PanelEventListener.this, value);
+    }
+
+    protected <T> void dispachEvent(String eventType, Supplier<T> value){
+        dispachEvent(eventType, PanelEventListener.this, value);
+    }
+
 
     protected void dispachEvent(String eventType, Component component, Object value){
         if (listeners != null && !listeners.isEmpty()) {

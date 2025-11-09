@@ -1,8 +1,9 @@
-package dtm.stools.component.inputfields.datefield;
+package dtm.stools.component.panels.datefield;
 
 import dtm.stools.component.inputfields.MaskedTextField;
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;
+import dtm.stools.component.panels.base.PanelEventListener;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -31,7 +32,7 @@ import java.util.function.Consumer;
  * Implementação do componente de seleção de data (DatePickerField).
  * (Baseado na classe DatePickerField anterior)
  */
-public class DatePickerInputField extends JPanel implements DatePickerField {
+public class DatePickerInputField extends PanelEventListener implements DatePickerField {
 
     private final String format;
     private final boolean hasTime;
@@ -65,8 +66,6 @@ public class DatePickerInputField extends JPanel implements DatePickerField {
 
     private JSpinner hourSpinner;
     private JSpinner minuteSpinner;
-
-    private final Map<String, List<Consumer<EventComponent>>> eventListners = new ConcurrentHashMap<>();
 
     private static final String VIEW_DAYS = "DAYS";
     private static final String VIEW_MONTHS = "MONTHS";
@@ -773,43 +772,7 @@ public class DatePickerInputField extends JPanel implements DatePickerField {
      * Dispara o evento onDataChangeCallback se ele estiver definido.
      */
     private void fireOnDataChange() {
-        List<Consumer<EventComponent>> listeners = eventListners.get(EventType.CHANGE);
-        if (listeners != null && !listeners.isEmpty()) {
-            EventComponent event = new EventComponent() {
-                @Override
-                public Component getComponent() {
-                    return DatePickerInputField.this;
-                }
-
-                @Override
-                public Object getValue() {
-                    return getSelectedDateTime();
-                }
-
-                @SuppressWarnings("unchecked")
-                @Override
-                public <T> T tryGetValue() {
-                    try{
-                        return (T) getSelectedDateTime();
-                    } catch (Exception e) {
-                        return null;
-                    }
-                }
-
-                @Override
-                public String getEventType() {
-                    return EventType.CHANGE;
-                }
-            };
-
-            listeners.forEach(listener -> {
-                try{
-                    listener.accept(event);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-        }
+        dispachEvent(EventType.CHANGE, this::getSelectedDateTime);
     }
 
 
@@ -872,12 +835,21 @@ public class DatePickerInputField extends JPanel implements DatePickerField {
     }
 
     @Override
+    public void setReadonlyField(boolean readOnly) {
+        textField.setReadonly(readOnly);
+    }
+
+    @Override
+    public boolean isReadonlyField() {
+        return textField.isReadonly();
+    }
+
+    @Override
     public void addEventListner(String eventType, Consumer<EventComponent> event) {
         if(eventType == null || eventType.isEmpty()) return;
 
-
         if(eventType.equals(EventType.CHANGE)){
-            eventListners.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(event);
+            listeners.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>()).add(event);
         }else if(eventType.equals(EventType.INPUT)){
             textField.addEventListner(EventType.INPUT, event);
         }

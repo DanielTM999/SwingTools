@@ -1,4 +1,4 @@
-package dtm.stools.component.inputfields.datefield;
+package dtm.stools.component.panels.datefield;
 
 import dtm.stools.component.events.EventListenerComponent;
 
@@ -56,6 +56,11 @@ public interface DatePickerField extends EventListenerComponent {
      * @return O componente Swing.
      */
     Component getComponent();
+
+    void setReadonlyField(boolean readOnly);
+
+    boolean isReadonlyField();
+
 
     static DatePickerField createOf(){
         return new DatePickerInputField();
