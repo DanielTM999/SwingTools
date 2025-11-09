@@ -218,6 +218,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         this.allowNewFileInput.set(enabled);
         if (!multiSelect.get()) {
             txtSingleFile.setEditable(enabled);
+            this.permitSelectFolder.set(!enabled);
         }
     }
 
@@ -248,7 +249,7 @@ public class FilePickerInputPanel extends PanelEventListener {
             return;
         }
 
-        if (parentDir != null && parentDir.exists()) {
+        if (parentDir.exists()) {
             Runnable task = () -> {
                 int modelRow = tableModel.findFile(file);
                 if (modelRow != -1) {
@@ -257,6 +258,7 @@ public class FilePickerInputPanel extends PanelEventListener {
                         selectFileInTable(wrapper);
                     }
                 } else {
+                    if(!permitSelectFolder.get() && parentDir.isDirectory()) return;
                     txtSingleFile.setText(file.getName());
                 }
             };
@@ -689,7 +691,6 @@ public class FilePickerInputPanel extends PanelEventListener {
         } else if (!multiSelect.get()) {
             if (isFileTypeValid(file)) {
                 txtSingleFile.setText(file.getName());
-                permitSelectFolder.set(true);
                 finalizeSelection();
             }
         }
@@ -727,12 +728,10 @@ public class FilePickerInputPanel extends PanelEventListener {
             File file = wrapper.getFile();
             if (file.isDirectory()) {
                 navigateTo(file.toPath(), null);
-            } else if (!multiSelect.get()) {
-                if (isFileTypeValid(file)) {
-                    txtSingleFile.setText(file.getName());
-                    permitSelectFolder.set(true);
-                    finalizeSelection();
-                }
+            } else if (!multiSelect.get() && isFileTypeValid(file)) {
+                txtSingleFile.setText(file.getName());
+                permitSelectFolder.set(true);
+                finalizeSelection();
             }
         }
     }
@@ -818,10 +817,6 @@ public class FilePickerInputPanel extends PanelEventListener {
         }
 
         Path absolutePath = path.toAbsolutePath();
-
-        if (navigatorPath != null && !absolutePath.equals(navigatorPath)) {
-            permitSelectFolder.set(true);
-        }
 
         navigatorPath = absolutePath;
 
@@ -1064,6 +1059,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         if(!selectFolder && wrapper.isDirectory()) return;
 
         if (isFileTypeValid(wrapper.getFile())) {
+
             txtSingleFile.setText(wrapper.getFile().getName());
             permitSelectFolder.set(true);
         } else {
@@ -1108,6 +1104,31 @@ public class FilePickerInputPanel extends PanelEventListener {
             if (fileName != null && !fileName.isBlank()) {
                 File expectedFile = navigatorPath.resolve(fileName).toFile();
                 boolean isNewFile = (allowNewFileInput.get()) && !expectedFile.exists();
+
+                String extension = getFileExtension(expectedFile.getName());
+                boolean hasExtension = extension != null && !extension.isBlank();
+                boolean validExtension = hasExtension && isExtensionValid(extension);
+
+                if (!hasExtension || !validExtension) {
+                    String message;
+                    if (!hasExtension) {
+                        message = "O arquivo selecionado não possui uma extensão.\n" +
+                                "Por favor, insira uma extensão válida, como: "+getValidExtensionsString();
+                    } else {
+                        String allowed = String.join(", ", currentFileFilter.getExtensions());
+                        message = "A extensão do arquivo '" + extension + "' não é permitida.\n" +
+                                "Extensões válidas: " + allowed + ".";
+                    }
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            message,
+                            "Extensão inválida",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    return;
+                }
+
                 if (isNewFile) {
                     selectedFiles.add(expectedFile);
                 } else {
@@ -1151,6 +1172,42 @@ public class FilePickerInputPanel extends PanelEventListener {
             parent = parent.getParent();
         }
         return paths;
+    }
+
+    private String getFileExtension(String fileName) {
+        int dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex > 0 && dotIndex < fileName.length() - 1) {
+            return fileName.substring(dotIndex + 1).toLowerCase();
+        }
+        return null;
+    }
+
+    private boolean isExtensionValid(String extension) {
+        if (currentFileFilter == null || currentFileFilter.getExtensions() == null)
+            return true;
+
+        for (String ext : currentFileFilter.getExtensions()) {
+            if (ext.equalsIgnoreCase(extension)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String getValidExtensionsString(){
+        if (currentFileFilter == null || currentFileFilter.getExtensions() == null)
+            return ".txt";
+
+        String[] exts = currentFileFilter.getExtensions();
+        if (exts.length == 0)
+            return ".txt";
+
+        return String.join(", ",
+                Arrays.stream(exts)
+                        .map(ext -> ext.startsWith(".") ? ext : "." + ext)
+                        .toArray(String[]::new)
+        );
+
     }
 
 }
