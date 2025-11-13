@@ -17,8 +17,10 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -30,7 +32,7 @@ public class SearchTextField<T> extends MaskedTextField{
     private final JList<T> suggestionList;
     private final AtomicInteger minLength;
     private final AtomicInteger maxResults;
-    private final ExecutorService executor;
+    private final AtomicReference<ExecutorService> executorRef;
     private final AtomicInteger searchId;
     private final AtomicBoolean showPopupEnable;
     private Function<T, String> displayFunction = Object::toString;
@@ -72,7 +74,7 @@ public class SearchTextField<T> extends MaskedTextField{
         this.minLength = new AtomicInteger(2);
         this.maxResults = new AtomicInteger(50);
         this.showPopupEnable = new AtomicBoolean(true);
-        this.executor = Executors.newSingleThreadExecutor();
+        this.executorRef = new AtomicReference<>(Executors.newSingleThreadExecutor());
         this.dataSources = Collections.synchronizedList(new ArrayList<>());
         this.searchOptions = new CopyOnWriteArrayList<>();
 
@@ -114,7 +116,7 @@ public class SearchTextField<T> extends MaskedTextField{
             String text = getText().trim();
             if (text.length() >= minLength.get() && this.showPopupEnable.get()) {
                 int currentSearch = searchId.incrementAndGet();
-                executor.submit(() -> {
+                submitTask(() -> {
                     List<T> results = search(text);
                     if (currentSearch == searchId.get()) {
                         SwingUtilities.invokeLater(() -> showSuggestions(results));
@@ -219,7 +221,7 @@ public class SearchTextField<T> extends MaskedTextField{
 
     /** Força a abertura do popup com todos os resultados */
     public void showAllSuggestions() {
-        executor.submit(() -> {
+        submitTask(() -> {
             List<T> results = getAllResults();
             SwingUtilities.invokeLater(() -> showSuggestions(results));
         });
@@ -243,7 +245,10 @@ public class SearchTextField<T> extends MaskedTextField{
     @Override
     public void removeNotify() {
         super.removeNotify();
-        executor.shutdownNow();
+        ExecutorService executor = executorRef.getAndSet(null);
+        if (executor != null) {
+            executor.shutdown();
+        }
     }
 
     private List<T> search(String text) {
@@ -387,4 +392,33 @@ public class SearchTextField<T> extends MaskedTextField{
             }
         });
     }
+
+    private ExecutorService getMainExecutor(){
+        while (true) {
+            ExecutorService executor = executorRef.get();
+
+            if (executor == null || executor.isShutdown() || executor.isTerminated()) {
+                ExecutorService newExecutor = Executors.newSingleThreadExecutor();
+                if (executorRef.compareAndSet(executor, newExecutor)) {
+                    executor = newExecutor;
+                } else {
+                    newExecutor.shutdown();
+                    continue;
+                }
+            }
+
+            return executor;
+        }
+    }
+
+    private void submitTask(Runnable task) {
+        ExecutorService executor = getMainExecutor();
+        try {
+            executor.submit(task);
+        } catch (RejectedExecutionException e) {
+            submitTask(task);
+        }
+    }
+
+
 }
