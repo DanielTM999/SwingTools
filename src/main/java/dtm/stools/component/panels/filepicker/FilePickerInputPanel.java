@@ -278,6 +278,13 @@ public class FilePickerInputPanel extends PanelEventListener {
         return selectedFiles.iterator().next();
     }
 
+    public void dispose(){
+        Window window = SwingUtilities.getWindowAncestor(this);
+        if (window != null) {
+            window.dispose();
+        }
+    }
+
     private void initComponents() {
         pnlToolbar = new JPanel(new BorderLayout(5, 0));
 
