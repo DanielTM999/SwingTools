@@ -735,10 +735,17 @@ public class FilePickerInputPanel extends PanelEventListener {
             File file = wrapper.getFile();
             if (file.isDirectory()) {
                 navigateTo(file.toPath(), null);
-            } else if (!multiSelect.get() && isFileTypeValid(file)) {
-                txtSingleFile.setText(file.getName());
-                permitSelectFolder.set(true);
-                finalizeSelection();
+            } else if (isFileTypeValid(file)) {
+                if(multiSelect.get()){
+                    selectedFiles.add(file);
+                    dispachEvent(EventType.INPUT, this, file);
+                    updateSelectionCountLabel();
+                    updateSelectedFilesList();
+                }else{
+                    txtSingleFile.setText(file.getName());
+                    permitSelectFolder.set(true);
+                    finalizeSelection();
+                }
             }
         }
     }
