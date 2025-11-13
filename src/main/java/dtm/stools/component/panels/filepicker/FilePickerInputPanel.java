@@ -1111,6 +1111,7 @@ public class FilePickerInputPanel extends PanelEventListener {
     }
 
     private void finalizeSelection() {
+
         if (!multiSelect.get()) {
             selectedFiles.clear();
             String fileName = txtSingleFile.getText();
@@ -1123,11 +1124,24 @@ public class FilePickerInputPanel extends PanelEventListener {
                 boolean hasExtension = extension != null && !extension.isBlank();
                 boolean validExtension = hasExtension && isExtensionValid(extension);
 
+                if (!hasExtension && currentFileFilter != null) {
+                    String[] exts = currentFileFilter.getExtensions();
+                    if (exts.length == 1) {
+                        String rawExt = exts[0];
+                        String cleanExt = rawExt.startsWith(".") ? rawExt.substring(1) : rawExt;
+                        String sep = expectedFile.getName().endsWith(".") ? "" : ".";
+                        expectedFile = new File(expectedFile.getAbsolutePath() + sep + cleanExt);
+                        extension = cleanExt;
+                        hasExtension = true;
+                        validExtension = true;
+                    }
+                }
+
                 if (!hasExtension || !validExtension) {
                     String message;
                     if (!hasExtension) {
                         message = "O arquivo selecionado não possui uma extensão.\n" +
-                                "Por favor, insira uma extensão válida, como: "+getValidExtensionsString();
+                                "Por favor, insira uma extensão válida, como: " + getValidExtensionsString();
                     } else {
                         String allowed = String.join(", ", currentFileFilter.getExtensions());
                         message = "A extensão do arquivo '" + extension + "' não é permitida.\n" +
@@ -1153,6 +1167,7 @@ public class FilePickerInputPanel extends PanelEventListener {
                 }
             }
         }
+
 
         if(selectedFiles.isEmpty() && required.get()){
             String message;
