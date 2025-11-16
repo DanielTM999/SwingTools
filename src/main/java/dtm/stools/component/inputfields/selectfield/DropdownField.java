@@ -3,6 +3,8 @@ package dtm.stools.component.inputfields.selectfield;
 import dtm.stools.component.events.EventType;
 
 import javax.swing.*;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -25,17 +27,19 @@ public class DropdownField extends DropdownFieldListener<Object> {
         repaint();
     }
 
-    public void setDataSource(List<Object> dataSource){
+    public <T> void setDataSource(Collection<T> dataSource){
         if(dataSource == null) {
             setModel(new DefaultComboBoxModel<>());
             return;
         }
 
         setModel(new DefaultComboBoxModel<>(dataSource.toArray(Object[]::new)));
+        setSelectedItem(null);
     }
 
     public void setDataSource(Object... dataSource){
         setModel(new DefaultComboBoxModel<>(dataSource));
+        setSelectedItem(null);
     }
 
     public void setCustomRenderer(ListCellRenderer<? super Object> renderer){

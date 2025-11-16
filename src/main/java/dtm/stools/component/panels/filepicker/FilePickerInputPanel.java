@@ -53,6 +53,8 @@ public class FilePickerInputPanel extends PanelEventListener {
     private final AtomicBoolean allowNewFileInput;
     private final AtomicBoolean permitSelectFolder;
 
+    private String btnConfirmSelectionText;
+
     private Path navigatorPath;
 
     private JPanel pnlToolbar;
@@ -183,13 +185,22 @@ public class FilePickerInputPanel extends PanelEventListener {
         if (!enabled) {
             clearSelection();
         }
-        btnConfirmSelection.setText(enabled ? "Selecionar" : "Abrir");
+
+        if(btnConfirmSelectionText == null || btnConfirmSelectionText.isEmpty()){
+            btnConfirmSelection.setText(enabled ? "Selecionar" : "Abrir");
+        }else{
+            btnConfirmSelection.setText(btnConfirmSelectionText);
+        }
     }
 
     public void setFileSelectionMode(FileSelectionMode mode) {
         fileSelectionModeAtomicReference.set(mode != null ? mode : FileSelectionMode.FILES_AND_DIRECTORIES);
         clearSelection();
         navigateTo(navigatorPath, null);
+    }
+
+    public void setConfirmSelectionVButtonText(String text){
+        this.btnConfirmSelectionText = text;
     }
 
     public void setFileFilter(FileNameExtensionFilter filter) {
