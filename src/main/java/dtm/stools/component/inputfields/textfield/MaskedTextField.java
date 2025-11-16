@@ -23,7 +23,9 @@ import java.util.function.Consumer;
  * <li><b>'#'</b> - Representa um dígito (número)</li>
  * <li><b>'U'</b> - Representa uma letra (converte para maiúscula)</li>
  * <li><b>'L'</b> - Representa uma letra (converte para minúscula)</li>
- * <li><b>'A'</b> - Representa uma letra ou dígito</li>
+ * <li><b>'$'</b> - Representa uma letra ou dígito (converte para maiúscula)</li>
+ * <li><b>'@'</b> - Representa uma letra ou dígito (converte para minúscula)</li>
+ * <li><b>'&'</b> - Representa uma letra ou dígito</li>
  * <li><b>'?'</b> - Representa uma letra (sem conversão)</li>
  * <li><b>'*'</b> - Representa qualquer caractere</li>
  * </ul>
@@ -346,35 +348,25 @@ public class MaskedTextField extends JTextFieldListener {
     }
 
     private boolean isMaskChar(char c) {
-        return c == '#' || c == 'U' || c == 'L' || c == 'A' || c == '?' || c == '*';
+        return c == '#' || c == 'U' || c == 'L' || c == '&' || c == '?' || c == '*' || c == '$' || c == '@';
     }
 
     private boolean isValidChar(char maskChar, char inputChar) {
-        switch (maskChar) {
-            case '#':
-                return Character.isDigit(inputChar);
-            case 'U':
-            case 'L':
-            case '?':
-                return Character.isLetter(inputChar);
-            case 'A':
-                return Character.isLetterOrDigit(inputChar);
-            case '*':
-                return true;
-            default:
-                return false;
-        }
+        return switch (maskChar) {
+            case '#' -> Character.isDigit(inputChar);
+            case 'U', 'L', '?' -> Character.isLetter(inputChar);
+            case '&', '$', '@' -> Character.isLetterOrDigit(inputChar);
+            case '*' -> true;
+            default -> false;
+        };
     }
 
     private char applyConversion(char maskChar, char inputChar) {
-        switch (maskChar) {
-            case 'U':
-                return Character.toUpperCase(inputChar);
-            case 'L':
-                return Character.toLowerCase(inputChar);
-            default:
-                return inputChar;
-        }
+        return switch (maskChar) {
+            case 'U', '$' -> Character.toUpperCase(inputChar);
+            case 'L', '@' -> Character.toLowerCase(inputChar);
+            default -> inputChar;
+        };
     }
 
     private int getNextEditablePosition(int position) {
