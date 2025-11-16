@@ -1,8 +1,10 @@
-package dtm.stools.component.inputfields;
+package dtm.stools.component.inputfields.selectfield;
 
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventListenerComponent;
 import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.textfield.JTextFieldListener;
+import lombok.NonNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,14 +15,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class JTextFieldListener extends JTextField implements EventListenerComponent {
+public class DropdownFieldListener<T> extends JComboBox<T> implements EventListenerComponent {
+
     protected final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
-
-    public JTextFieldListener(){}
-
-    public JTextFieldListener(int columns){
-        super(columns);
-    }
 
     @Override
     public void addEventListner(String eventType, Consumer<EventComponent> event) {
@@ -33,18 +30,16 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
     public void addNotify() {
         super.addNotify();
         SwingUtilities.invokeLater(() -> {
-
             dispachEvent(EventType.LOAD, this, this);
         });
     }
 
-
     protected void dispachEvent(String eventType, Object value){
-        dispachEvent(eventType, JTextFieldListener.this, value);
+        dispachEvent(eventType, DropdownFieldListener.this, value);
     }
 
-    protected <T> void dispachEvent(String eventType, Supplier<T> value){
-        dispachEvent(eventType, JTextFieldListener.this, value);
+    protected <S> void dispachEvent(String eventType, Supplier<S> value){
+        dispachEvent(eventType, DropdownFieldListener.this, value);
     }
 
     protected void dispachEvent(String eventType, Component component, Object value){
@@ -64,9 +59,9 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
 
                     @SuppressWarnings("unchecked")
                     @Override
-                    public <T> T tryGetValue() {
+                    public <S> S tryGetValue() {
                         try {
-                            return (T) value;
+                            return (S) value;
                         } catch (Exception e) {
                             return null;
                         }
@@ -88,7 +83,7 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
         }
     }
 
-    protected <T> void dispachEvent(String eventType, Component component, Supplier<T> value){
+    protected <S> void dispachEvent(String eventType, Component component, Supplier<S> value){
         if (listeners != null && !listeners.isEmpty()) {
             List<Consumer<EventComponent>> listeners = this.listeners.get(eventType);
             if(listeners != null && !listeners.isEmpty()){
@@ -105,9 +100,9 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
 
                     @SuppressWarnings("unchecked")
                     @Override
-                    public T tryGetValue() {
+                    public S tryGetValue() {
                         try {
-                            return value.get();
+                            return (S) value.get();
                         } catch (Exception e) {
                             return null;
                         }
@@ -129,5 +124,14 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
         }
     }
 
+    public Object getValue() {
+        return getSelectedItem();
+    }
+
+
+    public <S> S getValue(@NonNull Class<S> type) {
+        Object value = getSelectedItem();
+        return (type.isInstance(value)) ? type.cast(value) : null;
+    }
 
 }

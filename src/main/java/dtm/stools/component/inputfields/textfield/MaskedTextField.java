@@ -1,4 +1,4 @@
-package dtm.stools.component.inputfields;
+package dtm.stools.component.inputfields.textfield;
 
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;

@@ -1,25 +1,17 @@
-package dtm.stools.component.inputfields;
+package dtm.stools.component.inputfields.textfield;
 
-import dtm.stools.component.events.EventComponent;
-import dtm.stools.component.events.EventListenerComponent;
 import dtm.stools.component.events.EventType;
 import lombok.Getter;
 import java.math.RoundingMode;
 import javax.swing.*;
 import javax.swing.text.*;
-import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 public class CurrencyField extends MaskedTextField {
 

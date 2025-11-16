@@ -1,8 +1,8 @@
 package dtm.stools.component.panels.filepicker;
 
 import dtm.stools.component.events.EventType;
-import dtm.stools.component.inputfields.MaskedTextField;
-import dtm.stools.component.inputfields.SearchTextField;
+import dtm.stools.component.inputfields.textfield.MaskedTextField;
+import dtm.stools.component.inputfields.textfield.SearchTextField;
 import dtm.stools.component.inputfields.filepicker.FileSelectionMode;
 import dtm.stools.component.panels.base.PanelEventListener;
 import dtm.stools.component.panels.filepicker.models.FileWrapperTableModel;
@@ -13,8 +13,6 @@ import lombok.Getter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.DefaultTableCellRenderer;
