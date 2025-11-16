@@ -128,10 +128,20 @@ public class DropdownFieldListener<T> extends JComboBox<T> implements EventListe
         return getSelectedItem();
     }
 
-
     public <S> S getValue(@NonNull Class<S> type) {
         Object value = getSelectedItem();
         return (type.isInstance(value)) ? type.cast(value) : null;
     }
+
+    @SuppressWarnings("unchecked")
+    public <S> S getValueAs() {
+        try{
+            Object value = getSelectedItem();
+            return (S) value;
+        }catch (Exception e){
+            return null;
+        }
+    }
+
 
 }
