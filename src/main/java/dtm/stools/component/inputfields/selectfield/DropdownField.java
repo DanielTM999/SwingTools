@@ -21,6 +21,16 @@ public class DropdownField extends DropdownFieldListener<Object> {
         configInternalChangeEvent();
     }
 
+    public DropdownField(Object... dataSource){
+        configInternalChangeEvent();
+        setDataSource(dataSource);
+    }
+
+    public <T> DropdownField(Collection<T> dataSource){
+        configInternalChangeEvent();
+        setDataSource(dataSource);
+    }
+
     public void setDisplayText(Function<Object, String> displayFunction){
         this.displayFunction = (displayFunction != null) ? displayFunction : Objects::toString;
         applyRenderer();
