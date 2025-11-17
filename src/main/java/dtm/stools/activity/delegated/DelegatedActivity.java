@@ -1,9 +1,11 @@
 package dtm.stools.activity.delegated;
 
 import dtm.stools.activity.Activity;
+import dtm.stools.context.enums.TrayEventType;
 import dtm.stools.controllers.AbstractController;
 import dtm.stools.exceptions.DelegatedWindowException;
 
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -57,6 +59,12 @@ public abstract class DelegatedActivity<T extends AbstractController<Activity>> 
     protected void onLoad(WindowEvent e) throws Exception{
         super.onLoad(e);
         this.controller.onLoad(this);
+    }
+
+    @Override
+    protected void onSystemTrayClick(MouseEvent event, TrayEventType eventType, Activity currentActivity) {
+        super.onSystemTrayClick(event, eventType, currentActivity);
+        this.controller.onSystemTrayClick(event, eventType, currentActivity);
     }
 
     private void onCreateController(){

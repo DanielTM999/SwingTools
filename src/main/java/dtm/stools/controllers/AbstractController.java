@@ -4,9 +4,11 @@ import dtm.stools.activity.Activity;
 import dtm.stools.activity.delegated.DelegatedActivity;
 import dtm.stools.activity.delegated.DelegatedWindow;
 import dtm.stools.context.IWindow;
+import dtm.stools.context.enums.TrayEventType;
 import lombok.NonNull;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -22,6 +24,7 @@ public abstract class AbstractController<T extends IWindow> {
     public void onClose(T activity) throws Exception{}
     public void onLostFocus(T activity) throws Exception{}
     public void onReciveEvent(T activity, Object args){}
+    public void onSystemTrayClick(MouseEvent event, TrayEventType eventType, Activity currentActivity){}
     public void sendEvent(T activity, Object args){
         if(activity instanceof DelegatedWindow delegatedWindow){
             delegatedWindow.onRecieveEvent(args);
