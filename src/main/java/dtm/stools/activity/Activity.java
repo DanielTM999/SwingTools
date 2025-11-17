@@ -12,6 +12,7 @@ import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
 import dtm.stools.internal.window.ActivityWindowExecutor;
 import dtm.stools.models.SystemTrayConfigurationConcrete;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import javax.swing.*;
@@ -37,8 +38,13 @@ public abstract class Activity extends JFrame implements IWindow {
     private final Map<String, List<Component>> domViewer;
     private final DomElementLoader domElementLoader;
     private final WindowExecutor windowExecutor;
+
+    @Getter
     protected SystemTray tray;
+    
     protected Image trayImage;
+
+    @Getter
     protected TrayIcon trayIcon;
 
     {
