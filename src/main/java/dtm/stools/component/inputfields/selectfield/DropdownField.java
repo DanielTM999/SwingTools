@@ -116,14 +116,12 @@ public class DropdownField extends DropdownFieldListener<Object> {
         applyRenderer();
     }
 
-
-    @SuppressWarnings("unchecked")
     public <T> List<T> getDataSource(Class<T> type) {
         int size = getItemCount();
         return IntStream.range(0, size)
                 .mapToObj(this::getItemAt)
                 .filter(type::isInstance)
-                .map(o -> (T) o)
+                .map(type::cast)
                 .toList();
     }
 
@@ -161,6 +159,11 @@ public class DropdownField extends DropdownFieldListener<Object> {
                 dispachEvent(EventType.CHANGE, this::getSelectedItem);
             }
         });
+    }
+
+    @Override
+    public String toString(){
+        return Objects.toString(getSelectedItem());
     }
 
 }
