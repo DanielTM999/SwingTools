@@ -1,0 +1,125 @@
+name: Build Multi-Platform JAR
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build-natives:
+    name: Build native (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+          - os: ubuntu-latest
+            label: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install MinGW (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        run: choco install mingw -y --no-progress
+
+      - name: Install GTK3 (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev pkg-config
+
+      - name: Build native
+        run: mvn -B generate-resources
+
+      - name: Show built artifacts
+        shell: bash
+        run: |
+          echo "--- src/main/resources/native ---"
+          find src/main/resources/native -type f || true
+
+      - name: Upload native artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.label }}
+          path: src/main/resources/native/
+          if-no-files-found: error
+          retention-days: 7
+
+  package:
+    name: Package fat JAR
+    needs: build-natives
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-natives
+
+      - name: Merge natives into resources
+        run: |
+          mkdir -p src/main/resources/native
+          for d in downloaded-natives/*/; do
+            cp -r "$d". src/main/resources/native/
+          done
+          echo "--- merged tree ---"
+          find src/main/resources/native -type f
+
+      - name: Build JAR (skip native rebuild)
+        run: mvn -B clean package -Dnative.build.skip=true
+
+      - name: Upload final JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: SwingTools-fat-jar
+          path: target/*.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit native binaries back to repo
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/main/resources/native/
+          if git diff --staged --quiet; then
+            echo "No native binary changes to commit."
+          else
+            git commit -m "ci: update native binaries [skip ci]"
+            git push
+          fi
+
+      - name: Attach to release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/*.jar
+            src/main/resources/native/win/**/*.dll
+            src/main/resources/native/mac/**/*.dylib
+            src/main/resources/native/linux/**/*.so

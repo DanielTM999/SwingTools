@@ -1,0 +1,89 @@
+package dtm.stools.activity.delegated;
+
+import dtm.stools.activity.DialogActivity;
+import dtm.stools.controllers.AbstractWindowController;
+import dtm.stools.exceptions.DelegatedWindowException;
+
+import java.awt.*;
+import java.awt.event.WindowEvent;
+import java.lang.reflect.ParameterizedType;
+
+public abstract class DelegatedDialogActivity<T extends AbstractWindowController<DialogActivity>> extends DialogActivity implements DelegatedWindow {
+
+    protected Class<T> controllerClass;
+    protected T controller;
+
+
+    public DelegatedDialogActivity(){
+        delegateInit();
+    }
+
+    public DelegatedDialogActivity(Frame frame){
+        super(frame);
+        delegateInit();
+    }
+
+    public DelegatedDialogActivity(Frame frame, String title){
+        super(frame, title);
+        delegateInit();
+    }
+
+    protected abstract T newController();
+
+    @Override
+    public void sendEvent(Object eventArgs){
+        if(controller != null) controller.onReciveEvent(this, eventArgs);
+    }
+
+    @Override
+    public void init() {
+        super.init();
+        onCreateController();
+        controller.onInit(this);
+    }
+
+    @Override
+    protected void onClose(WindowEvent e) throws Exception{
+        super.onClose(e);
+        controller.onClose(this);
+    }
+
+    @Override
+    protected void onLostFocus(WindowEvent e) throws Exception{
+        super.onLostFocus(e);
+        controller.onLostFocus(this);
+    }
+
+    @Override
+    protected void onLoad(WindowEvent e) throws Exception{
+        super.onLoad(e);
+        this.controller.onLoad(this);
+    }
+
+    private void onCreateController(){
+        controller = newController();
+        if(controller == null)  throw new DelegatedWindowException("Falha ao obter o controller", new NullPointerException("controller null"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void delegateInit(){
+        try {
+            java.lang.reflect.Type superclass = getClass().getGenericSuperclass();
+            if (superclass instanceof ParameterizedType parameterizedType) {
+                java.lang.reflect.Type[] classTypes = parameterizedType.getActualTypeArguments();
+                if (classTypes.length > 0) {
+                    java.lang.reflect.Type type = classTypes[0];
+
+                    if (type instanceof Class<?>) {
+                        controllerClass = (Class<T>) type;
+                    } else if (type instanceof ParameterizedType pt) {
+                        controllerClass = (Class<T>) pt.getRawType();
+                    }
+                }
+            }
+        }catch (Exception e){
+            throw new DelegatedWindowException("Falha ao obter o tipo de controller", e);
+        }
+    }
+
+}
