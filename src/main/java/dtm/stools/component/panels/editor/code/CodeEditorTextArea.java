@@ -839,6 +839,7 @@ public class CodeEditorTextArea extends JComponent {
             @Override
             public void onInsert(int offset, String text) {
                 clearGhostText();
+                suppressHoverWhileEditing();
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, 0, text);
                 pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
@@ -847,6 +848,7 @@ public class CodeEditorTextArea extends JComponent {
             @Override
             public void onDelete(int offset, String removed) {
                 clearGhostText();
+                suppressHoverWhileEditing();
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, removed.length(), "");
                 pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
@@ -1000,7 +1002,6 @@ public class CodeEditorTextArea extends JComponent {
                                                      String prefix,
                                                      int insertOff) {
         if (provider != autoCompleteProvider) return;
-        clearGhostText();
         AutoCompletePopup p = getOrCreateAutoCompletePopup();
         Point pt = caretScreenPoint();
         p.showLoading(pt.x, pt.y, prefix, insertOff);
@@ -1201,7 +1202,7 @@ public class CodeEditorTextArea extends JComponent {
     protected void scheduleGhostIdleTimer() {
         if (!isGhostTextActive() || !isGhostCaretIdleActivation()
                 || ghostTextProvider == null || readOnly
-                || hasSelection() || hasGhostText() || isAutoCompleteVisible()
+                || hasSelection() || hasGhostText()
                 || !isFocusOwner()) {
             stopGhostIdleTimer();
             return;
@@ -1279,7 +1280,8 @@ public class CodeEditorTextArea extends JComponent {
 
     protected void requestGhostText(GhostTextContext.TriggerKind kind) {
         if (!isGhostTextActive() || ghostTextProvider == null || readOnly) return;
-        if (hasSelection() || hasGhostText() || isAutoCompleteVisible()) return;
+        // Coexiste com o autocomplete: o popup nao impede o ghost (so seleção/ghost ja ativo bloqueiam).
+        if (hasSelection() || hasGhostText()) return;
 
         GhostTextProvider provider = ghostTextProvider;
         int caretOff = caretOffset();
@@ -1302,7 +1304,7 @@ public class CodeEditorTextArea extends JComponent {
                 if (error != null || text == null || text.isEmpty()) return;
                 // O cursor precisa estar exatamente onde a sugestão foi ancorada.
                 if (caretLine != anchorLine || caretCol != anchorCol) return;
-                if (hasSelection() || isAutoCompleteVisible()) return;
+                if (hasSelection()) return;
                 setActiveGhostText(text, anchorLine, anchorCol, caretOffset());
             }));
         });
@@ -3939,7 +3941,7 @@ public class CodeEditorTextArea extends JComponent {
                 triggerAutoComplete(CompletionContext.TriggerKind.TYPING);
             }
 
-            if (isGhostTextActive() && isGhostTypingActivation() && ghostTextProvider != null && !isAutoCompleteVisible()) {
+            if (isGhostTextActive() && isGhostTypingActivation() && ghostTextProvider != null) {
                 requestGhostText(GhostTextContext.TriggerKind.TYPING);
             }
 
@@ -6083,6 +6085,19 @@ public class CodeEditorTextArea extends JComponent {
         cancelHoverDocumentationHide();
         hoverDocumentationTransitionBounds = null;
         if (hoverDocumentationPopup != null) hoverDocumentationPopup.hide();
+    }
+
+    /**
+     * Esconde o popup de hover e cancela qualquer disparo pendente enquanto o usuario edita
+     * (digitando/apagando). O hover so reaparece apos um novo movimento do mouse, pois e ele quem
+     * reinicia o {@link #hoverTimer}. Tambem invalida requisicoes de hover em andamento.
+     */
+    protected void suppressHoverWhileEditing() {
+        if (hoverTimer != null) hoverTimer.stop();
+        hoverDocumentationVersion.incrementAndGet();
+        hoverLine = -1;
+        hoverCol = -1;
+        hideHoverDocumentation();
     }
 
     protected void configureHoverDocumentationPopup(HoverDocumentationPopup popup) {
