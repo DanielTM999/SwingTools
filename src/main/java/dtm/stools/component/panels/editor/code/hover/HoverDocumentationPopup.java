@@ -12,12 +12,15 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.lang.reflect.Method;
 
 public class HoverDocumentationPopup {
 
     protected final JComponent owner;
-    protected final JPopupMenu popup = new JPopupMenu();
+    protected JWindow window;
+    protected Window ownerWindow;
     protected final JPanel panel = new DocumentationPanel();
     protected final JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
     protected final JButton copyButton = new JButton("Copy");
@@ -66,13 +69,7 @@ public class HoverDocumentationPopup {
 
         panel.add(headerPanel, BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
-        popup.setLayout(new BorderLayout());
-        popup.setBorder(BorderFactory.createEmptyBorder(4, 4, 7, 7));
-        popup.setOpaque(false);
-        popup.add(panel, BorderLayout.CENTER);
-        popup.setFocusable(true);
 
-        installMouseTracking(popup);
         installMouseTracking(panel);
         installMouseTracking(headerPanel);
         installMouseTracking(copyButton);
@@ -80,6 +77,39 @@ public class HoverDocumentationPopup {
         installMouseTracking(scrollPane.getViewport());
         installMouseTracking(contentPane);
         applyTextSelectionEnabled();
+    }
+
+    /**
+     * Garante a janela do hover, criada com {@link Window#setAutoRequestFocus(boolean) auto-request
+     * focus desabilitado}: ao aparecer nao rouba o foco do editor (o usuario continua digitando),
+     * mas pode receber foco quando o usuario clica dentro dela, habilitando selecao de texto nativa
+     * e Ctrl+C. Recriada se a janela ancestral do editor mudar.
+     */
+    protected void ensureWindow() {
+        Window ancestor = SwingUtilities.getWindowAncestor(owner);
+        if (window != null && ownerWindow == ancestor) return;
+        if (window != null) window.dispose();
+        ownerWindow = ancestor;
+        window = new JWindow(ancestor);
+        window.setAutoRequestFocus(false);
+        window.setFocusableWindowState(true);
+        try {
+            window.setBackground(new Color(0, 0, 0, 0));
+        } catch (Exception ignored) {
+            // Plataforma sem suporte a translucidez por pixel: mantem opaco.
+        }
+        JComponent content = (JComponent) window.getContentPane();
+        content.setLayout(new BorderLayout());
+        content.setOpaque(false);
+        content.setBorder(BorderFactory.createEmptyBorder(4, 4, 7, 7));
+        content.add(panel, BorderLayout.CENTER);
+        window.addWindowFocusListener(new WindowAdapter() {
+            @Override
+            public void windowLostFocus(WindowEvent e) {
+                // Usuario tirou o foco da janela (ex.: clicou de volta no editor): esconde.
+                hide();
+            }
+        });
     }
 
     public void show(HoverInfo info, int x, int y) {
@@ -104,8 +134,12 @@ public class HoverDocumentationPopup {
         int height = Math.min(maxSize.height - 34 - headerHeight, Math.max(54, textSize.height));
         scrollPane.setPreferredSize(new Dimension(width, height));
 
-        popup.pack();
-        popup.show(owner, x, y);
+        ensureWindow();
+        window.pack();
+        Point screen = new Point(x, y);
+        SwingUtilities.convertPointToScreen(screen, owner);
+        window.setLocation(screen);
+        window.setVisible(true);
         mouseInside = isMousePointerInside();
     }
 
@@ -113,19 +147,19 @@ public class HoverDocumentationPopup {
         mouseInside = false;
         currentInfo = null;
         contentPane.select(0, 0);
-        popup.setVisible(false);
+        if (window != null) window.setVisible(false);
     }
 
     public boolean isVisible() {
-        return popup.isVisible();
+        return window != null && window.isVisible();
     }
 
     public Rectangle getBoundsInOwner() {
-        if (!popup.isVisible()) return null;
+        if (window == null || !window.isVisible()) return null;
         try {
-            Point location = popup.getLocationOnScreen();
+            Point location = window.getLocationOnScreen();
             SwingUtilities.convertPointFromScreen(location, owner);
-            return new Rectangle(location, popup.getSize());
+            return new Rectangle(location, window.getSize());
         } catch (IllegalComponentStateException ex) {
             return null;
         }
@@ -149,6 +183,8 @@ public class HoverDocumentationPopup {
     }
 
     protected void applyTextSelectionEnabled() {
+        // A janela do hover nao rouba foco ao aparecer (setAutoRequestFocus(false)), mas ganha foco
+        // quando o usuario clica dentro dela; assim a selecao de texto nativa + Ctrl+C funcionam.
         contentPane.setFocusable(textSelectionEnabled);
         contentPane.setEnabled(true);
         contentPane.setCursor(Cursor.getPredefinedCursor(
@@ -290,12 +326,12 @@ public class HoverDocumentationPopup {
     }
 
     protected boolean isMousePointerInside() {
-        if (!popup.isVisible()) return false;
+        if (window == null || !window.isVisible()) return false;
         PointerInfo pointerInfo = MouseInfo.getPointerInfo();
         if (pointerInfo == null) return false;
         try {
-            Point location = popup.getLocationOnScreen();
-            Dimension size = popup.getSize();
+            Point location = window.getLocationOnScreen();
+            Dimension size = window.getSize();
             return new Rectangle(location, size).contains(pointerInfo.getLocation());
         } catch (IllegalComponentStateException ex) {
             return false;

@@ -1056,7 +1056,7 @@ public class CodeEditorTextArea extends JComponent {
         FontMetrics fm = getFontMetrics(getFont());
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(caretLine);
-        int cx = visualXForColumn(caretLine, lineText, caretCol, fm);
+        int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
         int cy = yOfBufferLine(caretLine) + lineHeight;
         return new Point(cx, cy);
     }
@@ -2192,7 +2192,7 @@ public class CodeEditorTextArea extends JComponent {
         FontMetrics fm = getFontMetrics(getFont());
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(caretLine);
-        int cx = visualXForColumn(caretLine, lineText, caretCol, fm);
+        int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
         int cy = yOfBufferLine(caretLine);
         int extra = hasCodeLens(caretLine) ? lineHeight : 0;
         scrollRectToVisible(new Rectangle(cx - 2, cy - extra, 4, lineHeight + extra));
@@ -3646,10 +3646,17 @@ public class CodeEditorTextArea extends JComponent {
             int visualCol = 0;
             List<InlayHint> pushHints = pushInlayHintsForLine(i, defaultFm);
             int pushHintIndex = 0;
+            // Coluna onde o ghost text inline empurra o texto seguinte (-1 quando não há ghost nesta linha).
+            int ghostPushCol = (i == ghostAnchorLine && isGhostVisibleAtAnchor()) ? ghostAnchorCol : -1;
+            boolean ghostPushApplied = false;
             while (col < renderLength) {
                 while (pushHintIndex < pushHints.size() && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= col) {
                     x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
                     pushHintIndex++;
+                }
+                if (ghostPushCol >= 0 && !ghostPushApplied && ghostPushCol <= col) {
+                    x += ghostFirstSegmentWidth(defaultFm);
+                    ghostPushApplied = true;
                 }
 
                 TextStyle style = getStyleAt(lineOffset + col);
@@ -3662,6 +3669,10 @@ public class CodeEditorTextArea extends JComponent {
                     if (pushCol > col && pushCol < runEnd) {
                         runEnd = pushCol;
                     }
+                }
+                // Quebra a run na âncora do ghost para inserir o espaço da sugestão antes do texto seguinte.
+                if (ghostPushCol > col && ghostPushCol < runEnd) {
+                    runEnd = ghostPushCol;
                 }
 
                 String run = expandTabs(lineText.substring(col, runEnd), visualCol);
@@ -3695,6 +3706,10 @@ public class CodeEditorTextArea extends JComponent {
             while (pushHintIndex < pushHints.size() && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= renderLength) {
                 x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
                 pushHintIndex++;
+            }
+            if (ghostPushCol >= 0 && !ghostPushApplied && ghostPushCol <= renderLength) {
+                x += ghostFirstSegmentWidth(defaultFm);
+                ghostPushApplied = true;
             }
 
             if (isFoldAnchor(i)) {
@@ -3815,7 +3830,8 @@ public class CodeEditorTextArea extends JComponent {
         g2.setColor(color);
 
         String lineText = buffer.lineAt(caretLine);
-        int startX = visualXForColumn(caretLine, lineText, caretCol, fm);
+        // Base (sem empurrão): o ghost fica logo após o caret; o texto real é que é deslocado.
+        int startX = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
         int y = yOfBufferLine(caretLine);
         int ascent = fm.getAscent();
 
@@ -3834,7 +3850,7 @@ public class CodeEditorTextArea extends JComponent {
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(caretLine);
 
-        int cx = visualXForColumn(caretLine, lineText, caretCol, fm);
+        int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
         int cy = yOfBufferLine(caretLine);
 
         g2.setColor(defaultStyle.getForeground());
@@ -3956,6 +3972,7 @@ public class CodeEditorTextArea extends JComponent {
             if (isNavigationKey(e.getKeyCode())) {
                 clearInlayInteraction();
                 clearGhostText();
+                hideHoverDocumentation();
             }
 
             updateWordHover(e.getModifiersEx());
@@ -5282,6 +5299,7 @@ public class CodeEditorTextArea extends JComponent {
             requestFocusInWindow();
             hideAutoCompletePopup();
             hideSignatureHelp();
+            hideHoverDocumentation();
             clearGhostText();
             if (handlePopupTrigger(e)) return;
             if (isPopupButton(e) && contextMenuEnabled && pointInsideSelection(e.getX(), e.getY())) {
@@ -6643,7 +6661,7 @@ public class CodeEditorTextArea extends JComponent {
         for (Caret c : extraCarets) {
             if (isLineHidden(c.line)) continue;
             String lineText = buffer.lineAt(c.line);
-            int cx = visualXForColumn(c.line, lineText, c.col, fm);
+            int cx = baseVisualXForColumn(c.line, lineText, c.col, fm);
             int cy = yOfBufferLine(c.line);
             g2.fillRect(cx, cy, 2, lineHeight);
         }
@@ -6916,6 +6934,16 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected int visualXForColumn(int line, String lineText, int col, FontMetrics fm) {
+        return baseVisualXForColumn(line, lineText, col, fm)
+                + ghostPushWidthBeforeColumn(line, col, fm);
+    }
+
+    /**
+     * Posição X de uma coluna SEM considerar o empurrão do ghost text. Usada pelo próprio
+     * desenho do ghost e pelo caret/scroll, que representam o ponto de inserção e ficam
+     * sempre à esquerda da sugestão.
+     */
+    protected int baseVisualXForColumn(int line, String lineText, int col, FontMetrics fm) {
         int safeCol = Math.min(Math.max(0, col), lineText.length());
         int x = 4 + textWidth(fm, lineText.substring(0, safeCol), 0);
         for (InlayHint hint : pushInlayHintsForLine(line, fm)) {
@@ -6924,6 +6952,32 @@ public class CodeEditorTextArea extends JComponent {
             }
         }
         return x;
+    }
+
+    /**
+     * Largura que o ghost text empurra o texto real à direita do caret. Só vale na linha-âncora,
+     * quando a sugestão está visível (caret exatamente na âncora) e apenas para colunas a partir
+     * da âncora — assim o caret continua à esquerda da sugestão e o texto seguinte é deslocado.
+     */
+    protected int ghostPushWidthBeforeColumn(int line, int col, FontMetrics fm) {
+        if (!isGhostVisibleAtAnchor()) return 0;
+        if (line != ghostAnchorLine) return 0;
+        if (col < ghostAnchorCol) return 0;
+        return ghostFirstSegmentWidth(fm);
+    }
+
+    /** A sugestão está sendo desenhada (caret na âncora). Mesmo critério de {@link #paintGhostText}. */
+    protected boolean isGhostVisibleAtAnchor() {
+        return hasGhostText() && ghostAnchorLine == caretLine && ghostAnchorCol == caretCol;
+    }
+
+    /** Largura do primeiro segmento (até a primeira quebra) da sugestão, que fica inline no caret. */
+    protected int ghostFirstSegmentWidth(FontMetrics fm) {
+        if (!hasGhostText()) return 0;
+        int nl = ghostText.indexOf('\n');
+        String firstSegment = nl < 0 ? ghostText : ghostText.substring(0, nl);
+        if (firstSegment.isEmpty()) return 0;
+        return fm.stringWidth(firstSegment);
     }
 
     protected InlayHint mouseTransparentInlayHintAt(int line, int mouseX, FontMetrics fm) {
