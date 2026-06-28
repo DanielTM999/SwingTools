@@ -1487,7 +1487,7 @@ public class TreeView<T> extends TreeViewListener {
                     revealNode(moved.get(moved.size() - 1));
                 }
                 if (!moved.isEmpty()) {
-                    dispatchTree(EventTreeView.NODE_DROP, moved.get(0), null, new TreeDropContext<>(TreeView.this, List.copyOf(moved), (TreeNode<T>) target.parent(), target.index()), null);
+                    dispatchTree(EventTreeView.NODE_DROP, (TreeNode<T>) target.parent(), null, new TreeDropContext<>(TreeView.this, List.copyOf(moved), (TreeNode<T>) target.parent(), target.index()), null);
                 }
                 return !moved.isEmpty();
             } catch (ClassCastException e) {
