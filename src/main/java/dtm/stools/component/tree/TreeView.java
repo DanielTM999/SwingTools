@@ -495,6 +495,29 @@ public class TreeView<T> extends TreeViewListener {
         pendingNodeUpdates.clear();
     }
 
+    public int updateSubtree(TreeNode<T> from, Consumer<TreeNode<T>> updater) {
+        return updateSubtree(from, node -> true, updater);
+    }
+
+    public int updateSubtree(TreeNode<T> from, Predicate<TreeNode<T>> matcher, Consumer<TreeNode<T>> updater) {
+        Objects.requireNonNull(matcher, "matcher");
+        Objects.requireNonNull(updater, "updater");
+        if (from == null) return 0;
+
+        List<TreeNode<T>> matches = new ArrayList<>();
+        from.walk(node -> {
+            if (matcher.test(node)) matches.add(node);
+        });
+        if (matches.isEmpty()) return 0;
+
+        for (TreeNode<T> node : matches) {
+            updater.accept(node);
+            getTreeModel().nodeChanged(node);
+        }
+        repaint();
+        return matches.size();
+    }
+
     public boolean updateFirstNode(Predicate<TreeNode<T>> matcher, Consumer<TreeNode<T>> updater) {
         Objects.requireNonNull(matcher, "matcher");
         Objects.requireNonNull(updater, "updater");
