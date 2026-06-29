@@ -486,6 +486,43 @@ public class TabbedPanel extends PanelEventListener {
         return this;
     }
 
+    public TabbedPanel changeKey(String oldKey, String newKey) {
+        if (oldKey == null || newKey == null) return this;
+        if (oldKey.isBlank() || newKey.isBlank()) return this;
+        if (oldKey.equals(newKey)) return this;
+        if (!tabsByKey.containsKey(oldKey)) return this;
+        if (tabsByKey.containsKey(newKey)) return this;
+
+        Map<String, TabEntry> rebuilt = new LinkedHashMap<>();
+        for (Map.Entry<String, TabEntry> mapEntry : tabsByKey.entrySet()) {
+            String entryKey = mapEntry.getKey();
+            TabEntry tabEntry = mapEntry.getValue();
+            if (entryKey.equals(oldKey)) {
+                tabEntry.setKey(newKey);
+                rebuilt.put(newKey, tabEntry);
+            } else {
+                rebuilt.put(entryKey, tabEntry);
+            }
+        }
+        tabsByKey.clear();
+        tabsByKey.putAll(rebuilt);
+
+        TabEntry renamed = tabsByKey.get(newKey);
+        keyByComponent.put(renamed.getComponent(), newKey);
+
+        for (int i = 0; i < mruKeys.size(); i++) {
+            if (oldKey.equals(mruKeys.get(i))) {
+                mruKeys.set(i, newKey);
+            }
+        }
+
+        if (oldKey.equals(currentKey)) currentKey = newKey;
+        if (oldKey.equals(lastKey)) lastKey = newKey;
+
+        updateTabHeader(newKey);
+        return this;
+    }
+
     public TabbedPanel setIcon(String key, Icon icon) {
         TabEntry entry = tabsByKey.get(key);
         if (entry == null) return this;

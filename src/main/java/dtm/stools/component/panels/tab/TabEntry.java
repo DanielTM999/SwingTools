@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class TabEntry {
-    private final String key;
+    private String key;
     private final Component component;
     private String title;
     private Icon icon;
@@ -33,6 +33,10 @@ public class TabEntry {
 
     public String getKey() {
         return key;
+    }
+
+    void setKey(String key) {
+        this.key = key;
     }
 
     public Component getComponent() {
