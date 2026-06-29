@@ -23,11 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup JDK 21
+      - name: Setup JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
 
       - name: Install MinGW (Windows)
@@ -69,11 +69,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup JDK 21
+      - name: Setup JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
 
       - name: Download all native artifacts
