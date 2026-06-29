@@ -138,9 +138,50 @@ public class HoverDocumentationPopup {
         window.pack();
         Point screen = new Point(x, y);
         SwingUtilities.convertPointToScreen(screen, owner);
-        window.setLocation(screen);
+        window.setLocation(clampToScreen(screen, window.getSize()));
         window.setVisible(true);
         mouseInside = isMousePointerInside();
+    }
+
+    /**
+     * Ajusta a posicao desejada (em coordenadas de tela) para que a janela do hover caiba inteira
+     * dentro da area util do monitor que contem o ponto-ancora, considerando insets do sistema
+     * (barra de tarefas) e setups multi-monitor. Evita que o popup apareca cortado fora da tela.
+     */
+    protected Point clampToScreen(Point desired, Dimension size) {
+        Rectangle bounds = screenBoundsFor(desired);
+        int x = desired.x;
+        int y = desired.y;
+        int maxX = bounds.x + bounds.width - size.width;
+        int maxY = bounds.y + bounds.height - size.height;
+        if (x > maxX) x = maxX;
+        if (x < bounds.x) x = bounds.x;
+        if (y > maxY) y = maxY;
+        if (y < bounds.y) y = bounds.y;
+        return new Point(x, y);
+    }
+
+    protected Rectangle screenBoundsFor(Point screenPoint) {
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        for (GraphicsDevice device : ge.getScreenDevices()) {
+            GraphicsConfiguration gc = device.getDefaultConfiguration();
+            Rectangle b = gc.getBounds();
+            if (b.contains(screenPoint)) {
+                return usableBounds(gc, b);
+            }
+        }
+        GraphicsConfiguration gc = ge.getDefaultScreenDevice().getDefaultConfiguration();
+        return usableBounds(gc, gc.getBounds());
+    }
+
+    protected Rectangle usableBounds(GraphicsConfiguration gc, Rectangle bounds) {
+        Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(gc);
+        return new Rectangle(
+                bounds.x + insets.left,
+                bounds.y + insets.top,
+                bounds.width - insets.left - insets.right,
+                bounds.height - insets.top - insets.bottom
+        );
     }
 
     public void hide() {
@@ -237,11 +278,6 @@ public class HoverDocumentationPopup {
     }
 
     protected String renderHtml(HoverInfo info) {
-        if (info.markdown()) {
-            return "<html><body>"
-                    + markdownSupport.render(info.content(), this::escapeHtml)
-                    + "</body></html>";
-        }
         if (info.html()) {
             String html = info.content().trim();
             if (html.toLowerCase().contains("<html")) {
@@ -249,9 +285,13 @@ public class HoverDocumentationPopup {
             }
             return "<html><body>" + html + "</body></html>";
         }
-        return "<html><body><div class='content'>"
-                + escapeHtml(info.content()).replace("\n", "<br>")
-                + "</div></body></html>";
+        // TEXT e MARKDOWN: por padrao o popup interpreta markdown, incluindo blocos de codigo
+        // cercados (```lang ... ```) de qualquer linguagem, listas, enfase, etc. Conteudo
+        // realmente plano continua renderizando como paragrafo. Caso o commonmark nao esteja
+        // disponivel, o MarkdownSupport degrada para escape + <br> (comportamento antigo do TEXT).
+        return "<html><body>"
+                + markdownSupport.render(info.content(), this::escapeHtml)
+                + "</body></html>";
     }
 
     protected void applyTheme() {
