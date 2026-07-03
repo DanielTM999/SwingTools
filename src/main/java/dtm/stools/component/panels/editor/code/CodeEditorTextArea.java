@@ -2030,7 +2030,7 @@ public class CodeEditorTextArea extends JComponent {
             fireLinesInserted(lineAtInsert + 1, addedLines);
         }
         if (foldingEnabled) {
-            recomputeFoldRegions();
+            recomputeFoldRegions(suppressFoldRestore);
             if (!suppressFoldRestore) {
                 restoreFoldedByOffsets(oldFoldedAnchors, offset, 0, text.length());
             }
@@ -2053,7 +2053,7 @@ public class CodeEditorTextArea extends JComponent {
             fireLinesRemoved(lineAtDelete + 1, removedLines);
         }
         if (foldingEnabled) {
-            recomputeFoldRegions();
+            recomputeFoldRegions(suppressFoldRestore);
             if (!suppressFoldRestore) {
                 restoreFoldedByOffsets(oldFoldedAnchors, start, end - start, 0);
             }
@@ -2078,7 +2078,10 @@ public class CodeEditorTextArea extends JComponent {
             } else if (oldOff >= editStart + removedLen) {
                 newOff = oldOff + delta;
             } else {
-                newOff = editStart;
+                // Âncora estava dentro do trecho removido: a região dobrada deixou de
+                // existir. Re-dobrar em editStart colapsaria a região errada (ex.: o
+                // bloco recém-colado), escondendo texto — então não restaura nada.
+                continue;
             }
             newOff = Math.max(0, Math.min(newOff, buffer.length()));
             int newLine = buffer.lineOfOffset(newOff);
@@ -3214,6 +3217,16 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected void recomputeFoldRegions() {
+        recomputeFoldRegions(true);
+    }
+
+    /**
+     * Recalcula as regiões de fold. {@code preserveFoldedByLine} controla se o estado
+     * "folded" é preservado casando (startLine, endLine) com as regiões anteriores —
+     * isso só é válido quando as linhas do buffer NÃO foram deslocadas pela edição;
+     * após insert/delete a restauração deve ser feita por offset ({@link #restoreFoldedByOffsets}).
+     */
+    protected void recomputeFoldRegions(boolean preserveFoldedByLine) {
         if (!foldingEnabled || foldRules.isEmpty()) {
             foldRegions = new ArrayList<>();
             return;
@@ -3223,12 +3236,14 @@ public class CodeEditorTextArea extends JComponent {
         for (FoldRule rule : foldRules) {
             computeRegionsForRule(rule, lineCount, newRegions);
         }
-        for (int i = 0; i < newRegions.size(); i++) {
-            FoldRegion nr = newRegions.get(i);
-            for (FoldRegion old : foldRegions) {
-                if (old.startLine() == nr.startLine() && old.endLine() == nr.endLine() && old.folded()) {
-                    newRegions.set(i, nr.withFolded(true));
-                    break;
+        if (preserveFoldedByLine) {
+            for (int i = 0; i < newRegions.size(); i++) {
+                FoldRegion nr = newRegions.get(i);
+                for (FoldRegion old : foldRegions) {
+                    if (old.startLine() == nr.startLine() && old.endLine() == nr.endLine() && old.folded()) {
+                        newRegions.set(i, nr.withFolded(true));
+                        break;
+                    }
                 }
             }
         }
