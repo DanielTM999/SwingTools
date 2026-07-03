@@ -5,6 +5,8 @@ target/
 lorem_7k.txt
 .claude
 .orion
+fuzzout.txt
+pastefuzz.txt
 
 ### IntelliJ IDEA ###
 .idea/

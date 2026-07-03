@@ -2016,7 +2016,7 @@ public class CodeEditorTextArea extends JComponent {
     protected void insertText(int offset, String text) {
         if (readOnly || text == null || text.isEmpty()) return;
         text = text.replace("\r\n", "\n").replace("\r", "\n");
-        List<Integer> oldFoldedAnchors = (foldingEnabled && !suppressFoldRestore) ? captureFoldedAnchorOffsets() : null;
+        List<int[]> oldFoldedAnchors = (foldingEnabled && !suppressFoldRestore) ? captureFoldedAnchorOffsets() : null;
         int linesBefore = buffer.lineCount();
         int lineAtInsert = buffer.lineOfOffset(Math.min(offset, buffer.length()));
         buffer.insert(offset, text);
@@ -2039,7 +2039,7 @@ public class CodeEditorTextArea extends JComponent {
 
     protected void deleteText(int start, int end) {
         if (readOnly || start >= end) return;
-        List<Integer> oldFoldedAnchors = (foldingEnabled && !suppressFoldRestore) ? captureFoldedAnchorOffsets() : null;
+        List<int[]> oldFoldedAnchors = (foldingEnabled && !suppressFoldRestore) ? captureFoldedAnchorOffsets() : null;
         String removed = buffer.substring(start, end);
         int linesBefore = buffer.lineCount();
         int lineAtDelete = buffer.lineOfOffset(Math.min(start, buffer.length()));
@@ -2060,18 +2060,23 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
-    protected List<Integer> captureFoldedAnchorOffsets() {
-        List<Integer> list = new ArrayList<>();
+    /** Captura {offset do anchor, span em linhas} de cada região dobrada. */
+    protected List<int[]> captureFoldedAnchorOffsets() {
+        List<int[]> list = new ArrayList<>();
         for (FoldRegion r : foldRegions) {
-            if (r.folded()) list.add(buffer.offsetOfLine(r.startLine()));
+            if (r.folded()) {
+                list.add(new int[]{buffer.offsetOfLine(r.startLine()), r.endLine() - r.startLine()});
+            }
         }
         return list;
     }
 
-    protected void restoreFoldedByOffsets(List<Integer> oldAnchors, int editStart, int removedLen, int insertedLen) {
+    protected void restoreFoldedByOffsets(List<int[]> oldAnchors, int editStart, int removedLen, int insertedLen) {
         if (oldAnchors == null || oldAnchors.isEmpty()) return;
         int delta = insertedLen - removedLen;
-        for (int oldOff : oldAnchors) {
+        for (int[] anchor : oldAnchors) {
+            int oldOff = anchor[0];
+            int span = anchor[1];
             int newOff;
             if (oldOff < editStart) {
                 newOff = oldOff;
@@ -2085,10 +2090,12 @@ public class CodeEditorTextArea extends JComponent {
             }
             newOff = Math.max(0, Math.min(newOff, buffer.length()));
             int newLine = buffer.lineOfOffset(newOff);
+            // Só restaura a dobra se a região ainda existir com o mesmo span; dobrar
+            // uma região de span diferente esconderia linhas que estavam visíveis.
             for (int i = 0; i < foldRegions.size(); i++) {
                 FoldRegion r = foldRegions.get(i);
-                if (r.startLine() == newLine && !r.folded()) {
-                    foldRegions.set(i, r.withFolded(true));
+                if (r.startLine() == newLine && r.endLine() - r.startLine() == span) {
+                    if (!r.folded()) foldRegions.set(i, r.withFolded(true));
                     break;
                 }
             }
@@ -2435,7 +2442,10 @@ public class CodeEditorTextArea extends JComponent {
             int delta = buffer.lineCount() - linesBefore;
             if (delta > 0) fireLinesInserted(0, delta);
             else if (delta < 0) fireLinesRemoved(0, -delta);
-            if (foldingEnabled) recomputeFoldRegions();
+            if (foldingEnabled) {
+                recomputeFoldRegions();
+                unfoldToRevealCaret();
+            }
         }
     }
 
@@ -2450,7 +2460,10 @@ public class CodeEditorTextArea extends JComponent {
             int delta = buffer.lineCount() - linesBefore;
             if (delta > 0) fireLinesInserted(0, delta);
             else if (delta < 0) fireLinesRemoved(0, -delta);
-            if (foldingEnabled) recomputeFoldRegions();
+            if (foldingEnabled) {
+                recomputeFoldRegions();
+                unfoldToRevealCaret();
+            }
         }
     }
 
@@ -2659,7 +2672,9 @@ public class CodeEditorTextArea extends JComponent {
         if (caretLine == 0 && caretCol == 0) return;
 
         if (caretCol == 0) {
-            caretLine--;
+            int nl = caretLine - 1;
+            while (nl > 0 && isLineHidden(nl)) nl--;
+            caretLine = nl;
             caretCol = buffer.lineAt(caretLine).length();
             return;
         }
@@ -2697,15 +2712,57 @@ public class CodeEditorTextArea extends JComponent {
         return new int[]{line, line};
     }
 
+    /**
+     * Intervalo de linhas que deve se mover/duplicar junto com {@code line}: o bloco
+     * dobrado ancorado nela (se houver) estendido pelas regiões dobradas encadeadas —
+     * ex.: {@code } else {}, onde a linha final de uma região dobrada é o anchor da
+     * próxima. Sem essa extensão, mover por cima da cadeia deletaria as linhas
+     * escondidas entre os blocos.
+     */
+    protected int[] getMoveBlockRange(int line) {
+        int[] range = getBlockRange(line);
+        if (foldingEnabled) {
+            int end = range[1];
+            while (end + 1 < buffer.lineCount() && isLineHidden(end + 1)) end++;
+            range[1] = end;
+        }
+        return range;
+    }
+
+    /** Regiões dobradas contidas em {@code startLine..endLine}, relativas a {@code startLine}. */
+    protected List<int[]> foldedRegionsWithin(int startLine, int endLine) {
+        List<int[]> list = new ArrayList<>();
+        if (!foldingEnabled) return list;
+        for (FoldRegion r : foldRegions) {
+            if (r.folded() && r.startLine() >= startLine && r.endLine() <= endLine) {
+                list.add(new int[]{r.startLine() - startLine, r.endLine() - startLine});
+            }
+        }
+        return list;
+    }
+
+    /** Re-dobra em {@code newStart} as regiões capturadas por {@link #foldedRegionsWithin}. */
+    protected void refoldRelative(List<int[]> spans, int newStart) {
+        for (int[] s : spans) {
+            refoldAt(newStart + s[0], newStart + s[1]);
+        }
+    }
+
     protected int offsetOfLineEnd(int line) {
         return buffer.offsetOfLine(line) + buffer.lineAt(line).length();
     }
 
-    protected void refoldAt(int startLine) {
+    /**
+     * Re-dobra a região {@code startLine..endLine} somente se ela ainda existir com
+     * exatamente esse span. Dobrar uma região de span diferente (ex.: as chaves
+     * re-parearam após a edição) esconderia linhas que estavam visíveis — nesse
+     * caso é mais seguro deixar desdobrado.
+     */
+    protected void refoldAt(int startLine, int endLine) {
         for (int i = 0; i < foldRegions.size(); i++) {
             FoldRegion r = foldRegions.get(i);
-            if (r.startLine() == startLine && !r.folded()) {
-                foldRegions.set(i, r.withFolded(true));
+            if (r.startLine() == startLine && r.endLine() == endLine) {
+                if (!r.folded()) foldRegions.set(i, r.withFolded(true));
                 return;
             }
         }
@@ -2713,7 +2770,7 @@ public class CodeEditorTextArea extends JComponent {
 
     public void moveLineUp() {
         if (readOnly) return;
-        int[] cur = getBlockRange(caretLine);
+        int[] cur = getMoveBlockRange(caretLine);
         int curStart = cur[0], curEnd = cur[1];
         if (curStart <= 0) return;
 
@@ -2721,11 +2778,11 @@ public class CodeEditorTextArea extends JComponent {
         while (prevVisible >= 0 && isLineHidden(prevVisible)) prevVisible--;
         if (prevVisible < 0) return;
 
-        int[] prev = getBlockRange(prevVisible);
+        int[] prev = getMoveBlockRange(prevVisible);
         int prevStart = prev[0], prevEnd = prev[1];
 
-        boolean curWasFolded = isFoldAnchor(curStart);
-        boolean prevWasFolded = isFoldAnchor(prevStart);
+        List<int[]> curFolds = foldedRegionsWithin(curStart, curEnd);
+        List<int[]> prevFolds = foldedRegionsWithin(prevStart, prevEnd);
 
         int savedCol = caretCol;
         int curTextStart = buffer.offsetOfLine(curStart);
@@ -2749,19 +2806,20 @@ public class CodeEditorTextArea extends JComponent {
         int newPrevStart = newCurStart + (curEnd - curStart + 1);
 
         if (foldingEnabled) {
-            if (curWasFolded) refoldAt(newCurStart);
-            if (prevWasFolded) refoldAt(newPrevStart);
+            refoldRelative(curFolds, newCurStart);
+            refoldRelative(prevFolds, newPrevStart);
         }
 
         caretLine = newCurStart + (caretLine - curStart);
         caretCol = Math.min(savedCol, buffer.lineAt(caretLine).length());
+        unfoldToRevealCaret();
         clearSelection();
         updateLastEditState();
     }
 
     public void moveLineDown() {
         if (readOnly) return;
-        int[] cur = getBlockRange(caretLine);
+        int[] cur = getMoveBlockRange(caretLine);
         int curStart = cur[0], curEnd = cur[1];
         if (curEnd >= buffer.lineCount() - 1) return;
 
@@ -2769,11 +2827,11 @@ public class CodeEditorTextArea extends JComponent {
         while (nextVisible < buffer.lineCount() && isLineHidden(nextVisible)) nextVisible++;
         if (nextVisible >= buffer.lineCount()) return;
 
-        int[] next = getBlockRange(nextVisible);
+        int[] next = getMoveBlockRange(nextVisible);
         int nextStart = next[0], nextEnd = next[1];
 
-        boolean curWasFolded = isFoldAnchor(curStart);
-        boolean nextWasFolded = isFoldAnchor(nextStart);
+        List<int[]> curFolds = foldedRegionsWithin(curStart, curEnd);
+        List<int[]> nextFolds = foldedRegionsWithin(nextStart, nextEnd);
 
         int savedCol = caretCol;
         int curTextStart = buffer.offsetOfLine(curStart);
@@ -2797,12 +2855,13 @@ public class CodeEditorTextArea extends JComponent {
         int newCurStart = curStart + nextDelta;
 
         if (foldingEnabled) {
-            if (nextWasFolded) refoldAt(newNextStart);
-            if (curWasFolded) refoldAt(newCurStart);
+            refoldRelative(nextFolds, newNextStart);
+            refoldRelative(curFolds, newCurStart);
         }
 
         caretLine = newCurStart + (caretLine - curStart);
         caretCol = Math.min(savedCol, buffer.lineAt(caretLine).length());
+        unfoldToRevealCaret();
         clearSelection();
         updateLastEditState();
     }
@@ -2827,9 +2886,9 @@ public class CodeEditorTextArea extends JComponent {
             return;
         }
 
-        int[] cur = getBlockRange(caretLine);
+        int[] cur = getMoveBlockRange(caretLine);
         int curStart = cur[0], curEnd = cur[1];
-        boolean curWasFolded = isFoldAnchor(curStart);
+        List<int[]> curFolds = foldedRegionsWithin(curStart, curEnd);
 
         int savedCol = caretCol;
         int curTextStart = buffer.offsetOfLine(curStart);
@@ -2841,13 +2900,14 @@ public class CodeEditorTextArea extends JComponent {
         int blockSize = curEnd - curStart + 1;
         int copyStart = curEnd + 1;
 
-        if (foldingEnabled && curWasFolded) {
-            refoldAt(curStart);
-            refoldAt(copyStart);
+        if (foldingEnabled) {
+            refoldRelative(curFolds, curStart);
+            refoldRelative(curFolds, copyStart);
         }
 
         caretLine = copyStart + (caretLine - curStart);
         caretCol = Math.min(savedCol, buffer.lineAt(caretLine).length());
+        unfoldToRevealCaret();
         clearSelection();
     }
 
@@ -2870,9 +2930,9 @@ public class CodeEditorTextArea extends JComponent {
             return;
         }
 
-        int[] cur = getBlockRange(caretLine);
+        int[] cur = getMoveBlockRange(caretLine);
         int curStart = cur[0], curEnd = cur[1];
-        boolean curWasFolded = isFoldAnchor(curStart);
+        List<int[]> curFolds = foldedRegionsWithin(curStart, curEnd);
 
         int savedCol = caretCol;
         int curTextStart = buffer.offsetOfLine(curStart);
@@ -2883,12 +2943,13 @@ public class CodeEditorTextArea extends JComponent {
 
         int blockSize = curEnd - curStart + 1;
 
-        if (foldingEnabled && curWasFolded) {
-            refoldAt(curStart);
-            refoldAt(curStart + blockSize);
+        if (foldingEnabled) {
+            refoldRelative(curFolds, curStart);
+            refoldRelative(curFolds, curStart + blockSize);
         }
 
         caretCol = Math.min(savedCol, buffer.lineAt(caretLine).length());
+        unfoldToRevealCaret();
         clearSelection();
     }
 
@@ -2898,8 +2959,12 @@ public class CodeEditorTextArea extends JComponent {
 
         if (caretCol >= line.length()) {
             if (caretLine < buffer.lineCount() - 1) {
-                caretLine++;
-                caretCol = 0;
+                int nl = caretLine + 1;
+                while (nl < buffer.lineCount() && isLineHidden(nl)) nl++;
+                if (nl < buffer.lineCount()) {
+                    caretLine = nl;
+                    caretCol = 0;
+                }
             }
             return;
         }
@@ -2921,7 +2986,9 @@ public class CodeEditorTextArea extends JComponent {
         if (c.col > 0) {
             c.col--;
         } else if (c.line > 0) {
-            c.line--;
+            int nl = c.line - 1;
+            while (nl > 0 && isLineHidden(nl)) nl--;
+            c.line = nl;
             c.col = buffer.lineAt(c.line).length();
         }
     }
@@ -2931,8 +2998,12 @@ public class CodeEditorTextArea extends JComponent {
         if (c.col < buffer.lineAt(c.line).length()) {
             c.col++;
         } else if (c.line < buffer.lineCount() - 1) {
-            c.line++;
-            c.col = 0;
+            int nl = c.line + 1;
+            while (nl < buffer.lineCount() && isLineHidden(nl)) nl++;
+            if (nl < buffer.lineCount()) {
+                c.line = nl;
+                c.col = 0;
+            }
         }
     }
 
@@ -2960,7 +3031,9 @@ public class CodeEditorTextArea extends JComponent {
         c.desiredCol = -1;
         if (c.line == 0 && c.col == 0) return;
         if (c.col == 0) {
-            c.line--;
+            int nl = c.line - 1;
+            while (nl > 0 && isLineHidden(nl)) nl--;
+            c.line = nl;
             c.col = buffer.lineAt(c.line).length();
             return;
         }
@@ -2979,8 +3052,12 @@ public class CodeEditorTextArea extends JComponent {
         String line = buffer.lineAt(c.line);
         if (c.col >= line.length()) {
             if (c.line < buffer.lineCount() - 1) {
-                c.line++;
-                c.col = 0;
+                int nl = c.line + 1;
+                while (nl < buffer.lineCount() && isLineHidden(nl)) nl++;
+                if (nl < buffer.lineCount()) {
+                    c.line = nl;
+                    c.col = 0;
+                }
             }
             return;
         }
@@ -3020,17 +3097,26 @@ public class CodeEditorTextArea extends JComponent {
                 }
                 case KeyEvent.VK_END -> {
                     c.desiredCol = -1;
-                    if (ctrl) c.line = buffer.lineCount() - 1;
+                    if (ctrl) {
+                        int nl = buffer.lineCount() - 1;
+                        while (nl > 0 && isLineHidden(nl)) nl--;
+                        c.line = nl;
+                    }
                     c.col = buffer.lineAt(c.line).length();
                 }
                 case KeyEvent.VK_PAGE_UP -> {
                     if (c.desiredCol < 0) c.desiredCol = c.col;
-                    c.line = Math.max(0, c.line - visibleLines);
+                    int nl = Math.max(0, c.line - visibleLines);
+                    while (nl > 0 && isLineHidden(nl)) nl--;
+                    c.line = nl;
                     c.col = Math.min(c.desiredCol, buffer.lineAt(c.line).length());
                 }
                 case KeyEvent.VK_PAGE_DOWN -> {
                     if (c.desiredCol < 0) c.desiredCol = c.col;
-                    c.line = Math.min(buffer.lineCount() - 1, c.line + visibleLines);
+                    int nl = Math.min(buffer.lineCount() - 1, c.line + visibleLines);
+                    while (nl < buffer.lineCount() - 1 && isLineHidden(nl)) nl++;
+                    while (nl > 0 && isLineHidden(nl)) nl--;
+                    c.line = nl;
                     c.col = Math.min(c.desiredCol, buffer.lineAt(c.line).length());
                 }
                 default -> {
@@ -3197,6 +3283,32 @@ public class CodeEditorTextArea extends JComponent {
                 return;
             }
         }
+    }
+
+    /**
+     * Desdobra as regiões que escondem a linha do caret (ex.: após undo/redo
+     * restaurar o caret para dentro de um bloco dobrado), para o texto não
+     * "sumir" da tela. Diferente de {@link #ensureCaretVisible()}, que move o
+     * caret para o anchor, aqui a intenção é revelar o local da edição.
+     */
+    protected void unfoldToRevealCaret() {
+        if (!foldingEnabled) return;
+        boolean changed = false;
+        FoldRegion hiding;
+        while ((hiding = findFoldingRegionHiding(caretLine)) != null) {
+            boolean unfolded = false;
+            for (int i = 0; i < foldRegions.size(); i++) {
+                FoldRegion r = foldRegions.get(i);
+                if (r.startLine() == hiding.startLine() && r.endLine() == hiding.endLine() && r.folded()) {
+                    foldRegions.set(i, r.withFolded(false));
+                    unfolded = true;
+                    changed = true;
+                    break;
+                }
+            }
+            if (!unfolded) break;
+        }
+        if (changed) fireFoldStateChanged();
     }
 
     protected void ensureCaretVisible() {
@@ -4360,6 +4472,7 @@ public class CodeEditorTextArea extends JComponent {
                                     deleteText(start, end);
                                     caretLine--;
                                     caretCol = buffer.lineAt(caretLine).length();
+                                    unfoldToRevealCaret();
                                     scrollToCaret();
                                     resetCaretBlink();
                                     revalidate();
@@ -4388,6 +4501,9 @@ public class CodeEditorTextArea extends JComponent {
                                 caretLine--;
                                 caretCol = buffer.lineAt(caretLine).length();
                                 deleteText(offset - 1, offset);
+                                // o join pode ter colocado o caret na última linha
+                                // (oculta) de uma região dobrada — revela o local
+                                unfoldToRevealCaret();
                             }
                         }
                     }
@@ -4421,7 +4537,9 @@ public class CodeEditorTextArea extends JComponent {
                         if (caretCol > 0) {
                             caretCol--;
                         } else if (caretLine > 0) {
-                            caretLine--;
+                            int nl = caretLine - 1;
+                            while (nl > 0 && isLineHidden(nl)) nl--;
+                            caretLine = nl;
                             caretCol = buffer.lineAt(caretLine).length();
                         }
                     }
@@ -4435,8 +4553,12 @@ public class CodeEditorTextArea extends JComponent {
                         if (caretCol < buffer.lineAt(caretLine).length()) {
                             caretCol++;
                         } else if (caretLine < buffer.lineCount() - 1) {
-                            caretLine++;
-                            caretCol = 0;
+                            int nl = caretLine + 1;
+                            while (nl < buffer.lineCount() && isLineHidden(nl)) nl++;
+                            if (nl < buffer.lineCount()) {
+                                caretLine = nl;
+                                caretCol = 0;
+                            }
                         }
                     }
                 }
@@ -4473,21 +4595,30 @@ public class CodeEditorTextArea extends JComponent {
                 case KeyEvent.VK_END -> {
                     moveExtraCarets(e.getKeyCode(), ctrl);
                     desiredCaretCol = -1;
-                    if (ctrl) caretLine = buffer.lineCount() - 1;
+                    if (ctrl) {
+                        int nl = buffer.lineCount() - 1;
+                        while (nl > 0 && isLineHidden(nl)) nl--;
+                        caretLine = nl;
+                    }
                     caretCol = buffer.lineAt(caretLine).length();
                 }
                 case KeyEvent.VK_PAGE_UP -> {
                     moveExtraCarets(e.getKeyCode(), ctrl);
                     if (desiredCaretCol < 0) desiredCaretCol = caretCol;
                     int visibleLines = getVisibleLines();
-                    caretLine = Math.max(0, caretLine - visibleLines);
+                    int nl = Math.max(0, caretLine - visibleLines);
+                    while (nl > 0 && isLineHidden(nl)) nl--;
+                    caretLine = nl;
                     caretCol = Math.min(desiredCaretCol, buffer.lineAt(caretLine).length());
                 }
                 case KeyEvent.VK_PAGE_DOWN -> {
                     moveExtraCarets(e.getKeyCode(), ctrl);
                     if (desiredCaretCol < 0) desiredCaretCol = caretCol;
                     int visibleLines = getVisibleLines();
-                    caretLine = Math.min(buffer.lineCount() - 1, caretLine + visibleLines);
+                    int nl = Math.min(buffer.lineCount() - 1, caretLine + visibleLines);
+                    while (nl < buffer.lineCount() - 1 && isLineHidden(nl)) nl++;
+                    while (nl > 0 && isLineHidden(nl)) nl--;
+                    caretLine = nl;
                     caretCol = Math.min(desiredCaretCol, buffer.lineAt(caretLine).length());
                 }
                 default -> {
