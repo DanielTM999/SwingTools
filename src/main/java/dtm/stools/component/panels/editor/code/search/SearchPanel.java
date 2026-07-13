@@ -1,6 +1,7 @@
 package dtm.stools.component.panels.editor.code.search;
 
 import dtm.stools.component.icon.TintedIconLoader;
+import dtm.stools.component.inputfields.textfield.MaskedTextField;
 import dtm.stools.component.panels.editor.code.CodeEditorTextArea;
 import lombok.Getter;
 
@@ -25,10 +26,10 @@ public class SearchPanel extends JPanel {
     protected final CodeEditorTextArea editor;
 
     @Getter
-    protected final JTextField findField = new JTextField(24);
+    protected final MaskedTextField findField = new MaskedTextField(24);
 
     @Getter
-    protected final JTextField replaceField = new JTextField(24);
+    protected final MaskedTextField replaceField = new MaskedTextField(24);
 
     @Getter
     protected final JToggleButton caseToggle = new JToggleButton("Aa");
@@ -125,7 +126,7 @@ public class SearchPanel extends JPanel {
         replaceRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         replaceRow.setOpaque(false);
         replaceRow.setBorder(new EmptyBorder(4, 0, 0, 0));
-        int indent = expandToggle.getPreferredSize().width + 4;
+        int indent = expandToggle.getPreferredSize().width;
         replaceRow.add(Box.createHorizontalStrut(indent));
         replaceRow.add(replaceField);
         replaceRow.add(Box.createHorizontalStrut(2));
@@ -144,6 +145,13 @@ public class SearchPanel extends JPanel {
 
     protected void styleField(JTextField field, String placeholder) {
         field.setToolTipText(placeholder);
+        if (field instanceof MaskedTextField maskedTextField) {
+            maskedTextField.setPlaceholder(placeholder);
+            Color placeholderColor = UIManager.getColor("Label.disabledForeground");
+            if (placeholderColor != null) {
+                maskedTextField.setPlaceholderColor(placeholderColor);
+            }
+        }
         Color border = resolveBorderColor();
         Color focusBorder = resolveAccentColor();
         Border base = new RoundedLineBorder(border, 1, 8);
