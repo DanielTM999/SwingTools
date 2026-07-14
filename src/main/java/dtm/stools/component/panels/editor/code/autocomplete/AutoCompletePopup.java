@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code.autocomplete;
 
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -15,6 +16,10 @@ public class AutoCompletePopup {
     private static final String COMPLETIONS_CARD = "completions";
     private static final String LOADING_CARD = "loading";
 
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(AutoCompletePopup.class, key, defaultValue);
+    }
+
     protected final JComponent owner;
     protected final JPopupMenu popup = new JPopupMenu();
     protected final DefaultListModel<AutoCompleteItem> model = new DefaultListModel<>();
@@ -23,7 +28,7 @@ public class AutoCompletePopup {
     protected final JPanel centerPanel = new JPanel(new CardLayout());
     protected final JPanel loadingPanel = new JPanel(new GridBagLayout());
     protected final JLabel detailLabel = new JLabel();
-    protected final JLabel loadingLabel = new JLabel("Buscando sugestoes...");
+    protected final JLabel loadingLabel = new JLabel(text("loading", "Buscando sugestoes..."));
     protected final LoadingSpinner loadingSpinner = new LoadingSpinner();
     protected Runnable acceptHandler;
     protected boolean loading;
@@ -296,8 +301,8 @@ public class AutoCompletePopup {
         }
 
         private String kindText(AutoCompleteItem item) {
-            if (item == null || item.kind() == null) return "text";
-            return item.isSnippet() ? "snippet" : "text";
+            if (item == null || item.kind() == null) return text("kind.text", "text");
+            return item.isSnippet() ? text("kind.snippet", "snippet") : text("kind.text", "text");
         }
     }
 

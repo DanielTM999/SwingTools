@@ -2,6 +2,7 @@ package dtm.stools.component.inputfields.tagfield;
 
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.panels.base.PanelEventListener;
+import dtm.stools.i18n.I18n;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -25,6 +26,10 @@ import java.util.function.UnaryOperator;
 
 public class TagInputField extends PanelEventListener {
 
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(TagInputField.class, key, defaultValue);
+    }
+
     public static final String TAG_ADD = "tagAdd";
     public static final String TAG_REMOVE = "tagRemove";
     public static final String TAG_CLICK = "tagClick";
@@ -44,7 +49,7 @@ public class TagInputField extends PanelEventListener {
     private boolean addButtonVisible = true;
     private boolean removeButtonVisible = true;
     private int maxTags = -1;
-    private String placeholder = "Adicionar tag";
+    private String placeholder = text("placeholder.addTag", "Adicionar tag");
     private String separatorsRegex = "[,;\\n]";
 
     private Color tagBackground = new Color(0xE8F0FE);
@@ -96,7 +101,7 @@ public class TagInputField extends PanelEventListener {
         button.setFocusable(false);
         button.setMargin(new Insets(2, 8, 2, 8));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setToolTipText("Adicionar tag");
+        button.setToolTipText(text("tooltip.addTag", "Adicionar tag"));
         return button;
     }
 
@@ -119,7 +124,7 @@ public class TagInputField extends PanelEventListener {
             remove.setForeground(tagRemoveForeground);
             remove.setMargin(new Insets(0, 4, 0, 6));
             remove.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            remove.setToolTipText("Remover tag");
+            remove.setToolTipText(text("tooltip.removeTag", "Remover tag"));
             remove.addActionListener(e -> removeTagAt(index));
             chip.add(remove, BorderLayout.EAST);
         }

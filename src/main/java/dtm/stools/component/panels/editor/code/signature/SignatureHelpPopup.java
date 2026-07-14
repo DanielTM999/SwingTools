@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code.signature;
 
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +17,10 @@ import java.util.List;
  * mais de uma. E posicionado, preferencialmente, acima da linha do caret.
  */
 public class SignatureHelpPopup {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(SignatureHelpPopup.class, key, defaultValue);
+    }
 
     protected final JComponent owner;
     protected final JPopupMenu popup = new JPopupMenu();
@@ -161,7 +166,7 @@ public class SignatureHelpPopup {
         if (count > 1) {
             headerPanel.setVisible(true);
             overloadLabel.setText((activeSignature + 1) + " / " + count);
-            navHintLabel.setText("↑↓ alterna");
+            navHintLabel.setText(text("hint.switch", "↑↓ alterna"));
         } else {
             headerPanel.setVisible(false);
         }

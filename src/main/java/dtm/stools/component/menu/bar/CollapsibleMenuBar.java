@@ -1,6 +1,8 @@
 package dtm.stools.component.menu.bar;
 
 import dtm.stools.component.menu.bar.tree.MenuNode;
+import dtm.stools.i18n.I18n;
+import dtm.stools.utils.ResourceUtils;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -31,6 +33,10 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class CollapsibleMenuBar extends MenuBar {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(CollapsibleMenuBar.class, key, defaultValue);
+    }
 
     public static final String DEFAULT_COLLAPSE_BUTTON_TEXT = "\u2630";
     public static final String DEFAULT_COLLAPSE_BUTTON_RESOURCE = "/drawables/hamburger.png";
@@ -77,7 +83,7 @@ public class CollapsibleMenuBar extends MenuBar {
         button.setVerticalAlignment(SwingConstants.CENTER);
         applyCollapseButtonSize();
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setToolTipText("Menu");
+        button.setToolTipText(text("tooltip.menu", "Menu"));
         button.addActionListener(e -> handleCollapseButtonClick());
         button.addPropertyChangeListener("UI", e -> updateCollapseButtonIcon());
         updateCollapseButtonIcon();
@@ -110,7 +116,9 @@ public class CollapsibleMenuBar extends MenuBar {
 
     public CollapsibleMenuBar setCollapseButtonResource(Class<?> resourceBase, String resourcePath) {
         this.collapseButtonResourceBase = resourceBase == null ? CollapsibleMenuBar.class : resourceBase;
-        this.collapseButtonResource = normalizeResourcePath(resourcePath);
+        this.collapseButtonResource = resourcePath == null || resourcePath.isBlank()
+                ? DEFAULT_COLLAPSE_BUTTON_RESOURCE
+                : "/" + ResourceUtils.normalizeResourcePath(resourcePath);
         this.collapseButtonImage = null;
         this.collapseButtonIcon = null;
         updateCollapseButtonIcon();
@@ -595,13 +603,6 @@ public class CollapsibleMenuBar extends MenuBar {
             g2.dispose();
         }
         return buffered;
-    }
-
-    private String normalizeResourcePath(String resourcePath) {
-        if (resourcePath == null || resourcePath.isBlank()) {
-            return DEFAULT_COLLAPSE_BUTTON_RESOURCE;
-        }
-        return resourcePath.startsWith("/") ? resourcePath : "/" + resourcePath;
     }
 
     private void installMenuSync() {

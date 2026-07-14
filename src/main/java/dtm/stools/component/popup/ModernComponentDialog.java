@@ -1,5 +1,7 @@
 package dtm.stools.component.popup;
 
+import dtm.stools.i18n.I18n;
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -18,6 +20,10 @@ import java.util.Set;
 public final class ModernComponentDialog<T> {
 
     private ModernComponentDialog() {}
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(ModernComponentDialog.class, key, defaultValue);
+    }
 
     public static <T> ModernComponentDialogBuilder<T> builder(Class<T> resultType) {
         return new ModernComponentDialogBuilder<>(resultType);
@@ -51,8 +57,8 @@ public final class ModernComponentDialog<T> {
         private Color cancelButtonColor = null;
         private Color cancelButtonForeground = null;
 
-        private String confirmText = "Confirmar";
-        private String cancelText = "Cancelar";
+        private String confirmText = text("button.confirm", "Confirmar");
+        private String cancelText = text("button.cancel", "Cancelar");
         private boolean showCancelButton = true;
         private boolean closeOnSubmitSuccess = true;
         private boolean validateOnChange = false;
@@ -740,7 +746,7 @@ public final class ModernComponentDialog<T> {
         private void showError(JDialog dialog, JLabel errorLbl, Collection<JButton> buttons, Exception ex) {
             String message = ex.getMessage();
             if (message == null || message.isBlank()) {
-                message = "Erro ao confirmar.";
+                message = text("error.confirm", "Erro ao confirmar.");
             }
             errorLbl.setText("<html><div style='width:320px'>" + escapeHtml(message) + "</div></html>");
             errorLbl.setVisible(true);
@@ -995,7 +1001,7 @@ public final class ModernComponentDialog<T> {
             }
         };
 
-        JLabel typeLabel = new JLabel(type.name().charAt(0) + type.name().substring(1).toLowerCase());
+        JLabel typeLabel = new JLabel(typeText(type));
         typeLabel.setForeground(foreground);
         typeLabel.setFont(font(11, Font.PLAIN));
 
@@ -1066,8 +1072,18 @@ public final class ModernComponentDialog<T> {
         btn.setOpaque(false);
         btn.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText(text("button.close", "Fechar"));
         btn.addActionListener(e -> dialog.dispose());
         return btn;
+    }
+
+    private static String typeText(ModernDialog.Type type) {
+        return switch (type) {
+            case SUCCESS -> text("type.success", "Sucesso");
+            case ERROR -> text("type.error", "Erro");
+            case QUESTION -> text("type.question", "Pergunta");
+            default -> text("type.info", "Informacao");
+        };
     }
 
     private static Icon buildIcon(ModernDialog.Type type, Color accent) {

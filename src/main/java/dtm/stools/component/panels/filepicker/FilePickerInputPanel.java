@@ -11,6 +11,7 @@ import dtm.stools.component.panels.filepicker.renderers.*;
 import dtm.stools.component.panels.filepicker.utils.FileTreeNode;
 import dtm.stools.component.panels.filepicker.utils.FileWrapper;
 import dtm.stools.exceptions.FileSelectionException;
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -39,6 +40,10 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class FilePickerInputPanel extends PanelEventListener {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(FilePickerInputPanel.class, key, defaultValue);
+    }
 
     private final ExecutorService executor;
     private final Set<File> selectedFiles;
@@ -194,7 +199,9 @@ public class FilePickerInputPanel extends PanelEventListener {
         }
 
         if(btnConfirmSelectionText == null || btnConfirmSelectionText.isEmpty()){
-            btnConfirmSelection.setText(enabled ? "Selecionar" : "Abrir");
+            btnConfirmSelection.setText(enabled
+                    ? text("button.select", "Selecionar")
+                    : text("button.open", "Abrir"));
         }else{
             btnConfirmSelection.setText(btnConfirmSelectionText);
         }
@@ -213,7 +220,7 @@ public class FilePickerInputPanel extends PanelEventListener {
     public void setFileFilter(FileNameExtensionFilter filter) {
         this.currentFileFilter = filter;
         if (txtFilterView != null) {
-            txtFilterView.setText(filter != null ? filter.getDescription() : "Todos os arquivos");
+            txtFilterView.setText(filter != null ? filter.getDescription() : text("filter.allFiles", "Todos os arquivos"));
         }
         navigateTo(navigatorPath, null);
     }
@@ -316,11 +323,11 @@ public class FilePickerInputPanel extends PanelEventListener {
         });
 
         btnUp = new JButton("↑");
-        btnUp.setToolTipText("Subir um nível");
+        btnUp.setToolTipText(text("tooltip.up", "Subir um nível"));
         btnUp.setMargin(new Insets(2, 5, 2, 5));
 
         txtSearchFolder = new SearchTextField<>(null);
-        txtSearchFolder.setPlaceholder("perquisar...");
+        txtSearchFolder.setPlaceholder(text("placeholder.search", "pesquisar..."));
         txtSearchFolder.setPreferredSize(new Dimension(200, (int) txtSearchFolder.getPreferredSize().getHeight()));
 
         JPanel pnlPath = new JPanel(new BorderLayout(5, 0));
@@ -339,7 +346,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         listSelectedFiles = new JList<>(listSelectedFilesModel);
         listSelectedFiles.setCellRenderer(new FileListCellRenderer(fsv));
         selectionScrollPane = new JScrollPane(listSelectedFiles);
-        selectionScrollPane.setBorder(BorderFactory.createTitledBorder("Seleção"));
+        selectionScrollPane.setBorder(BorderFactory.createTitledBorder(text("title.selection", "Seleção")));
         selectionScrollPane.setPreferredSize(new Dimension(0, 150));
 
         pnlLeft.add(treeScrollPane, BorderLayout.CENTER);
@@ -392,15 +399,15 @@ public class FilePickerInputPanel extends PanelEventListener {
         pnlConfigBar.setFloatable(false);
         pnlConfigBar.setBorder(new EmptyBorder(0,0,0,0));
 
-        txtFilterView = new JTextField("Todos os arquivos");
+        txtFilterView = new JTextField(text("filter.allFiles", "Todos os arquivos"));
         txtFilterView.setEditable(false);
         txtFilterView.setPreferredSize(new Dimension(180, (int) txtFilterView.getPreferredSize().getHeight()));
 
-        btnShowHidden = new JToggleButton("Ocultos");
-        btnShowHidden.setToolTipText("Exibir arquivos ocultos");
+        btnShowHidden = new JToggleButton(text("button.hidden", "Ocultos"));
+        btnShowHidden.setToolTipText(text("tooltip.hidden", "Exibir arquivos ocultos"));
 
-        btnListView = new JToggleButton("Lista");
-        btnGridView = new JToggleButton("Grade");
+        btnListView = new JToggleButton(text("button.list", "Lista"));
+        btnGridView = new JToggleButton(text("button.grid", "Grade"));
         ButtonGroup viewGroup = new ButtonGroup();
         viewGroup.add(btnListView);
         viewGroup.add(btnGridView);
@@ -412,7 +419,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         pnlConfigBar.add(btnListView);
         pnlConfigBar.add(btnGridView);
 
-        lblSingleFile = new JLabel("Arquivo:");
+        lblSingleFile = new JLabel(text("label.file", "Arquivo:"));
         txtSingleFile = new SearchTextField<>(30);
         txtSingleFile.setEditable(false);
 
@@ -428,11 +435,11 @@ public class FilePickerInputPanel extends PanelEventListener {
 
         pnlBottomBar.add(pnlConfigBar, BorderLayout.WEST);
 
-        lblSelectionCount = new JLabel("Nenhum item selecionado");
+        lblSelectionCount = new JLabel(text("selection.none", "Nenhum item selecionado"));
         lblSelectionCount.setHorizontalAlignment(SwingConstants.CENTER);
 
-        btnClearSelection = new JButton("Limpar Seleção");
-        btnConfirmSelection = new JButton("Selecionar");
+        btnClearSelection = new JButton(text("button.clearSelection", "Limpar Seleção"));
+        btnConfirmSelection = new JButton(text("button.select", "Selecionar"));
 
         JPanel pnlBottomButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         pnlBottomButtons.add(btnClearSelection);
@@ -446,7 +453,7 @@ public class FilePickerInputPanel extends PanelEventListener {
     }
 
     private void setupNavigationTree() {
-        FileTreeNode root = new FileTreeNode("Raiz");
+        FileTreeNode root = new FileTreeNode(text("tree.root", "Raiz"));
 
         File home = fsv.getHomeDirectory();
         FileTreeNode nodeHome = new FileTreeNode(home);
@@ -480,7 +487,7 @@ public class FilePickerInputPanel extends PanelEventListener {
             root.add(new FileTreeNode(videos));
         }
 
-        FileTreeNode nodeDiscos = new FileTreeNode("Discos");
+        FileTreeNode nodeDiscos = new FileTreeNode(text("tree.disks", "Discos"));
         File[] roots = File.listRoots();
         if (roots != null) {
             for (File disk : roots) {
@@ -501,11 +508,11 @@ public class FilePickerInputPanel extends PanelEventListener {
 
     private void createContextMenu() {
         contextMenu = new JPopupMenu();
-        miMarkAsSelected = new JMenuItem("Marcar como Selecionado");
-        miRename = new JMenuItem("Renomear");
-        miDelete = new JMenuItem("Excluir");
-        miNewFolder = new JMenuItem("Nova Pasta");
-        miRefresh = new JMenuItem("Atualizar");
+        miMarkAsSelected = new JMenuItem(text("menu.markSelected", "Marcar como Selecionado"));
+        miRename = new JMenuItem(text("menu.rename", "Renomear"));
+        miDelete = new JMenuItem(text("menu.delete", "Excluir"));
+        miNewFolder = new JMenuItem(text("menu.newFolder", "Nova Pasta"));
+        miRefresh = new JMenuItem(text("menu.refresh", "Atualizar"));
 
         miMarkAsSelected.addActionListener(e -> markSelectedFiles());
         miRename.addActionListener(e -> renameFile());
@@ -525,12 +532,12 @@ public class FilePickerInputPanel extends PanelEventListener {
     private void createSelectionListContextMenu() {
         selectionListContextMenu = new JPopupMenu();
 
-        miRemoveSelected = new JMenuItem("Remover dos Selecionados");
+        miRemoveSelected = new JMenuItem(text("menu.removeSelected", "Remover dos Selecionados"));
         miRemoveSelected.addActionListener(e -> removeFilesFromSelection());
         selectionListContextMenu.add(miRemoveSelected);
 
         selectionListContextMenu.addSeparator();
-        miRemoveAllSelected = new JMenuItem("Limpar Seleção");
+        miRemoveAllSelected = new JMenuItem(text("menu.clearSelection", "Limpar Seleção"));
         miRemoveAllSelected.addActionListener(e -> clearSelection());
         selectionListContextMenu.add(miRemoveAllSelected);
     }
@@ -782,14 +789,24 @@ public class FilePickerInputPanel extends PanelEventListener {
     }
 
     private void createNewFolder() {
-        String newFolderName = JOptionPane.showInputDialog(this, "Nome da nova pasta:", "Nova Pasta", JOptionPane.PLAIN_MESSAGE);
+        String newFolderName = JOptionPane.showInputDialog(
+                this,
+                text("dialog.newFolder.message", "Nome da nova pasta:"),
+                text("dialog.newFolder.title", "Nova Pasta"),
+                JOptionPane.PLAIN_MESSAGE
+        );
         if (newFolderName != null && !newFolderName.isBlank()) {
             try {
                 Path currentPath = Path.of(txtPath.getText());
                 Files.createDirectory(currentPath.resolve(newFolderName));
                 navigateTo(currentPath, null);
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Não foi possível criar a pasta: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        text("error.createFolder", "Não foi possível criar a pasta: ") + e.getMessage(),
+                        text("title.error", "Erro"),
+                        JOptionPane.ERROR_MESSAGE
+                );
             }
         }
     }
@@ -800,13 +817,26 @@ public class FilePickerInputPanel extends PanelEventListener {
 
         File fileToRename = wrapper.getFile();
 
-        String newName = (String) JOptionPane.showInputDialog(this, "Novo nome:", "Renomear", JOptionPane.PLAIN_MESSAGE, null, null, fileToRename.getName());
+        String newName = (String) JOptionPane.showInputDialog(
+                this,
+                text("dialog.rename.message", "Novo nome:"),
+                text("dialog.rename.title", "Renomear"),
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                null,
+                fileToRename.getName()
+        );
         if (newName != null && !newName.isBlank() && !newName.equals(fileToRename.getName())) {
             try {
                 Files.move(fileToRename.toPath(), fileToRename.toPath().resolveSibling(newName));
                 navigateTo(navigatorPath, null);
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Não foi possível renomear: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(
+                        this,
+                        text("error.rename", "Não foi possível renomear: ") + e.getMessage(),
+                        text("title.error", "Erro"),
+                        JOptionPane.ERROR_MESSAGE
+                );
             }
         }
     }
@@ -815,8 +845,11 @@ public class FilePickerInputPanel extends PanelEventListener {
         List<FileWrapper> wrappersToDelete = getSelectedFileWrappersFromActiveView();
         if (wrappersToDelete.isEmpty()) return;
 
-        String msg = wrappersToDelete.size() == 1 ? "Tem certeza que deseja excluir este item?" : "Tem certeza que deseja excluir " + wrappersToDelete.size() + " itens?";
-        int result = JOptionPane.showConfirmDialog(this, msg, "Excluir", JOptionPane.YES_NO_OPTION);
+        String msg = wrappersToDelete.size() == 1
+                ? text("dialog.delete.one", "Tem certeza que deseja excluir este item?")
+                : text("dialog.delete.many", "Tem certeza que deseja excluir {count} itens?")
+                        .replace("{count}", String.valueOf(wrappersToDelete.size()));
+        int result = JOptionPane.showConfirmDialog(this, msg, text("dialog.delete.title", "Excluir"), JOptionPane.YES_NO_OPTION);
 
         if (result == JOptionPane.YES_OPTION) {
             for (FileWrapper wrapper : wrappersToDelete) {
@@ -829,7 +862,12 @@ public class FilePickerInputPanel extends PanelEventListener {
                     }
                     selectedFiles.remove(file);
                 } catch (IOException e) {
-                    JOptionPane.showMessageDialog(this, "Não foi possível excluir " + file.getName() + ": " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(
+                            this,
+                            text("error.delete", "Não foi possível excluir ") + file.getName() + ": " + e.getMessage(),
+                            text("title.error", "Erro"),
+                            JOptionPane.ERROR_MESSAGE
+                    );
                 }
             }
 
@@ -853,7 +891,12 @@ public class FilePickerInputPanel extends PanelEventListener {
 
     private void navigateTo(Path path, Runnable onComplete, boolean executeWithExecutor) {
         if (path == null || !Files.exists(path) || !Files.isReadable(path)) {
-            JOptionPane.showMessageDialog(this, "Caminho inválido ou sem permissão: " + path, "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    text("error.invalidPath", "Caminho inválido ou sem permissão: ") + path,
+                    text("title.error", "Erro"),
+                    JOptionPane.ERROR_MESSAGE
+            );
             txtPath.setShowPopup(false);
             txtPath.setText(navigatorPath.toString());
             txtPath.setShowPopup(true);
@@ -982,7 +1025,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         Enumeration<?> e = root.children();
         while (e.hasMoreElements()) {
             FileTreeNode node = (FileTreeNode) e.nextElement();
-            if (node.getUserObject().equals("Discos")) {
+            if (node.getUserObject().equals(text("tree.disks", "Discos"))) {
                 Enumeration<?> diskNodes = node.children();
                 while (diskNodes.hasMoreElements()) {
                     FileTreeNode diskNode = (FileTreeNode) diskNodes.nextElement();
@@ -998,7 +1041,7 @@ public class FilePickerInputPanel extends PanelEventListener {
                     bestMatchNode = node;
                 }
             }
-            if (bestMatchNode != null && !bestMatchNode.getUserObject().equals("Discos")) {
+            if (bestMatchNode != null && !bestMatchNode.getUserObject().equals(text("tree.disks", "Discos"))) {
                 break;
             }
         }
@@ -1103,11 +1146,12 @@ public class FilePickerInputPanel extends PanelEventListener {
     private void updateSelectionCountLabel() {
         int count = selectedFiles.size();
         if (count == 0) {
-            lblSelectionCount.setText("Nenhum item selecionado");
+            lblSelectionCount.setText(text("selection.none", "Nenhum item selecionado"));
         } else if (count == 1) {
-            lblSelectionCount.setText("1 item selecionado");
+            lblSelectionCount.setText(text("selection.one", "1 item selecionado"));
         } else {
-            lblSelectionCount.setText(count + " itens selecionados");
+            lblSelectionCount.setText(text("selection.many", "{count} itens selecionados")
+                    .replace("{count}", String.valueOf(count)));
         }
     }
 
@@ -1199,18 +1243,24 @@ public class FilePickerInputPanel extends PanelEventListener {
                     if (!validExtension) {
                         String message;
                         if (!hasExtension) {
-                            message = "O arquivo selecionado não possui uma extensão.\n" +
-                                    "Por favor, insira uma extensão válida, como: " + getValidExtensionsString();
+                            message = text(
+                                    "validation.missingExtension",
+                                    "O arquivo selecionado não possui uma extensão.\nPor favor, insira uma extensão válida, como: {extensions}"
+                            ).replace("{extensions}", getValidExtensionsString());
                         } else {
                             String allowed = String.join(", ", currentFileFilter.getExtensions());
-                            message = "A extensão do arquivo '" + extension + "' não é permitida.\n" +
-                                    "Extensões válidas: " + allowed + ".";
+                            message = text(
+                                    "validation.invalidExtension",
+                                    "A extensão do arquivo '{extension}' não é permitida.\nExtensões válidas: {extensions}."
+                            )
+                                    .replace("{extension}", extension)
+                                    .replace("{extensions}", allowed);
                         }
 
                         JOptionPane.showMessageDialog(
                                 this,
                                 message,
-                                "Extensão inválida",
+                                text("title.invalidExtension", "Extensão inválida"),
                                 JOptionPane.WARNING_MESSAGE
                         );
                         return;
@@ -1234,13 +1284,13 @@ public class FilePickerInputPanel extends PanelEventListener {
         if(selectedFiles.isEmpty() && required.get()){
             String message;
             if (multiSelect.get()) {
-                message = "Selecione ao menos 1 arquivo.";
+                message = text("validation.selectAtLeastOne", "Selecione ao menos 1 arquivo.");
             } else if (allowNewFileInput.get() || (!txtSingleFile.getText().isBlank()) ) {
-                message = "Digite um nome de arquivo.";
+                message = text("validation.typeFileName", "Digite um nome de arquivo.");
             } else {
-                message = "Selecione um arquivo.";
+                message = text("validation.selectFile", "Selecione um arquivo.");
             }
-            JOptionPane.showMessageDialog(this, message, "Seleção Obrigatória", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, message, text("title.requiredSelection", "Seleção Obrigatória"), JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -1331,8 +1381,8 @@ public class FilePickerInputPanel extends PanelEventListener {
         if (mode == FileSelectionMode.FILES_ONLY) {
             if (file.isDirectory()) {
                 throw new FileSelectionException(
-                        "Tipo Inválido",
-                        "A seleção deve ser um arquivo, mas uma pasta foi selecionada."
+                        text("title.invalidType", "Tipo Inválido"),
+                        text("validation.expectedFile", "A seleção deve ser um arquivo, mas uma pasta foi selecionada.")
                 );
             }
             validateFileExtension(file);
@@ -1340,8 +1390,8 @@ public class FilePickerInputPanel extends PanelEventListener {
         } else if (mode == FileSelectionMode.DIRECTORIES_ONLY) {
             if (file.isFile()) {
                 throw new FileSelectionException(
-                        "Tipo Inválido",
-                        "A seleção deve ser uma pasta, mas um arquivo foi selecionado."
+                        text("title.invalidType", "Tipo Inválido"),
+                        text("validation.expectedFolder", "A seleção deve ser uma pasta, mas um arquivo foi selecionado.")
                 );
             }
         }
@@ -1350,8 +1400,8 @@ public class FilePickerInputPanel extends PanelEventListener {
     private void validateNewFile(File file) {
         if (!allowNewFileInput.get()) {
             throw new FileSelectionException(
-                    "Arquivo Inexistente",
-                    "O arquivo selecionado não existe."
+                    text("title.missingFile", "Arquivo Inexistente"),
+                    text("validation.fileDoesNotExist", "O arquivo selecionado não existe.")
             );
         }
 
@@ -1369,8 +1419,8 @@ public class FilePickerInputPanel extends PanelEventListener {
 
         if (extension.isEmpty()) {
             throw new FileSelectionException(
-                    "Extensão Inválida",
-                    "O arquivo deve possuir uma extensão."
+                    text("title.invalidExtensionAlt", "Extensão Inválida"),
+                    text("validation.fileMustHaveExtension", "O arquivo deve possuir uma extensão.")
             );
         }
 
@@ -1384,8 +1434,9 @@ public class FilePickerInputPanel extends PanelEventListener {
 
         if (!isValid) {
             throw new FileSelectionException(
-                    "Extensão Inválida",
-                    "A extensão do arquivo não é permitida. Esperado: " + currentFileFilter.getDescription()
+                    text("title.invalidExtensionAlt", "Extensão Inválida"),
+                    text("validation.extensionNotAllowed", "A extensão do arquivo não é permitida. Esperado: {expected}")
+                            .replace("{expected}", currentFileFilter.getDescription())
             );
         }
     }

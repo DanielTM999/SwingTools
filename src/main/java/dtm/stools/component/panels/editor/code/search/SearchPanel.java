@@ -3,6 +3,7 @@ package dtm.stools.component.panels.editor.code.search;
 import dtm.stools.component.icon.TintedIconLoader;
 import dtm.stools.component.inputfields.textfield.MaskedTextField;
 import dtm.stools.component.panels.editor.code.CodeEditorTextArea;
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -21,6 +22,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class SearchPanel extends JPanel {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(SearchPanel.class, key, defaultValue);
+    }
+
+    private static String text(String key, java.util.function.Supplier<String> defaultValueAction) {
+        return I18n.getText(SearchPanel.class, key, defaultValueAction);
+    }
 
     @Getter
     protected final CodeEditorTextArea editor;
@@ -41,7 +50,7 @@ public class SearchPanel extends JPanel {
     protected final JToggleButton regexToggle = new JToggleButton(".*");
 
     @Getter
-    protected final JLabel countLabel = new JLabel("0 results");
+    protected final JLabel countLabel = new JLabel(text("count.zero", "0 results"));
 
     @Getter
     protected final JButton prevButton = new JButton();
@@ -50,10 +59,10 @@ public class SearchPanel extends JPanel {
     protected final JButton nextButton = new JButton();
 
     @Getter
-    protected final JButton replaceButton = new JButton("Replace");
+    protected final JButton replaceButton = new JButton(text("button.replace", "Replace"));
 
     @Getter
-    protected final JButton replaceAllButton = new JButton("All");
+    protected final JButton replaceAllButton = new JButton(text("button.replaceAll", "All"));
 
     @Getter
     protected final JButton closeButton = new JButton();
@@ -90,18 +99,18 @@ public class SearchPanel extends JPanel {
                 new EmptyBorder(6, 8, 6, 8)
         ));
 
-        styleField(findField, "Find");
-        styleField(replaceField, "Replace");
+        styleField(findField, text("field.find", "Find"));
+        styleField(replaceField, text("field.replace", "Replace"));
 
-        styleToggle(expandToggle, "Toggle replace");
-        styleToggle(caseToggle, "Match case");
-        styleToggle(wordToggle, "Whole word");
-        styleToggle(regexToggle, "Regex");
-        styleIconButton(prevButton, "Previous match");
-        styleIconButton(nextButton, "Next match");
-        styleIconButton(closeButton, "Close (Esc)");
-        styleActionButton(replaceButton, "Replace current match");
-        styleActionButton(replaceAllButton, "Replace all matches");
+        styleToggle(expandToggle, text("tooltip.toggleReplace", "Toggle replace"));
+        styleToggle(caseToggle, text("tooltip.matchCase", "Match case"));
+        styleToggle(wordToggle, text("tooltip.wholeWord", "Whole word"));
+        styleToggle(regexToggle, text("tooltip.regex", "Regex"));
+        styleIconButton(prevButton, text("tooltip.previousMatch", "Previous match"));
+        styleIconButton(nextButton, text("tooltip.nextMatch", "Next match"));
+        styleIconButton(closeButton, text("tooltip.close", "Close (Esc)"));
+        styleActionButton(replaceButton, text("tooltip.replaceCurrent", "Replace current match"));
+        styleActionButton(replaceAllButton, text("tooltip.replaceAll", "Replace all matches"));
         reloadIcons();
 
         countLabel.setBorder(new EmptyBorder(0, 8, 0, 8));
@@ -478,9 +487,11 @@ public class SearchPanel extends JPanel {
 
     public void updateMatchCount(int current, int total) {
         if (total <= 0) {
-            countLabel.setText("No results");
+            countLabel.setText(text("count.noResults", "No results"));
         } else {
-            countLabel.setText((current + 1) + " of " + total);
+            countLabel.setText(text("count.of", () -> (current + 1) + " of " + total)
+                    .replace("{current}", String.valueOf(current + 1))
+                    .replace("{total}", String.valueOf(total)));
         }
     }
 }

@@ -3,6 +3,7 @@ package dtm.stools.context;
 import dtm.stools.component.popup.ModernDialog;
 import dtm.stools.component.popup.ModernComponentDialog;
 import dtm.stools.component.popup.ModernInputDialog;
+import dtm.stools.i18n.I18n;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,6 +16,10 @@ import java.util.function.Supplier;
 public final class Dialogs {
 
     private Dialogs() {}
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(Dialogs.class, key, defaultValue);
+    }
 
     public static int show(String title, String message) {
         return show(null, title, message, ModernDialog.Type.INFO);
@@ -38,7 +43,7 @@ public final class Dialogs {
     }
 
     public static int info(String message) {
-        return info(null, "Informacao", message);
+        return info(null, text("title.info", "Informacao"), message);
     }
 
     public static int info(String title, String message) {
@@ -50,7 +55,7 @@ public final class Dialogs {
     }
 
     public static int success(String message) {
-        return success(null, "Sucesso", message);
+        return success(null, text("title.success", "Sucesso"), message);
     }
 
     public static int success(String title, String message) {
@@ -62,7 +67,7 @@ public final class Dialogs {
     }
 
     public static int error(String message) {
-        return error(null, "Erro", message);
+        return error(null, text("title.error", "Erro"), message);
     }
 
     public static int error(String title, String message) {
@@ -74,7 +79,7 @@ public final class Dialogs {
     }
 
     public static int error(Throwable error) {
-        return error(null, "Erro", error);
+        return error(null, text("title.error", "Erro"), error);
     }
 
     public static int error(String title, Throwable error) {
@@ -91,7 +96,7 @@ public final class Dialogs {
     }
 
     public static boolean confirm(String message) {
-        return confirm(null, "Confirmar", message);
+        return confirm(null, text("title.confirm", "Confirmar"), message);
     }
 
     public static boolean confirm(String title, String message) {
@@ -104,14 +109,14 @@ public final class Dialogs {
                 .title(title)
                 .message(message)
                 .type(ModernDialog.Type.QUESTION)
-                .option("Sim", JOptionPane.YES_OPTION)
-                .option("Nao", JOptionPane.NO_OPTION)
+                .option(text("option.yes", "Sim"), JOptionPane.YES_OPTION)
+                .option(text("option.no", "Nao"), JOptionPane.NO_OPTION)
                 .show();
         return result == JOptionPane.YES_OPTION;
     }
 
     public static int question(String message, String... options) {
-        return question(null, "Pergunta", message, options);
+        return question(null, text("title.question", "Pergunta"), message, options);
     }
 
     public static int question(String title, String message, String... options) {
@@ -126,8 +131,8 @@ public final class Dialogs {
                 .type(ModernDialog.Type.QUESTION);
 
         if (options == null || options.length == 0) {
-            builder.option("Sim", JOptionPane.YES_OPTION)
-                    .option("Nao", JOptionPane.NO_OPTION);
+            builder.option(text("option.yes", "Sim"), JOptionPane.YES_OPTION)
+                    .option(text("option.no", "Nao"), JOptionPane.NO_OPTION);
         } else {
             for (int i = 0; i < options.length; i++) {
                 builder.option(options[i], i);
@@ -138,7 +143,7 @@ public final class Dialogs {
     }
 
     public static String input(String message) {
-        return input(null, "Entrada", message);
+        return input(null, text("title.input", "Entrada"), message);
     }
 
     public static String input(String title, String message) {
@@ -176,7 +181,7 @@ public final class Dialogs {
             return task.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Dialog execution was interrupted.", e);
+            throw new IllegalStateException(text("error.interrupted", "Dialog execution was interrupted."), e);
         } catch (InvocationTargetException e) {
             throw rethrow(e.getCause());
         } catch (ExecutionException e) {
@@ -193,7 +198,7 @@ public final class Dialogs {
         if (error instanceof Error fatal) {
             throw fatal;
         }
-        return new IllegalStateException("Dialog execution failed.", error);
+        return new IllegalStateException(text("error.failed", "Dialog execution failed."), error);
     }
 
     public static final class Builder {
@@ -292,8 +297,8 @@ public final class Dialogs {
         private String message = "";
         private Color accentColor;
         private JComponent inputComponent;
-        private String confirmText = "Confirmar";
-        private String cancelText = "Cancelar";
+        private String confirmText = text("button.confirm", "Confirmar");
+        private String cancelText = text("button.cancel", "Cancelar");
         private boolean draggable = true;
         private boolean showIcon = true;
 

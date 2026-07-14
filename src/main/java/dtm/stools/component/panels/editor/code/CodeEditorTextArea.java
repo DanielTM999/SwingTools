@@ -75,6 +75,7 @@ import dtm.stools.component.panels.editor.code.search.SearchMatch;
 import dtm.stools.component.panels.editor.code.search.SearchOptions;
 import dtm.stools.component.panels.editor.code.search.SearchPanel;
 import dtm.stools.component.panels.editor.code.utils.BracketHighlighter;
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
 import javax.swing.*;
@@ -94,6 +95,10 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 
 public class CodeEditorTextArea extends JComponent {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(CodeEditorTextArea.class, key, defaultValue);
+    }
 
     private static final int HOVER_DOCUMENTATION_HIDE_DELAY = 400;
     private static final int HOVER_DOCUMENTATION_REACH_PADDING = 18;
@@ -5584,7 +5589,7 @@ public class CodeEditorTextArea extends JComponent {
         boolean canCopy = copyPasteEnabled && hasSel;
         boolean canCut = canCopy && !readOnly;
 
-        JMenuItem undo = new JMenuItem("Desfazer");
+        JMenuItem undo = new JMenuItem(text("menu.undo", "Desfazer"));
         undo.setEnabled(!readOnly && buffer.canUndo());
         undo.addActionListener(ev -> {
             if (readOnly) return;
@@ -5596,7 +5601,7 @@ public class CodeEditorTextArea extends JComponent {
         });
         menu.add(undo);
 
-        JMenuItem redo = new JMenuItem("Refazer");
+        JMenuItem redo = new JMenuItem(text("menu.redo", "Refazer"));
         redo.setEnabled(!readOnly && buffer.canRedo());
         redo.addActionListener(ev -> {
             if (readOnly) return;
@@ -5610,7 +5615,7 @@ public class CodeEditorTextArea extends JComponent {
 
         menu.addSeparator();
 
-        JMenuItem cut = new JMenuItem("Recortar");
+        JMenuItem cut = new JMenuItem(text("menu.cut", "Recortar"));
         cut.setEnabled(canCut);
         cut.addActionListener(ev -> {
             if (readOnly) return;
@@ -5623,12 +5628,12 @@ public class CodeEditorTextArea extends JComponent {
         });
         menu.add(cut);
 
-        JMenuItem copy = new JMenuItem("Copiar");
+        JMenuItem copy = new JMenuItem(text("menu.copy", "Copiar"));
         copy.setEnabled(canCopy);
         copy.addActionListener(ev -> copyToClipboard());
         menu.add(copy);
 
-        JMenuItem paste = new JMenuItem("Colar");
+        JMenuItem paste = new JMenuItem(text("menu.paste", "Colar"));
         paste.setEnabled(canPaste);
         paste.addActionListener(ev -> {
             pasteFromClipboard();
@@ -5641,7 +5646,7 @@ public class CodeEditorTextArea extends JComponent {
 
         menu.addSeparator();
 
-        JMenuItem selectAll = new JMenuItem("Selecionar tudo");
+        JMenuItem selectAll = new JMenuItem(text("menu.selectAll", "Selecionar tudo"));
         selectAll.addActionListener(ev -> {
             selectAll();
             repaint();
@@ -7671,7 +7676,10 @@ public class CodeEditorTextArea extends JComponent {
         if (readOnly) return;
         if (renameProvider == null) return;
         String current = currentWordAtCaret();
-        String prompt = (current == null || current.isEmpty()) ? "Rename to:" : "Rename '" + current + "' to:";
+        String prompt = (current == null || current.isEmpty())
+                ? text("rename.prompt.empty", "Rename to:")
+                : text("rename.prompt.current", "Rename '{current}' to:")
+                        .replace("{current}", current);
         String newName = JOptionPane.showInputDialog(this, prompt, current);
         if (newName == null) return;
         newName = newName.trim();

@@ -1,5 +1,7 @@
 package dtm.stools.component.popup;
 
+import dtm.stools.i18n.I18n;
+
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -16,6 +18,10 @@ public final class ModernInputDialog {
 
     public static ModernInputDialogBuilder modernDialogBuilder() {
         return builder();
+    }
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(ModernInputDialog.class, key, defaultValue);
     }
 
     public static class ModernInputDialogBuilder {
@@ -43,8 +49,8 @@ public final class ModernInputDialog {
         private JComponent inputComponent = null;
         private Component parent = null;
 
-        private String confirmText = "Confirmar";
-        private String cancelText = "Cancelar";
+        private String confirmText = text("button.confirm", "Confirmar");
+        private String cancelText = text("button.cancel", "Cancelar");
 
         private boolean draggable = true;
         private boolean showIcon = true;
@@ -492,7 +498,7 @@ public final class ModernInputDialog {
             String errorMessage = ex.getMessage();
 
             if (errorMessage == null || errorMessage.isBlank()) {
-                errorMessage = "Erro ao confirmar.";
+                errorMessage = text("error.confirm", "Erro ao confirmar.");
             }
 
             errorLbl.setText("<html><div style='width:260px'>" + escapeHtml(errorMessage) + "</div></html>");
@@ -657,6 +663,7 @@ public final class ModernInputDialog {
             btn.setOpaque(false);
             btn.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btn.setToolTipText(text("button.close", "Fechar"));
             btn.addActionListener(e -> dialog.dispose());
 
             return btn;

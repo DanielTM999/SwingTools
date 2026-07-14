@@ -1,6 +1,7 @@
 package dtm.stools.component.panels.editor.code.hover;
 
 import dtm.stools.component.panels.editor.code.CodeEditorScrollPane;
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,12 +19,16 @@ import java.lang.reflect.Method;
 
 public class HoverDocumentationPopup {
 
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(HoverDocumentationPopup.class, key, defaultValue);
+    }
+
     protected final JComponent owner;
     protected JWindow window;
     protected Window ownerWindow;
     protected final JPanel panel = new DocumentationPanel();
     protected final JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-    protected final JButton copyButton = new JButton("Copy");
+    protected final JButton copyButton = new JButton(text("button.copy", "Copy"));
     protected final JEditorPane contentPane = new JEditorPane();
     protected final JScrollPane scrollPane = new JScrollPane(contentPane);
     protected final MarkdownSupport markdownSupport = MarkdownSupport.create();

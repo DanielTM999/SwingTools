@@ -1,5 +1,7 @@
 package dtm.stools.component.popup;
 
+import dtm.stools.i18n.I18n;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -17,6 +19,10 @@ public final class ModernDialog {
 
     public static ModernDialogBuilder modernDialogBuilder() {
         return builder();
+    }
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(ModernDialog.class, key, defaultValue);
     }
 
     private static Color lfBackground() {
@@ -161,7 +167,7 @@ public final class ModernDialog {
 
         public int show(Component parent) {
             if (buttons.isEmpty()) {
-                buttons.add(new Btn("OK", JOptionPane.OK_OPTION, true, null, null));
+                buttons.add(new Btn(text("button.ok", "OK"), JOptionPane.OK_OPTION, true, null, null));
             }
 
             Color panelBg = lfBackground();
@@ -229,9 +235,7 @@ public final class ModernDialog {
                 }
             };
 
-            JLabel typeLabel = new JLabel(
-                    type.name().charAt(0) + type.name().substring(1).toLowerCase()
-            );
+            JLabel typeLabel = new JLabel(typeText(type));
             typeLabel.setForeground(fgSecondary);
             typeLabel.setFont(font(11, Font.PLAIN));
 
@@ -440,9 +444,19 @@ public final class ModernDialog {
             btn.setFocusable(false);
             btn.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btn.setToolTipText(text("button.close", "Close"));
             btn.addActionListener(e -> dialog.dispose());
 
             return btn;
+        }
+
+        private String typeText(Type type) {
+            return switch (type) {
+                case SUCCESS -> text("type.success", "Success");
+                case ERROR -> text("type.error", "Error");
+                case QUESTION -> text("type.question", "Question");
+                default -> text("type.info", "Info");
+            };
         }
 
         private static Icon buildIcon(Type type, Color accent) {
