@@ -179,7 +179,7 @@ public final class I18n {
         return i18nElements;
     }
 
-    public Set<Locale> getRegisteredLocales() {
+    public static Set<Locale> getRegisteredLocales() {
         Set<Locale> locales = ConcurrentHashMap.newKeySet();
         locales.addAll(TEXTS.keySet());
         return locales;
