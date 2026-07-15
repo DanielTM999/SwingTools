@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 
 public final class I18n {
 
+    private static final AtomicReference<I18nLoadStrategy> LOAD_STRATEGY_REF = new AtomicReference<>(I18nLoadStrategy.KEEP_LAST);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Set<I18nElement> REQUESTED_ELEMENTS = ConcurrentHashMap.newKeySet();
     private static final Map<Locale, Map<String, String>> TEXTS = new ConcurrentHashMap<>();
@@ -27,6 +28,14 @@ public final class I18n {
 
     private I18n() {
         throw new AssertionError("No dtm.stools.i18n.I18n instances for you!");
+    }
+
+    public static I18nLoadStrategy getLoadStrategy() {
+        return LOAD_STRATEGY_REF.get();
+    }
+
+    public static void setLoadStrategy(I18nLoadStrategy loadStrategy) {
+        LOAD_STRATEGY_REF.set(Objects.requireNonNull(loadStrategy, "loadStrategy must not be null"));
     }
 
 
@@ -68,7 +77,7 @@ public final class I18n {
             for(I18nElement element : elements){
                 String key = element.key();
                 if(key == null || key.isEmpty())continue;
-                texts.put(key, element.text());
+                putText(texts, key, element.text());
             }
         }catch (Exception e){
             if(exceptionHandler != null){
@@ -212,13 +221,25 @@ public final class I18n {
                     key -> new ConcurrentHashMap<>()
             );
 
-            texts.putAll(loadedTexts);
+            loadedTexts.forEach((key, value) -> {
+                if(key != null && !key.isEmpty()){
+                    putText(texts, key, value);
+                }
+            });
 
         } catch (IOException exception) {
             throw new IllegalArgumentException(
                     "Não foi possível carregar o arquivo JSON: " + file.getAbsolutePath(),
                     exception
             );
+        }
+    }
+
+    private static void putText(Map<String, String> texts, String key, String value) {
+        if (Objects.requireNonNull(LOAD_STRATEGY_REF.get()) == I18nLoadStrategy.KEEP_FIRST) {
+            texts.putIfAbsent(key, value);
+        } else {
+            texts.put(key, value);
         }
     }
 
