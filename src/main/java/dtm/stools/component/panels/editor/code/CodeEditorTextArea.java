@@ -845,6 +845,7 @@ public class CodeEditorTextArea extends JComponent {
             public void onInsert(int offset, String text) {
                 clearGhostText();
                 suppressHoverWhileEditing();
+                shiftStyledRangesForEdit(offset, 0, text.length());
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, 0, text);
                 pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
@@ -854,6 +855,7 @@ public class CodeEditorTextArea extends JComponent {
             public void onDelete(int offset, String removed) {
                 clearGhostText();
                 suppressHoverWhileEditing();
+                shiftStyledRangesForEdit(offset, removed.length(), 0);
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, removed.length(), "");
                 pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
@@ -1784,6 +1786,30 @@ public class CodeEditorTextArea extends JComponent {
         if (ranges != null) styledRanges.addAll(ranges);
         invalidateStyledRangesIndex();
         repaint();
+    }
+
+    protected void shiftStyledRangesForEdit(int offset, int removedLength, int insertedLength) {
+        if (styledRanges.isEmpty()) return;
+        int delta = insertedLength - removedLength;
+        int removedEnd = offset + removedLength;
+        List<StyledRange> shifted = new ArrayList<>(styledRanges.size());
+        for (StyledRange range : styledRanges) {
+            int start = range.getStartOffset();
+            int end = range.getEndOffset();
+            if (end <= offset) {
+                shifted.add(range);
+                continue;
+            }
+            int newStart = (start >= removedEnd) ? start + delta : Math.min(start, offset);
+            int newEnd = (end >= removedEnd) ? end + delta : offset;
+            if (newEnd <= newStart) continue;
+            shifted.add(newStart == start && newEnd == end
+                    ? range
+                    : new StyledRange(range.getStyle(), newStart, newEnd));
+        }
+        styledRanges.clear();
+        styledRanges.addAll(shifted);
+        invalidateStyledRangesIndex();
     }
 
     protected StyledRange[] sortedStyledRanges;

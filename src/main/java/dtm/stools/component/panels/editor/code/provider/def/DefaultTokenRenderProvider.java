@@ -12,26 +12,29 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class DefaultTokenRenderProvider implements TokenRenderCodeEditorProvider {
 
     @Override
     public void render(Collection<Token> tokens, TokenColorProvider colorProvider, CodeEditorTextArea textArea) {
-        Runnable renderTask = () -> renderOffEdt(tokens, colorProvider, textArea);
         if (SwingUtilities.isEventDispatchThread()) {
-            CompletableFuture.runAsync(renderTask);
+            // Chamado no EDT após a checagem de versão do highlight: aplicar na
+            // mesma task mantém a validação atômica — sair do EDT e voltar
+            // permitiria que ranges de um texto antigo fossem aplicados depois
+            // de uma nova tecla, causando flicker.
+            textArea.replaceStyledRanges(buildRanges(tokens, colorProvider, textArea));
         } else {
-            renderTask.run();
+            List<StyledRange> ranges = buildRanges(tokens, colorProvider, textArea);
+            // Um único invokeLater que aplica tudo de uma vez.
+            SwingUtilities.invokeLater(() -> textArea.replaceStyledRanges(ranges));
         }
     }
 
-    protected void renderOffEdt(Collection<Token> tokens, TokenColorProvider colorProvider, CodeEditorTextArea textArea) {
+    protected List<StyledRange> buildRanges(Collection<Token> tokens, TokenColorProvider colorProvider, CodeEditorTextArea textArea) {
         TextStyle baseStyle = textArea.getDefaultStyle();
         boolean baseBold = baseStyle.isBold();
         boolean baseItalic = baseStyle.isItalic();
 
-        // Constrói toda a lista off-EDT — sem inundar a fila de eventos.
         List<StyledRange> ranges = new ArrayList<>(tokens.size());
         for (Token token : tokens) {
             Color color = colorProvider.getColor(token.getType());
@@ -45,10 +48,6 @@ public class DefaultTokenRenderProvider implements TokenRenderCodeEditorProvider
                     token.getStartOffset(), token.getEndOffset()
             ));
         }
-
-        // Um único invokeLater que aplica tudo de uma vez.
-        SwingUtilities.invokeLater(() -> {
-            textArea.replaceStyledRanges(ranges);
-        });
+        return ranges;
     }
 }
