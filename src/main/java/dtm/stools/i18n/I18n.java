@@ -16,8 +16,9 @@ import java.util.function.Supplier;
 
 public final class I18n {
 
-    private final static ObjectMapper MAPPER = new ObjectMapper();
-    private final static Map<Locale, Map<String, String>> TEXTS = new ConcurrentHashMap<>();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Set<I18nElement> REQUESTED_ELEMENTS = ConcurrentHashMap.newKeySet();
+    private static final Map<Locale, Map<String, String>> TEXTS = new ConcurrentHashMap<>();
     private static final AtomicReference<Locale> LOCALE_REF = new AtomicReference<>(Locale.getDefault());
 
     static {
@@ -34,15 +35,46 @@ public final class I18n {
     }
 
     public static void load(Class<?> loaderClass, Consumer<Throwable> exceptionHandler){
-        ResourceUtils.walkResources(loaderClass, "languages", false, url -> {
-            try{
-                loadFromURL(url);
-            }catch (Exception e){
-                if(exceptionHandler != null){
-                    exceptionHandler.accept(e);
+        try{
+            ResourceUtils.walkResources(loaderClass, "languages", false, url -> {
+                try{
+                    loadFromURL(url);
+                }catch (Exception e){
+                    if(exceptionHandler != null){
+                        exceptionHandler.accept(e);
+                    }
                 }
+            });
+        }catch (Exception e){
+            if(exceptionHandler != null){
+                exceptionHandler.accept(e);
             }
-        });
+        }
+    }
+
+    public static void load(Locale locale, Collection<I18nElement> elements){
+        load(locale, elements, null);
+    }
+
+    public static void load(Locale locale, Collection<I18nElement> elements, Consumer<Throwable> exceptionHandler){
+        try {
+            Objects.requireNonNull(locale, "locale must not be null");
+            Objects.requireNonNull(elements, "elements must not be null");
+            Map<String, String> texts = TEXTS.computeIfAbsent(
+                    locale,
+                    key -> new ConcurrentHashMap<>()
+            );
+
+            for(I18nElement element : elements){
+                String key = element.key();
+                if(key == null || key.isEmpty())continue;
+                texts.put(key, element.text());
+            }
+        }catch (Exception e){
+            if(exceptionHandler != null){
+                exceptionHandler.accept(e);
+            }
+        }
     }
 
     public static void load(ClassLoader loader) {
@@ -50,15 +82,21 @@ public final class I18n {
     }
 
     public static void load(ClassLoader loader, Consumer<Throwable> exceptionHandler) {
-        ResourceUtils.walkResources(loader, "languages", false, url -> {
-            try{
-                loadFromURL(url);
-            }catch (Exception e){
-                if(exceptionHandler != null){
-                    exceptionHandler.accept(e);
+        try{
+            ResourceUtils.walkResources(loader, "languages", false, url -> {
+                try{
+                    loadFromURL(url);
+                }catch (Exception e){
+                    if(exceptionHandler != null){
+                        exceptionHandler.accept(e);
+                    }
                 }
+            });
+        }catch (Exception e){
+            if(exceptionHandler != null){
+                exceptionHandler.accept(e);
             }
-        });
+        }
     }
 
 
@@ -75,6 +113,10 @@ public final class I18n {
         return true;
     }
 
+    public static Locale getLocale(){
+        return LOCALE_REF.get() != null ? LOCALE_REF.get() : Locale.getDefault();
+    }
+
 
     public static String getText(String key, String defaultValue) {
         return getText(key, () -> defaultValue);
@@ -89,6 +131,7 @@ public final class I18n {
     }
 
     public static String getText(String key, Supplier<String> defaultValueAction) {
+        Objects.requireNonNull(key, "key must not be null");
         Locale locale = Objects.requireNonNullElse(
                 LOCALE_REF.get(),
                 Locale.getDefault()
@@ -98,13 +141,25 @@ public final class I18n {
                 keyM -> new ConcurrentHashMap<>()
         );
         String target = texts.get(key);
-        return (target != null) ? target : defaultValueAction.get();
+        String value = (target != null) ? target : defaultValueAction.get();
+        REQUESTED_ELEMENTS.add(new I18nElement(key, value));
+        return value;
     }
 
     public static String key(Class<?> ownerClass, String key) {
         Objects.requireNonNull(ownerClass, "ownerClass");
         Objects.requireNonNull(key, "key");
-        return ownerClass.getSimpleName() + "." + key;
+        return ownerClass + "." + key;
+    }
+
+
+    public static Set<I18nElement> getElementsFromLocale(Locale locale) {
+        Map<String, String> map = TEXTS.get(locale);
+        if(map == null) return Set.of();
+
+        Set<I18nElement> i18nElements = ConcurrentHashMap.newKeySet();
+        map.forEach((key, value) -> i18nElements.add(new I18nElement(key, value)));
+        return i18nElements;
     }
 
 
