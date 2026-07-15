@@ -171,6 +171,14 @@ public final class I18n {
         return i18nElements;
     }
 
+    public static Set<I18nLocaleElements> getElements() {
+        Set<I18nLocaleElements> i18nElements = ConcurrentHashMap.newKeySet();
+        TEXTS.keySet().forEach((key) -> {
+            i18nElements.add(new I18nLocaleElements(key, getElementsFromLocale(key)));
+        });
+        return i18nElements;
+    }
+
 
     private static void loadFromURL(URL url){
         File file = new File(url.getPath());
