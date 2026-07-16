@@ -7,7 +7,6 @@ import dtm.stools.component.popup.ModernInputDialog;
 import javax.swing.*;
 import java.awt.*;
 
-
 public class ModernDialogKeyboardExample {
 
     public static void main(String[] args) {
@@ -36,7 +35,7 @@ public class ModernDialogKeyboardExample {
                     .type(ModernDialog.Type.QUESTION)
                     .option("Excluir", 0, new Color(0xEF4444), Color.WHITE)
                     .option("Cancelar", 1)
-                    .enterConfirms(true) // padrao; Enter aciona "Excluir" (botao primario)
+                    .enterConfirms(true)
                     .parent(frame)
                     .show();
 
@@ -50,7 +49,7 @@ public class ModernDialogKeyboardExample {
                     .message("Digite e pressione Enter para confirmar.")
                     .confirmText("Salvar")
                     .cancelText("Cancelar")
-                    .enterConfirms(true) // Enter confirma mesmo com o foco no campo de texto
+                    .enterConfirms(true)
                     .parent(frame)
                     .show();
 
@@ -71,7 +70,7 @@ public class ModernDialogKeyboardExample {
                     .result(context -> (String) combo.getSelectedItem())
                     .confirmText("Aplicar")
                     .cancelText("Cancelar")
-                    .enterConfirms(false) // desliga o atalho Enter
+                    .enterConfirms(false)
                     .parent(frame)
                     .show();
 

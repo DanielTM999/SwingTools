@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
-
 @Getter
 @Builder(toBuilder = true)
 @AllArgsConstructor
@@ -26,7 +25,6 @@ public class Breakpoint {
     public BreakpointStyle getEffectiveStyle() {
         return active ? style : getInactiveStyleOrDefault();
     }
-
 
     public BreakpointStyle getInactiveStyleOrDefault() {
         if (inactiveStyle != null) {

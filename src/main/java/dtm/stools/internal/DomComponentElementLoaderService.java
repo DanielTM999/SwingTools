@@ -28,7 +28,6 @@ public class DomComponentElementLoaderService<T extends JComponent> implements D
         this.jComponent = jComponent;
     }
 
-
     @Override
     public void load() {
         this.loadDomList = loadDomView();
@@ -118,6 +117,5 @@ public class DomComponentElementLoaderService<T extends JComponent> implements D
             }
         }
     }
-
 
 }

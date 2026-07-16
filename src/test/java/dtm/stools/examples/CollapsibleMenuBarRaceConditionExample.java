@@ -29,10 +29,6 @@ public class CollapsibleMenuBarRaceConditionExample {
         });
     }
 
-    /**
-     * Console mode: runs the stress test with no window and exits with status
-     * {@code 0} on PASS or {@code 1} on FAIL. Useful for CI / scripted runs.
-     */
     private static void runHeadless() {
         InstrumentedCollapsibleMenuBar menuBar = buildOnEdt();
         StressResult result = executeStressTest(menuBar);
@@ -170,7 +166,6 @@ public class CollapsibleMenuBarRaceConditionExample {
         }
         long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
 
-        // Drain any pending invokeLater work on the EDT before reading counters.
         try {
             SwingUtilities.invokeAndWait(() -> { });
         } catch (Exception ignored) {
@@ -219,13 +214,8 @@ public class CollapsibleMenuBarRaceConditionExample {
         return new StressResult(passed, elapsedMs, sb.toString());
     }
 
-    /**
-     * {@link CollapsibleMenuBar} whose menus and collapse button report any
-     * Swing mutation performed outside the Event Dispatch Thread.
-     */
     private static final class InstrumentedCollapsibleMenuBar extends CollapsibleMenuBar {
 
-        // Static so they are usable even while the superclass constructor runs.
         static final AtomicInteger TOTAL_MUTATIONS = new AtomicInteger();
         static final AtomicInteger OFF_EDT_MUTATIONS = new AtomicInteger();
         static final List<String> VIOLATIONS = new CopyOnWriteArrayList<>();

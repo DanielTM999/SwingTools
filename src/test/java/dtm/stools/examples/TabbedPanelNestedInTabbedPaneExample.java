@@ -12,7 +12,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-
 public class TabbedPanelNestedInTabbedPaneExample {
 
     public static void main(String[] args) {

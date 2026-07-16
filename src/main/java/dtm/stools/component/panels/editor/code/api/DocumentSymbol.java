@@ -3,12 +3,6 @@ package dtm.stools.component.panels.editor.code.api;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * A symbol declared inside a document, possibly containing nested children
- * (e.g. methods inside a class). {@code range} covers the full declaration
- * (including body), while {@code selectionRange} is the identifier span
- * that should be highlighted when navigating to the symbol.
- */
 public record DocumentSymbol(
         String name,
         String detail,

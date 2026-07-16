@@ -11,11 +11,6 @@ import javax.swing.text.html.StyleSheet;
 import java.awt.*;
 import java.util.List;
 
-/**
- * Popup que renderiza o {@link SignatureHelp}: a assinatura ativa com o parametro
- * corrente destacado, documentacao opcional e um contador de sobrecargas quando ha
- * mais de uma. E posicionado, preferencialmente, acima da linha do caret.
- */
 public class SignatureHelpPopup {
 
     private static String text(String key, String defaultValue) {
@@ -34,11 +29,9 @@ public class SignatureHelpPopup {
     @Getter
     protected SignatureHelp signatureHelp;
 
-    /** Indice da sobrecarga atualmente exibida (pode diferir do default ao navegar). */
     @Getter
     protected int activeSignature;
 
-    /** Indica que o usuario navegou manualmente entre sobrecargas. */
     @Getter
     protected boolean userSelectedSignature;
 
@@ -84,15 +77,6 @@ public class SignatureHelpPopup {
         popup.add(panel, BorderLayout.CENTER);
     }
 
-    /**
-     * Exibe o popup. Tenta posiciona-lo acima da linha do caret (entre
-     * {@code anchorTopY} e o topo da tela); se nao houver espaco, mostra abaixo.
-     *
-     * @param help        conteudo a exibir
-     * @param x           coordenada x (em coordenadas do owner) alinhada ao caret
-     * @param anchorTopY  y do topo da linha do caret (coordenadas do owner)
-     * @param anchorBottomY y da base da linha do caret (coordenadas do owner)
-     */
     public void show(SignatureHelp help, int x, int anchorTopY, int anchorBottomY) {
         if (help == null || help.isEmpty()) {
             hide();
@@ -101,7 +85,7 @@ public class SignatureHelpPopup {
         boolean sameSession = this.signatureHelp != null && popup.isVisible();
         this.signatureHelp = help;
         if (sameSession && userSelectedSignature && activeSignature < help.signatureCount()) {
-            // preserva a sobrecarga escolhida pelo usuario durante a digitacao
+
         } else {
             this.activeSignature = help.safeActiveSignature();
             this.userSelectedSignature = false;
@@ -202,7 +186,6 @@ public class SignatureHelpPopup {
         return sb.toString();
     }
 
-    /** Renderiza o rotulo da assinatura com o parametro ativo destacado. */
     protected String renderLabel(SignatureInformation info, int activeParam) {
         String label = info.label();
         List<ParameterInformation> params = info.parameters();
@@ -221,12 +204,6 @@ public class SignatureHelpPopup {
                 + escapeHtml(after);
     }
 
-    /**
-     * Localiza o intervalo {@code [start, end)} do parametro de indice
-     * {@code activeParam} dentro do rotulo, procurando cada rotulo de parametro
-     * sequencialmente para lidar com nomes repetidos. Retorna {@code null} se nao
-     * for possivel localizar.
-     */
     protected int[] parameterSpan(String label, List<ParameterInformation> params, int activeParam) {
         int searchFrom = 0;
         for (int i = 0; i <= activeParam; i++) {

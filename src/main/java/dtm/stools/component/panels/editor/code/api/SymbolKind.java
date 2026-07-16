@@ -1,8 +1,5 @@
 package dtm.stools.component.panels.editor.code.api;
 
-/**
- * Language-agnostic symbol categories used for outline, breadcrumbs and go-to-symbol.
- */
 public enum SymbolKind {
     FILE,
     MODULE,

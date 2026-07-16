@@ -154,7 +154,7 @@ public class ColorPickerField extends JPanel {
             }
 
         } catch (Exception e) {
-            // Formato inválido
+
         }
 
         return null;

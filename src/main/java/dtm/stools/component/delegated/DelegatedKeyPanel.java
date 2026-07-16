@@ -95,5 +95,4 @@ public abstract class DelegatedKeyPanel<T extends AbstractViewController<KeyPane
         return controller;
     }
 
-
 }

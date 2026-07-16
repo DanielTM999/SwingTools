@@ -249,7 +249,6 @@ public class ConcurrentWeakReferenceQueue<T> implements Queue<T> {
         return sb.toString();
     }
 
-
     protected void cleanup() {
         weakReferences.removeIf(ref -> ref.get() == null);
     }

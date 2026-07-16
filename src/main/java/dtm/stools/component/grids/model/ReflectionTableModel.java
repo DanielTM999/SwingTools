@@ -68,7 +68,6 @@ public class ReflectionTableModel<T> extends AbstractTableModel {
         }
     }
 
-
     @Override
     public String getColumnName(int column) {
         return columns.get(column).getName();
@@ -118,7 +117,6 @@ public class ReflectionTableModel<T> extends AbstractTableModel {
         referenceValueTableMap.clear();
         fireTableDataChanged();
     }
-
 
     public T getObjectAt(int modelRow) {
         if (modelRow < 0 || modelRow >= dataList.size()) return null;

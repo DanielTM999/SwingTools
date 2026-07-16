@@ -15,13 +15,11 @@ import java.util.function.Supplier;
 
 public abstract class BindingAbstractViewController<T extends IWindowComponent> extends AbstractViewController<T>{
 
-
     @Override
     public void onInit(T view) {
         super.onInit(view);
         onBindingElements(view);
     }
-
 
     protected void onBindingElements(T view){
         try{
@@ -96,7 +94,6 @@ public abstract class BindingAbstractViewController<T extends IWindowComponent> 
         }
     }
 
-
     private String getPropRefName(Field field){
         String fieldName = field.getName();
         if(field.isAnnotationPresent(ViewRef.class)){
@@ -110,6 +107,5 @@ public abstract class BindingAbstractViewController<T extends IWindowComponent> 
         }
         return fieldName;
     }
-
 
 }

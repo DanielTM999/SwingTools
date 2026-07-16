@@ -300,7 +300,6 @@ public class GridViewTable<T> extends DataTableListener {
         return list;
     }
 
-
     private void addEvents(){
         this.getSelectionModel().addListSelectionListener(event -> {
             if (event.getValueIsAdjusting()) {
@@ -370,7 +369,6 @@ public class GridViewTable<T> extends DataTableListener {
 
                 Object oldValueFinal = oldValue;
                 Object newValueFinal = newValue;
-
 
                 dispachEvent(EventGridViewTable.CELL_EDIT, new EventGrid() {
 

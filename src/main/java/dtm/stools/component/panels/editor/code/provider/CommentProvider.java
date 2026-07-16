@@ -1,6 +1,5 @@
 package dtm.stools.component.panels.editor.code.provider;
 
-
 public interface CommentProvider extends CodeEditorProvider {
 
     String lineCommentPrefix();

@@ -66,9 +66,8 @@ public class TabbedPanelDiagnosticExample {
                         """)
         );
 
-        // Aplica o indicador de diagnóstico: basta passar a cor que o ponto deve ter.
-        tabs.setTabDiagnostic("program", ERROR);   // aba com erro
-        tabs.setTabDiagnostic("service", WARNING); // aba com aviso
+        tabs.setTabDiagnostic("program", ERROR);
+        tabs.setTabDiagnostic("service", WARNING);
 
         frame.setContentPane(tabs);
         frame.add(createControlBar(tabs), BorderLayout.SOUTH);

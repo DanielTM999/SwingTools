@@ -8,7 +8,6 @@ import java.awt.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-
 public class CollapsibleMenuBarShrinkingParentExample {
 
     private static final int ROOT_WIDTH = 1000;
@@ -26,10 +25,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
             createAndShow();
         });
     }
-
-    // ------------------------------------------------------------------
-    // Headless verification
-    // ------------------------------------------------------------------
 
     private static void runHeadless() {
         StringBuilder log = new StringBuilder();
@@ -53,7 +48,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
         layoutOnEdt(harness.rootPane);
         int expandedHostWidth = widthOf(harness.titleBar.menuHost);
 
-        // ---- collapse ----
         harness.rootPane.startRecording();
         runOnEdt(() -> harness.menuBar.setCollapsed(true));
         drainEdt();
@@ -61,7 +55,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
         List<Rectangle> collapseRepaints = harness.rootPane.stopRecording();
         int collapsedHostWidth = widthOf(harness.titleBar.menuHost);
 
-        // ---- expand again ----
         harness.rootPane.startRecording();
         runOnEdt(() -> harness.menuBar.setCollapsed(false));
         drainEdt();
@@ -155,7 +148,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
                 && strip.y < ROOT_HEIGHT / 4;
     }
 
-    /** Widest repaint rectangle that looks like a horizontal strip near the top. */
     private static Rectangle widestThinStrip(List<Rectangle> rectangles) {
         Rectangle best = null;
         for (Rectangle r : rectangles) {
@@ -203,7 +195,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
         SwingUtilities.invokeAndWait(() -> { });
     }
 
-    /** JRootPane that records every repaint request funneled through it. */
     private static final class RecordingRootPane extends JRootPane {
         private final List<Rectangle> recorded = new CopyOnWriteArrayList<>();
         private volatile boolean recording;
@@ -227,16 +218,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Shared simulated title bar
-    // ------------------------------------------------------------------
-
-    /**
-     * Minimal stand-in for {@code TitleMenuBar}: a {@code null}-layout panel
-     * whose menu host is sized by the menu bar's {@code preferredSize}, so the
-     * host shrinks and grows with the bar - exactly the situation that left a
-     * trail when only the host was repainted.
-     */
     private static final class ShrinkingTitleBar extends JPanel {
         private final JPanel menuHost = new JPanel(new GridBagLayout());
         private final JPanel caption = new JPanel();
@@ -265,10 +246,6 @@ public class CollapsibleMenuBarShrinkingParentExample {
             caption.setBounds(hostWidth, 0, Math.max(0, width - hostWidth), height);
         }
     }
-
-    // ------------------------------------------------------------------
-    // GUI mode
-    // ------------------------------------------------------------------
 
     private static void createAndShow() {
         JFrame frame = new JFrame("CollapsibleMenuBar - Shrinking Parent Simulation");

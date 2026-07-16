@@ -23,7 +23,6 @@ import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class CodeEditorErrorStripeExample {
 
     public static void main(String[] args) {
@@ -41,7 +40,6 @@ public class CodeEditorErrorStripeExample {
         CodeEditor editor = new CodeEditor(SAMPLE_CODE);
         editor.getTextArea().setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
         editor.setFocusBorderEnabled(false);
-
 
         DiagnosticsProvider provider = ctx -> {
             TextBuffer buffer = ctx.buffer();
@@ -101,12 +99,10 @@ public class CodeEditorErrorStripeExample {
         widget.addActionListener(e -> editor.setInspectionWidgetEnabled(widget.isSelected()));
         toolbar.add(widget);
 
-        // demonstra a factory/herança: troca só a aparência mantendo o comportamento
         JButton custom = new JButton("widget custom");
         custom.addActionListener(e -> editor.setInspectionWidgetFactory(CustomInspectionWidget::new));
         toolbar.add(custom);
 
-        // default HIDE: sem diagnósticos o widget some. Marque para mostrar o check verde.
         JCheckBox showOk = new JCheckBox("check verde quando limpo",
                 editor.getInspectionWidgetCleanMode() == CodeEditorInspectionWidget.CleanMode.SHOW_OK);
         showOk.addActionListener(e -> editor.setInspectionWidgetCleanMode(
@@ -149,11 +145,6 @@ public class CodeEditorErrorStripeExample {
             }
             """;
 
-    /**
-     * Subclasse que muda apenas a aparência (fundo). Toda a lógica de contagem,
-     * navegação e evento de clique vem da classe base — e os ouvintes já
-     * registrados são preservados ao trocar via setInspectionWidgetFactory.
-     */
     private static class CustomInspectionWidget extends CodeEditorInspectionWidget {
         CustomInspectionWidget(CodeEditorTextArea textArea) {
             super(textArea);

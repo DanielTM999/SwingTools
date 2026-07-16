@@ -13,7 +13,6 @@ public abstract class DelegatedDialogActivity<T extends AbstractWindowController
     protected Class<T> controllerClass;
     protected T controller;
 
-
     public DelegatedDialogActivity(){
         delegateInit();
     }

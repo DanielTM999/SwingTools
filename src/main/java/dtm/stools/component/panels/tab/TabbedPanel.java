@@ -1196,14 +1196,6 @@ public class TabbedPanel extends PanelEventListener {
         return entry == null ? null : entry.getComponent();
     }
 
-    /**
-     * Retorna todas as abas visíveis no momento — a aba selecionada de cada grupo de dock
-     * (este painel mais qualquer grupo criado por split/dockTab). Em layouts sem splits
-     * há no máximo uma aba visível; após splits cada região contribui com a sua aba ativa.
-     *
-     * @return lista das {@link TabEntry} atualmente visíveis (selecionadas) em todos os
-     *         grupos de dock acessíveis a partir deste painel; nunca {@code null}.
-     */
     public List<TabEntry> getVisibleTabs() {
         List<TabEntry> visible = new ArrayList<>();
         for (TabbedPanel group : resolveGroupsForVisibility()) {
@@ -1213,13 +1205,6 @@ public class TabbedPanel extends PanelEventListener {
         return visible;
     }
 
-    /**
-     * Retorna as chaves das abas visíveis no momento, uma por grupo de dock. Útil para
-     * persistência de sessão e para identificar quais documentos estão abertos lado-a-lado
-     * após splits.
-     *
-     * @return chaves das abas atualmente visíveis; nunca {@code null}.
-     */
     public List<String> getVisibleTabKeys() {
         List<String> keys = new ArrayList<>();
         for (TabEntry entry : getVisibleTabs()) {
@@ -1228,11 +1213,6 @@ public class TabbedPanel extends PanelEventListener {
         return keys;
     }
 
-    /**
-     * Retorna os componentes (conteúdos) das abas visíveis no momento, um por grupo de dock.
-     *
-     * @return componentes atualmente visíveis; nunca {@code null}.
-     */
     public List<Component> getVisibleTabComponents() {
         List<Component> components = new ArrayList<>();
         for (TabEntry entry : getVisibleTabs()) {
@@ -1241,13 +1221,6 @@ public class TabbedPanel extends PanelEventListener {
         return components;
     }
 
-    /**
-     * Indica se a aba identificada por {@code key} está visível (selecionada) em algum
-     * grupo de dock acessível a partir deste painel.
-     *
-     * @param key chave da aba.
-     * @return {@code true} se a aba estiver visível em algum grupo; {@code false} caso contrário.
-     */
     public boolean isTabVisible(String key) {
         if (key == null) return false;
         for (TabEntry entry : getVisibleTabs()) {

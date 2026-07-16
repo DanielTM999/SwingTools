@@ -27,10 +27,6 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-/**
- * Implementação do componente de seleção de data (DatePickerField).
- * (Baseado na classe DatePickerField anterior)
- */
 public class DatePickerInputField extends PanelEventListener implements DatePickerField {
 
     private final String format;
@@ -125,10 +121,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         calendarButton.addActionListener(e -> showCalendarPopup());
     }
 
-    /**
-     * Converte o formato de data (ex: "dd/MM/yyyy") para
-     * uma máscara de texto (ex: "##/##/####").
-     */
     private String convertFormatToMask(String format) {
         return format.replace('d', '#')
                 .replace('M', '#')
@@ -139,9 +131,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
                 .replace('s', '#');
     }
 
-    /**
-     * Exibe o JPopupMenu do calendário.
-     */
     private void showCalendarPopup() {
         if (popupMenu == null) {
             createCalendarPopup();
@@ -160,9 +149,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         popupMenu.show(this, 0, this.getHeight());
     }
 
-    /**
-     * Cria todos os componentes do JPopupMenu (executado apenas uma vez).
-     */
     private void createCalendarPopup() {
         popupMenu = new JPopupMenu();
         popupMenu.setFocusable(true);
@@ -201,9 +187,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         popupMenu.add(mainPanel);
     }
 
-    /**
-     * Cria o cabeçalho com botões ◀ Mês Ano ▶
-     */
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout(5, 0));
         headerPanel.setBackground(UIManager.getColor("Panel.background"));
@@ -246,9 +229,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return headerPanel;
     }
 
-    /**
-     * Cria o painel da visão de "Dias" (com dias da semana e a grade 6x7)
-     */
     private JPanel createDayViewPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(UIManager.getColor("Panel.background"));
@@ -273,9 +253,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return panel;
     }
 
-    /**
-     * Cria o painel da visão de "Meses" (grid 4x3)
-     */
     private JPanel createMonthViewPanel() {
         monthsGridPanel = new JPanel(new GridLayout(4, 3, 8, 8));
         monthsGridPanel.setBackground(UIManager.getColor("Panel.background"));
@@ -301,9 +278,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return monthsGridPanel;
     }
 
-    /**
-     * Cria o painel da visão de "Anos" (grid 4x3 com navegação de década)
-     */
     private JPanel createYearViewPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setBackground(UIManager.getColor("Panel.background"));
@@ -358,9 +332,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return panel;
     }
 
-    /**
-     * Cria o painel de seleção de Hora (Spinners)
-     */
     private JPanel createTimePanel() {
         JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         timePanel.setBackground(UIManager.getColor("Panel.background"));
@@ -386,9 +357,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return timePanel;
     }
 
-    /**
-     * Cria o painel de botões do rodapé (Hoje, Cancelar, OK)
-     */
     private JPanel createButtonPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
         panel.setBackground(UIManager.getColor("Panel.background"));
@@ -454,11 +422,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return panel;
     }
 
-
-    /**
-     * Alterna a visualização do CardLayout e atualiza os dados.
-     * Ponto central para controlar as 3 visões (Dias, Meses, Anos).
-     */
     private void updateView(String view) {
         cardLayout.show(cardPanel, view);
 
@@ -483,9 +446,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         }
     }
 
-    /**
-     * Atualiza o cabeçalho e a grade de dias.
-     */
     private void updateDayView() {
         monthViewButton.setText(monthNames[currentYearMonth.getMonthValue() - 1]);
         yearViewButton.setText(String.valueOf(currentYearMonth.getYear()));
@@ -575,9 +535,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         daysGridPanel.repaint();
     }
 
-    /**
-     * Atualiza a grade de meses (destaca o mês selecionado).
-     */
     private void updateMonthView() {
         int currentMonthValue = currentYearMonth.getMonthValue();
         Color selectedBg = UIManager.getColor("List.selectionBackground");
@@ -597,9 +554,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         }
     }
 
-    /**
-     * Atualiza a grade de anos (destaca o ano selecionado).
-     */
     private void updateYearView() {
         int currentYear = currentYearMonth.getYear();
 
@@ -625,18 +579,10 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         }
     }
 
-
-    /**
-     * Adiciona efeito de "hover" (mouse over) que respeita o L&F.
-     */
     private void addLnfHover(JButton button) {
         addLnfHover(button, UIManager.getColor("List.selectionBackground"));
     }
 
-    /**
-     * Adiciona efeito de "hover" (mouse over) que respeita o L&F.
-     * (Versão corrigida para lidar com cores de fundo nulas ou padrão)
-     */
     private void addLnfHover(JButton button, Color selectionColor) {
         Color hoverBg = UIManager.getColor("controlHighlight");
         final Color[] originalBg = {null};
@@ -661,9 +607,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         });
     }
 
-    /**
-     * Cria um botão de navegação (seta) padronizado.
-     */
     private JButton createNavButton(String text) {
         JButton button = new JButton(text);
         button.setFocusPainted(false);
@@ -673,10 +616,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return button;
     }
 
-    /**
-     * Navega para frente (1) ou para trás (-1) dependendo da view atual.
-     * Este é o handler dos botões ◀ e ▶ principais.
-     */
     private void navigate(int amount) {
         String currentView = getCurrentView();
         switch (currentView) {
@@ -696,9 +635,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         }
     }
 
-    /**
-     * Descobre qual painel do CardLayout está visível.
-     */
     private String getCurrentView() {
         for (Component comp : cardPanel.getComponents()) {
             if (comp.isVisible()) {
@@ -710,9 +646,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         return VIEW_DAYS;
     }
 
-    /**
-     * Impede que letras sejam digitadas nos Spinners de número E formata para 2 dígitos.
-     */
     private void setSpinnerNumericOnly(JSpinner spinner) {
         JComponent editor = spinner.getEditor();
         if (editor instanceof JSpinner.DefaultEditor) {
@@ -744,9 +677,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         }
     }
 
-    /**
-     * Atualiza os spinners de hora/minuto com base no 'tempDateTime'.
-     */
     private void updateTimeSpinners() {
         if (hasTime && tempDateTime != null) {
             hourSpinner.setValue(tempDateTime.getHour());
@@ -754,9 +684,6 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         }
     }
 
-    /**
-     * Atualiza o 'MaskedTextField' principal com o valor de 'selectedDateTime'.
-     */
     private void updateTextField() {
         if (selectedDateTime == null) {
             textField.setText("");
@@ -767,13 +694,9 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         textField.setCleanText(formattedDate.replaceAll("[^0-9]", ""));
     }
 
-    /**
-     * Dispara o evento onDataChangeCallback se ele estiver definido.
-     */
     private void fireOnDataChange() {
         dispachEvent(EventType.CHANGE, this::getSelectedDateTime);
     }
-
 
     @Override
     public void setEditable(boolean editable) {
@@ -856,6 +779,5 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
 
         return () -> {};
     }
-
 
 }

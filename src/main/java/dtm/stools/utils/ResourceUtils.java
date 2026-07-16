@@ -227,7 +227,6 @@ public final class ResourceUtils {
         }
     }
 
-
     public static InputStream getResourceAsStream(String path) {
         return getResourceAsStream(ResourceUtils.class, path);
     }
@@ -271,7 +270,6 @@ public final class ResourceUtils {
         }
     }
 
-
     public static byte[] getResourceBytesExternal(Class<?> aClass, String path) {
         if (path == null || path.isBlank()) {
             throw new ResourceNotFoundException("O caminho do recurso não pode ser nulo ou vazio", path);
@@ -310,8 +308,6 @@ public final class ResourceUtils {
             throw new RuntimeException("Erro ao converter URL para URI", e);
         }
     }
-
-
 
     private static URL getResourceExternal(Class<?> aClass, String path) {
         Path jarPath = getResourceClassPath(aClass);

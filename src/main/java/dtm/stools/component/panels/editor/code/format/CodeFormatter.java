@@ -8,4 +8,3 @@ public interface CodeFormatter extends CodeEditorProvider {
     String format(FormatContext context);
 }
 
-

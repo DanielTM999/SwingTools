@@ -4,7 +4,6 @@ import dtm.stools.component.panels.editor.code.api.DocumentSymbol;
 
 import java.util.List;
 
-
 @FunctionalInterface
 public interface DocumentSymbolProvider extends CodeEditorProvider {
 

@@ -161,8 +161,6 @@ public class FilePickerInputPanel extends PanelEventListener {
         navigateTo(navigatorPath, null);
     }
 
-
-
     public void setOnEndSelection(Consumer<FilePickerInputPanel> listener) {
         this.onEndSelectionListener = listener;
     }
@@ -290,7 +288,6 @@ public class FilePickerInputPanel extends PanelEventListener {
             navigateTo(parentDir.toPath(), task);
         }
     }
-
 
     public Set<File> getSelectedFiles() {
         return Collections.unmodifiableSet(selectedFiles);
@@ -426,7 +423,6 @@ public class FilePickerInputPanel extends PanelEventListener {
         txtSingleFile.setDisplayFunction(r -> r.getFile().getName());
         txtSingleFile.addSearchOption(r -> r.getFile().getName());
         txtSingleFile.setOnSelectListener(this::selectFileInTable);
-
 
         pnlSingleFile = new JPanel(new BorderLayout(5, 0));
         pnlSingleFile.setBorder(new EmptyBorder(0, 5, 0, 0));
@@ -663,7 +659,6 @@ public class FilePickerInputPanel extends PanelEventListener {
         btnClearSelection.addActionListener(e -> clearSelection());
         btnConfirmSelection.addActionListener(e -> finalizeSelection());
     }
-
 
     private void showSelectionListContextMenu(MouseEvent e) {
         int index = listSelectedFiles.locationToIndex(e.getPoint());
@@ -1129,8 +1124,6 @@ public class FilePickerInputPanel extends PanelEventListener {
         listFileView.clearSelection();
     }
 
-
-
     private boolean isFileTypeValid(File file) {
         if(file == null) return false;
         FileSelectionMode mode = fileSelectionModeAtomicReference.get();
@@ -1268,7 +1261,6 @@ public class FilePickerInputPanel extends PanelEventListener {
 
                 }
 
-
                 if (isNewFile) {
                     markAsSelectedFile(expectedFile);
                 } else {
@@ -1279,7 +1271,6 @@ public class FilePickerInputPanel extends PanelEventListener {
                 }
             }
         }
-
 
         if(selectedFiles.isEmpty() && required.get()){
             String message;

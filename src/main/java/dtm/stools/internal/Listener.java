@@ -17,7 +17,6 @@ public interface Listener<T> {
 
     <S extends Future<Void>> S notifyAllListenersAsync(Consumer<T> action, Consumer<Throwable> onError, ExecutorService executor);
 
-
     List<T> getListeners();
 
     T getListener(String id);

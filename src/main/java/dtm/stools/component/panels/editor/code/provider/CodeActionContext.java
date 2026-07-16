@@ -6,7 +6,6 @@ import dtm.stools.component.panels.editor.code.diagnostics.Diagnostic;
 import java.util.Collections;
 import java.util.List;
 
-
 public record CodeActionContext(
         String buffer,
         Range range,

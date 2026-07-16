@@ -98,7 +98,6 @@ public class CodeEditorMinimap extends JComponent {
         this.scrollPane = scrollPane;
         setOpaque(true);
 
-
         MouseAdapter mouseHandler = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -228,9 +227,7 @@ public class CodeEditorMinimap extends JComponent {
         }
 
         if (shouldShow) {
-            // Descarta cache antigo — pode ter sido construído com dimensões
-            // intermediárias (durante transição de layout). Forçamos rebuild
-            // com as dimensões finais já validadas acima.
+
             cacheImage = null;
             cacheDirty = true;
             repaint();
@@ -292,7 +289,6 @@ public class CodeEditorMinimap extends JComponent {
         return textArea.bufferLineAtY(yInTextArea);
     }
 
-
     private void showPreview(MouseEvent e) {
         showPreviewAt(lineAtY(e.getY()), this, e.getY());
     }
@@ -344,7 +340,6 @@ public class CodeEditorMinimap extends JComponent {
 
         TextStyle defaultStyle = textArea.getDefaultStyle();
 
-        // espelha os fundos de linha coloridos do TextArea
         if (previewMirrorEnabled) {
             for (int i = startLine; i <= endLine; i++) {
                 LineColorInfo lineColor = textArea.getLineColor(i);
@@ -356,7 +351,6 @@ public class CodeEditorMinimap extends JComponent {
             }
         }
 
-        // espelha o gutter (numeração de linha + marcadores de linha)
         if (gutter != null && gutterWidth > 0) {
             g2.setColor(gutter.getBackground());
             g2.fillRect(0, 0, gutterWidth, previewHeight);
@@ -450,7 +444,6 @@ public class CodeEditorMinimap extends JComponent {
         }
     }
 
-
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
@@ -479,9 +472,6 @@ public class CodeEditorMinimap extends JComponent {
             scheduleRebuild();
         }
 
-        // Só desenha o cache se as dimensões batem exatamente. Caso contrário,
-        // mostramos só o fundo + viewport rect até o rebuild com tamanho correto chegar.
-        // Isso evita o "stretch" feio de uma imagem velha pelas dimensões novas.
         if (cacheImage != null
                 && cacheImage.getWidth() == getWidth()
                 && cacheImage.getHeight() == getHeight()) {
@@ -516,9 +506,6 @@ public class CodeEditorMinimap extends JComponent {
         final int totalAreaW = textArea.getPreferredSize().width;
         if (totalAreaH <= 0) return;
 
-        // Cap yScale na escala de minimap configurada: não esticamos para arquivos curtos
-        // (queremos sempre uma miniatura, não uma cópia em tamanho real).
-        // Downscale adicional ok para arquivos longos que não cabem no minimap.
         float rawYScale = (float) targetH / totalAreaH;
         final float yScale = Math.min(scale, rawYScale);
         final Font baseFont = textArea.getFont();
@@ -528,14 +515,13 @@ public class CodeEditorMinimap extends JComponent {
         final TextStyle defaultStyle = textArea.getDefaultStyle();
         final int alpha = textAlpha;
 
-        // snapshot do texto e dos ranges (imutáveis depois do snapshot)
         final String snapText;
         final java.util.List<StyledRange> snapRanges;
         final int[] lineYSnapshot;
         try {
             snapText = textArea.getBuffer().getText();
             snapRanges = new java.util.ArrayList<>(textArea.getStyledRanges());
-            // pré-calcula o y de cada linha no minimap
+
             int lineCount = textArea.getBuffer().lineCount();
             lineYSnapshot = new int[lineCount];
             for (int i = 0; i < lineCount; i++) {
@@ -556,7 +542,7 @@ public class CodeEditorMinimap extends JComponent {
                         baseFont, charWidthFull, realLineHeight,
                         defaultStyle, alpha,
                         snapText, snapRanges, lineYSnapshot, totalAreaW);
-                if (version != rebuildVersion.get()) return; // descartado
+                if (version != rebuildVersion.get()) return;
                 SwingUtilities.invokeLater(() -> {
                     if (version != rebuildVersion.get()) return;
                     cacheImage = img;
@@ -577,8 +563,6 @@ public class CodeEditorMinimap extends JComponent {
         BufferedImage img = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = img.createGraphics();
 
-        // Cap xScale na escala de minimap configurada para preservar a proporção
-        // com yScale (miniatura real). Linhas curtas ficam compactas à esquerda.
         float rawXScale = (float) (targetW - 4) / Math.max(1, totalAreaW);
         float xScale = Math.min(scale, rawXScale);
         float charWidthMini = charWidthFull * xScale;
@@ -586,7 +570,6 @@ public class CodeEditorMinimap extends JComponent {
 
         int step = Math.max(1, (int) Math.floor(1f / Math.max(0.0001f, realLineHeight * yScale)));
 
-        // ordena ranges por start para busca binária
         StyledRange[] sortedRanges = ranges.toArray(new StyledRange[0]);
         java.util.Arrays.sort(sortedRanges,
                 java.util.Comparator.comparingInt(StyledRange::getStartOffset));
@@ -594,7 +577,6 @@ public class CodeEditorMinimap extends JComponent {
         int lastDrawnYInt = Integer.MIN_VALUE;
         int textLen = text.length();
 
-        // calcula offsets de início de linha uma única vez
         int[] lineStarts = computeLineStarts(text);
         int lineCount = lineStarts.length;
 

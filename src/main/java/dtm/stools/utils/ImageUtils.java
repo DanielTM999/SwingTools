@@ -41,12 +41,6 @@ public final class ImageUtils {
         }
     }
 
-
-    /**
-     * Carrega um recurso como {@link Icon}. Para arquivos {@code .svg} retorna
-     * um {@link FlatSVGIcon} preservando a renderização vetorial; para os demais
-     * formatos retorna um {@link ImageIcon}.
-     */
     public static Optional<Icon> getIconByResource(Class<?> aClass, String path){
         return getIconByResource(aClass, path, false);
     }
@@ -73,7 +67,6 @@ public final class ImageUtils {
         }
     }
 
-
     public static Optional<Image> getImageByResource(Class<?> aClass, String path){
         return getImageByResource(aClass, path, false);
     }
@@ -87,25 +80,10 @@ public final class ImageUtils {
         }
     }
 
-
-    /**
-     * Muda a cor de uma imagem de recurso
-     * @param aClass Classe para buscar o recurso
-     * @param path Caminho do recurso
-     * @param targetColor Cor desejada
-     * @return Optional com a ImageIcon colorida
-     */
     public static Optional<ImageIcon> getColoredImageIconByResource(Class<?> aClass, String path, Color targetColor) {
         return getColoredImageIconByResource(aClass, path, targetColor, false);
     }
 
-    /**
-     * Muda a cor de uma imagem de recurso
-     * @param aClass Classe para buscar o recurso
-     * @param path Caminho do recurso
-     * @param targetColor Cor desejada
-     * @return Optional com a ImageIcon colorida
-     */
     public static Optional<ImageIcon> getColoredImageIconByResource(Class<?> aClass, String path, Color targetColor, boolean external) {
         try {
             URL url = ResourceUtils.getResource(aClass, path, external);
@@ -120,10 +98,6 @@ public final class ImageUtils {
         }
     }
 
-    /**
-     * Variante de {@link #getColoredImageIconByResource} que devolve {@link Icon}.
-     * Para SVG mantém o {@link FlatSVGIcon} vetorial com {@code ColorFilter} aplicado.
-     */
     public static Optional<Icon> getColoredIconByResource(Class<?> aClass, String path, Color targetColor) {
         return getColoredIconByResource(aClass, path, targetColor, false);
     }
@@ -140,25 +114,10 @@ public final class ImageUtils {
         }
     }
 
-    /**
-     * Muda a cor de uma imagem de recurso
-     * @param aClass Classe para buscar o recurso
-     * @param path Caminho do recurso
-     * @param targetColor Cor desejada
-     * @return Optional com a Image colorida
-     */
     public static Optional<Image> getColoredImageByResource(Class<?> aClass, String path, Color targetColor) {
         return getColoredImageByResource(aClass, path, targetColor, false);
     }
 
-    /**
-     * Muda a cor de uma imagem de recurso
-     * @param aClass Classe para buscar o recurso
-     * @param path Caminho do recurso
-     * @param targetColor Cor desejada
-     * @param external Se é recurso externo
-     * @return Optional com a Image colorida
-     */
     public static Optional<Image> getColoredImageByResource(Class<?> aClass, String path, Color targetColor, boolean external) {
         try {
             URL url = ResourceUtils.getResource(aClass, path, external);
@@ -174,12 +133,6 @@ public final class ImageUtils {
         }
     }
 
-    /**
-     * Substitui a cor de uma imagem mantendo apenas a transparência
-     * @param image Imagem original
-     * @param targetColor Cor desejada
-     * @return Nova imagem com a cor alterada
-     */
     public static BufferedImage changeImageColor(Image image, Color targetColor) {
         int width = image.getWidth(null);
         int height = image.getHeight(null);
@@ -208,23 +161,11 @@ public final class ImageUtils {
         return coloredImage;
     }
 
-    /**
-     * Muda a cor de uma ImageIcon
-     * @param icon ImageIcon original
-     * @param targetColor Cor desejada
-     * @return Nova ImageIcon com a cor alterada
-     */
     public static ImageIcon changeIconColor(ImageIcon icon, Color targetColor) {
         BufferedImage coloredImage = changeImageColor(icon.getImage(), targetColor);
         return new ImageIcon(coloredImage);
     }
 
-
-    /**
-     * Inverte as cores de uma imagem (branco vira preto e vice-versa)
-     * @param image Imagem original
-     * @return Nova imagem com cores invertidas
-     */
     public static BufferedImage invertImageColors(Image image) {
         int width = image.getWidth(null);
         int height = image.getHeight(null);
@@ -256,17 +197,12 @@ public final class ImageUtils {
         return invertedImage;
     }
 
-
     public static ImageIcon resizeImageIcon(ImageIcon baseIcon, int resizedWidth, int resizedHeight){
         Image img = baseIcon.getImage();
         Image resizedImage = img.getScaledInstance(resizedWidth, resizedHeight, Image.SCALE_SMOOTH);
         return new ImageIcon(resizedImage);
     }
 
-    /**
-     * Redimensiona um {@link Icon} qualquer. Para {@link FlatSVGIcon} usa
-     * {@code derive(w, h)} preservando a qualidade vetorial.
-     */
     public static Icon resizeIcon(Icon baseIcon, int resizedWidth, int resizedHeight){
         if (baseIcon instanceof FlatSVGIcon svg) {
             return svg.derive(resizedWidth, resizedHeight);
@@ -303,7 +239,6 @@ public final class ImageUtils {
 
         return new ImageIcon(image);
     }
-
 
     private static boolean isSvg(String path) {
         return path != null && path.toLowerCase().endsWith(".svg");

@@ -105,7 +105,6 @@ public class PathTextField extends MaskedTextField {
         rebuildBreadcrumbs();
     }
 
-
     public List<String> getSegments() {
         String path = getText();
         if (path == null || path.isEmpty()) return new ArrayList<>();

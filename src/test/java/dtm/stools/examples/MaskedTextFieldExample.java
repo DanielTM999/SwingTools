@@ -32,7 +32,6 @@ public class MaskedTextFieldExample {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         int row = 0;
 
-        // Alternativas: "#:#" OU ate 4 digitos
         MaskedTextField alternated = new MaskedTextField("#:#|####", 16);
         JLabel alternatedStatus = new JLabel("vazio");
         alternated.addEventListener(EventType.INPUT, e -> {
@@ -41,14 +40,12 @@ public class MaskedTextFieldExample {
         });
         row = addRow(content, gbc, row, "Mascara \"#:#|####\":", alternated, alternatedStatus);
 
-        // Caracteres opcionais: 1 digito obrigatorio + ate 3 opcionais
         MaskedTextField optionalChars = new MaskedTextField("#[#][#][#]", 16);
         JLabel optionalStatus = new JLabel("vazio");
         optionalChars.addEventListener(EventType.INPUT, e ->
                 optionalStatus.setText("limpo=\"" + e.tryGetValue() + "\"  completo=" + optionalChars.isComplete()));
         row = addRow(content, gbc, row, "Mascara \"#[#][#][#]\":", optionalChars, optionalStatus);
 
-        // Placeholder customizado sobrepoe a dica gerada
         MaskedTextField withPlaceholder = new MaskedTextField("###.###.###-##|##.###.###/####-##", 20);
         withPlaceholder.setPlaceholder("CPF ou CNPJ");
         JLabel placeholderStatus = new JLabel("vazio");
@@ -56,28 +53,24 @@ public class MaskedTextFieldExample {
                 placeholderStatus.setText("valor confirmado: " + e.tryGetValue()));
         row = addRow(content, gbc, row, "CPF/CNPJ (placeholder):", withPlaceholder, placeholderStatus);
 
-        // Escape de literal: usa '[' e ']' como literais
         MaskedTextField escaped = new MaskedTextField("\\[##\\]", 16);
         JLabel escapedStatus = new JLabel("vazio");
         escaped.addEventListener(EventType.INPUT, e ->
                 escapedStatus.setText("limpo=\"" + e.tryGetValue() + "\""));
         row = addRow(content, gbc, row, "Escape \"\\[##\\]\":", escaped, escapedStatus);
 
-        // Quantificador 'um ou mais': 1+ digitos sem limite
         MaskedTextField oneOrMore = new MaskedTextField("#+", 16);
         JLabel oneOrMoreStatus = new JLabel("vazio");
         oneOrMore.addEventListener(EventType.INPUT, e ->
                 oneOrMoreStatus.setText("limpo=\"" + e.tryGetValue() + "\"  completo=" + oneOrMore.isComplete()));
         row = addRow(content, gbc, row, "Um ou mais \"#+\":", oneOrMore, oneOrMoreStatus);
 
-        // Escape do '+': literal entre dois digitos
         MaskedTextField escapedPlus = new MaskedTextField("#\\+#", 16);
         JLabel escapedPlusStatus = new JLabel("vazio");
         escapedPlus.addEventListener(EventType.INPUT, e ->
                 escapedPlusStatus.setText("limpo=\"" + e.tryGetValue() + "\""));
         row = addRow(content, gbc, row, "Escape \"#\\+#\":", escapedPlus, escapedPlusStatus);
 
-        // Separador digitavel: digite ':' para encerrar o primeiro grupo
         MaskedTextField separated = new MaskedTextField("#+:#+|#+", 16);
         JLabel separatedStatus = new JLabel("vazio");
         separated.addEventListener(EventType.INPUT, e ->

@@ -1,6 +1,5 @@
 package dtm.stools.component.panels.editor.code.provider.def;
 
-
 import dtm.stools.component.panels.editor.code.provider.BracketMatcher;
 
 public class DefaultBracketMatcher implements BracketMatcher {
@@ -47,7 +46,7 @@ public class DefaultBracketMatcher implements BracketMatcher {
         int i = start;
         while (i >= 0 && i < len) {
             char ch = buf.charAt(i);
-            // skip string/char literals when scanning forward
+
             if (dir > 0 && (ch == '"' || ch == '\'')) {
                 i = skipStringForward(buf, i, ch);
                 if (i < 0) return -1;

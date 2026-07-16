@@ -9,11 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Harness de reproducao: executa moveLineUp/Down e duplicateLineUp/Down com
- * folding habilitado e valida que nenhuma linha "some" — nem do buffer (perda
- * de texto) nem visualmente (fold engolindo linhas que estavam visiveis).
- */
 public class MoveLineFoldFuzzRepro {
 
     public static void main(String[] args) throws Exception {
@@ -51,7 +46,7 @@ public class MoveLineFoldFuzzRepro {
                 log.add("toggleFold(" + line + ")");
                 ed.toggleFold(line);
             } else if (op < 3) {
-                // como na UI real, o caret só pousa em linhas visíveis
+
                 List<Integer> visible = new ArrayList<>();
                 for (int l = 0; l < ed.buffer.lineCount(); l++) {
                     if (!ed.isLineHidden(l)) visible.add(l);
@@ -61,7 +56,7 @@ public class MoveLineFoldFuzzRepro {
                 log.add("setCaretPosition(" + line + "," + col + ")");
                 ed.setCaretPosition(line, col);
             } else if (op < 4) {
-                // navegação real de teclado (setas, home/end, com shift p/ seleção)
+
                 int[] navKeys = {KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_UP,
                         KeyEvent.VK_DOWN, KeyEvent.VK_HOME, KeyEvent.VK_END};
                 int key = navKeys[rnd.nextInt(navKeys.length)];
@@ -190,7 +185,6 @@ public class MoveLineFoldFuzzRepro {
         return x.equals(y);
     }
 
-    /** true se {@code big} contem todas as linhas de {@code small} (multiset). */
     static boolean containsMultiset(List<String> big, List<String> small) {
         List<String> rest = new ArrayList<>(big);
         for (String s : small) {

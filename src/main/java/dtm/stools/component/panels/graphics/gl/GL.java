@@ -127,10 +127,6 @@ public final class GL {
     public static native void glDeleteTextures(int texture);
     public static native void glBindTexture(int target, int texture);
 
-    /**
-     * Envia pixels para a textura ligada. {@code pixels} pode ser null (aloca sem dados).
-     * Para BufferedImage TYPE_INT_ARGB use format {@link #GL_BGRA} + type {@link #GL_UNSIGNED_BYTE}.
-     */
     public static native void glTexImage2D(int target, int level, int internalFormat,
                                            int width, int height, int border,
                                            int format, int type, int[] pixels);

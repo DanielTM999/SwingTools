@@ -1,6 +1,5 @@
 package dtm.stools.component.panels.editor.code.prototype.styles;
 
-
 import lombok.Getter;
 
 @Getter

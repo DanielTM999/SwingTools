@@ -11,11 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Harness de reproducao: dispara eventos de teclado reais no CodeEditorTextArea
- * (digitacao, navegacao, selecao, Ctrl+C/V/X, undo/redo) e valida invariantes
- * apos cada operacao para capturar o bug de "colar come o texto de baixo".
- */
 public class PasteFuzzRepro {
 
     static final int CTRL = InputEvent.CTRL_DOWN_MASK;

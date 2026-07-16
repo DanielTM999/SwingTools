@@ -17,7 +17,6 @@ import java.awt.Font;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-
 public class CodeEditorAutoDeactivateBreakpointExample {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
@@ -37,14 +36,12 @@ public class CodeEditorAutoDeactivateBreakpointExample {
         CodeEditor editor = buildEditor();
         JTextArea log = buildLog();
 
-        // Auto-deactivate every breakpoint as soon as it is added.
         editor.addBreakpointChangeListener((breakpoint, added) -> {
             if (added && breakpoint.isActive()) {
                 editor.deactivateBreakpoint(breakpoint.getLine());
             }
         });
 
-        // Log what actually happens (added active / deactivated / removed).
         editor.addBreakpointChangeListener((breakpoint, added) -> {
             String action = added
                     ? (breakpoint.isActive() ? "added (active)" : "auto-deactivated")
@@ -52,7 +49,6 @@ public class CodeEditorAutoDeactivateBreakpointExample {
             appendLog(log, breakpoint.getLine(), action);
         });
 
-        // Both of these will land as inactive (outline-only) breakpoints.
         editor.addBreakpoint(2);
         editor.addBreakpoint(5);
 

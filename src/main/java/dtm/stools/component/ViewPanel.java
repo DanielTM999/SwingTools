@@ -90,26 +90,11 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
         super.paintComponent(g);
     }
 
-    /**
-     * Armazena um valor no contexto da janela.
-     *
-     * @param key Chave de identificação.
-     * @param value Valor a ser armazenado.
-     * @return {@code true} se a chave ainda não existia.
-     */
     @Override
     public boolean putInClient(String key, Object value) {
         return putInClient(key, value, false);
     }
 
-    /**
-     * Armazena um valor no contexto da janela com opção de sobrescrever.
-     *
-     * @param key Chave de identificação.
-     * @param value Valor a ser armazenado.
-     * @param replace Se {@code true}, sobrescreve o valor existente.
-     * @return {@code true} se a chave foi adicionada ou sobrescrita.
-     */
     @Override
     public boolean putInClient(String key, Object value, boolean replace) {
         if (replace) {
@@ -120,26 +105,11 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
         }
     }
 
-    /**
-     * Recupera um valor armazenado no contexto da janela.
-     *
-     * @param key Chave de identificação.
-     * @param <T> Tipo esperado do valor.
-     * @return Valor associado ou {@code null} se não encontrado.
-     */
     @Override
     public <T> T getFromClient(String key) {
         return getFromClient(key, null);
     }
 
-    /**
-     * Recupera um valor do contexto com valor padrão.
-     *
-     * @param key Chave de identificação.
-     * @param defaultValue Valor padrão se a chave não existir.
-     * @param <T> Tipo esperado do valor.
-     * @return Valor armazenado ou valor padrão.
-     */
     @Override
     public <T> T getFromClient(String key, T defaultValue) {
         final Object value = clientSideElements.getOrDefault(key, defaultValue);
@@ -150,77 +120,30 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
         }
     }
 
-    /**
-     * Responsável por desenhar os elementos do painel.
-     * Chamado automaticamente quando o componente é adicionado à hierarquia.
-     * Pode ser sobrescrito para configurar a UI do painel.
-     */
     protected void onDrawing(){
         enableFocusListenerIfFocusable();
         enableClickListener();
     }
 
-    /**
-     * Evento chamado quando o painel se torna visível na hierarquia.
-     * Pode ser sobrescrito para executar lógica ao exibir o painel.
-     */
     protected void onLoad() {}
 
-    /**
-     * Evento chamado quando o painel é removido da hierarquia.
-     * Pode ser sobrescrito para liberar recursos ou executar lógica de limpeza.
-     */
     protected void onRemoved() {}
 
-    /**
-     * Evento chamado quando o painel perde o foco.
-     * Só é disparado se o painel for focável.
-     *
-     * @param e Evento de foco.
-     */
     protected void onLostFocus(FocusEvent e) {}
 
-    /**
-     * Evento chamado quando o painel ganha o foco.
-     * Só é disparado se o painel for focável.
-     *
-     * @param e Evento de foco.
-     */
     protected void onFocus(FocusEvent e) {}
 
-    /**
-     * Evento chamado quando o painel recebe um clique do mouse.
-     *
-     * @param event Evento de mouse.
-     */
     protected void onClick(MouseEvent event) {}
 
-    /**
-     * Evento chamado quando o painel é redimensionado.
-     * Pode ser sobrescrito para reagir a mudanças de tamanho.
-     */
     protected void onResize() {}
 
-    /**
-     * Evento chamado quando o painel é movido para outra posição.
-     * Pode ser sobrescrito para reagir a mudanças de posição.
-     */
     protected void onMove() {}
 
-    /**
-     * Evento chamado quando o painel se torna visível.
-     * Pode ser sobrescrito para executar lógica ao exibir o painel.
-     */
     protected void onShow() {}
 
-    /**
-     * Evento chamado quando o painel é ocultado.
-     * Pode ser sobrescrito para executar lógica ao esconder o painel.
-     */
     protected void onHidden() {}
 
     protected void onInit() {}
-
 
     private void setupHierarchyListener() {
         this.addHierarchyListener(e -> {

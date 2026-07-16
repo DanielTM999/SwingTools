@@ -34,7 +34,6 @@ public class BreakpointLayer implements GutterLayer, TransferableLayer {
     @Builder.Default
     private BreakpointStyle defaultStyle = BreakpointStyle.builder().build();
 
-
     @Setter
     @Builder.Default
     private BreakpointStyle defaultInactiveStyle = null;
@@ -344,6 +343,5 @@ public class BreakpointLayer implements GutterLayer, TransferableLayer {
         }
         return baseX + Math.max(0, (areaWidth - size) / 2);
     }
-
 
 }

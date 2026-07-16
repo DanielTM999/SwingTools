@@ -1,6 +1,5 @@
 package dtm.stools.component.panels.editor.code.api;
 
-
 public record Range(Position start, Position end) {
 
     public static Range of(Position start, Position end) {

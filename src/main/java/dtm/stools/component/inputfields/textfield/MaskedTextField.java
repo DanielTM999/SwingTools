@@ -14,44 +14,6 @@ import java.awt.event.FocusEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Um componente de texto que aplica uma máscara de formatação.
- * Esta implementação usa DocumentFilter para um controle mais preciso.
- *
- * <p>Caracteres especiais da máscara:
- * <ul>
- * <li><b>'#'</b> - Representa um dígito (número)</li>
- * <li><b>'U'</b> - Representa uma letra (converte para maiúscula)</li>
- * <li><b>'L'</b> - Representa uma letra (converte para minúscula)</li>
- * <li><b>'$'</b> - Representa uma letra ou dígito (converte para maiúscula)</li>
- * <li><b>'@'</b> - Representa uma letra ou dígito (converte para minúscula)</li>
- * <li><b>'&'</b> - Representa uma letra ou dígito</li>
- * <li><b>'?'</b> - Representa uma letra (sem conversão)</li>
- * <li><b>'*'</b> - Representa qualquer caractere</li>
- * </ul>
- *
- * <p>Alternativas de máscara: use <b>'|'</b> para separar várias máscaras. O campo
- * aplica a primeira alternativa (na ordem) compatível com o que foi digitado.
- * Ex: {@code "#:#|####"} aceita o formato {@code #:#} ou até 4 dígitos.
- *
- * <p>Obrigatoriedade por caractere dentro de uma alternativa:
- * <ul>
- * <li>{@code X} ou {@code {X}} - caractere obrigatório (precisa ser preenchido)</li>
- * <li>{@code [X]} - caractere opcional (pode ficar vazio)</li>
- * <li>{@code X+} - um ou mais (repete o caractere; use como último elemento da alternativa)</li>
- * </ul>
- * Ex: {@code "#[#][#][#]"} exige 1 dígito e aceita até mais 3 opcionais.
- * Ex: {@code "#+"} aceita um ou mais dígitos sem limite.
- *
- * <p>Quando um literal aparece logo após um quantificador {@code +}, ele vira um
- * <b>separador digitável</b>: o usuário precisa digitá-lo para encerrar o grupo
- * de repetição. Ex: em {@code "#+:#+"} o usuário digita os primeiros dígitos,
- * digita {@code ':'} e então continua no segundo grupo.
- *
- * <p>Use {@code '\'} para escapar e tratar como literal os caracteres
- * especiais {@code [ ] { } | + \}. Ex: {@code "\\[##\\]"} produz o literal
- * {@code [##]} e {@code "#\\+#"} produz o literal {@code +} entre dois dígitos.
- */
 public class MaskedTextField extends JTextFieldListener {
 
     private final String mask;
@@ -65,12 +27,6 @@ public class MaskedTextField extends JTextFieldListener {
     private String lastRendered = "";
     private int[] lastCleanPositions = new int[0];
 
-    /**
-     * -- GETTER --
-     *  Verifica se o campo está em modo somente leitura.
-     *
-     * @return true se o campo é somente leitura, false caso contrário
-     */
     @Getter
     private boolean readOnly = false;
     private Border originalBorder;
@@ -80,46 +36,22 @@ public class MaskedTextField extends JTextFieldListener {
     private boolean fireChangeOnSetText = false;
     private Color placeholderColor = Color.GRAY;
 
-    /**
-     * Cria um novo campo de texto sem máscara.
-     * Funciona como um JTextField normal.
-     */
     public MaskedTextField() {
         this(null, '_');
     }
 
-    /**
-     * Cria um novo campo de texto sem máscara e com colunas.
-     * Funciona como um JTextField normal.
-     */
     public MaskedTextField(int columns) {
         this(null, '_', columns);
     }
 
-    /**
-     * Cria um novo campo de texto com máscara.
-     *
-     * @param mask A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
-     */
     public MaskedTextField(String mask) {
         this(mask, '_');
     }
 
-    /**
-     * Cria um novo campo de texto com máscara.
-     *
-     * @param mask A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
-     */
     public MaskedTextField(String mask, int columns) {
         this(mask, '_', columns);
     }
 
-    /**
-     * Cria um novo campo de texto com máscara e placeholder customizado.
-     *
-     * @param mask        A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
-     * @param placeholder O caractere que representa posições vazias.
-     */
     public MaskedTextField(String mask, char placeholder) {
         super();
         this.mask = mask;
@@ -127,13 +59,6 @@ public class MaskedTextField extends JTextFieldListener {
         setup();
     }
 
-    /**
-     * Cria um novo campo de texto com máscara e placeholder customizado.
-     *
-     * @param mask        A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
-     * @param placeholder O caractere que representa posições vazias.
-     * @param columns O numero de colunas
-     */
     public MaskedTextField(String mask, char placeholder, int columns) {
         super(columns);
         this.mask = mask;
@@ -173,33 +98,16 @@ public class MaskedTextField extends JTextFieldListener {
         addActionListener(e -> dispachEvent(EventType.SUBMIT, this::getCleanText));
     }
 
-    /**
-     * Define o texto do placeholder que é exibido quando o campo está vazio e sem foco.
-     * Nenhum evento (INPUT, CHANGE) é disparado.
-     *
-     * @param placeholderText O texto a ser exibido.
-     */
     public void setPlaceholder(String placeholderText) {
         this.placeholderText = placeholderText;
         repaint();
     }
 
-    /**
-     * Define a cor do texto do placeholder.
-     *
-     * @param placeholderColor A cor a ser usada.
-     */
     public void setPlaceholderColor(Color placeholderColor) {
         this.placeholderColor = placeholderColor;
         repaint();
     }
 
-    /**
-     * Define se o campo é somente leitura.
-     * Quando readOnly = true, o campo fica com borda pontilhada e não permite edição.
-     *
-     * @param readOnly true para tornar o campo somente leitura, false para permitir edição
-     */
     public void setReadonly(boolean readOnly) {
         this.readOnly = readOnly;
 
@@ -296,12 +204,6 @@ public class MaskedTextField extends JTextFieldListener {
         }
     }
 
-    /**
-     * Obtém o texto "limpo" do campo, sem os literais da máscara.
-     * Se não houver máscara, retorna o texto completo do campo.
-     *
-     * @return Uma string contendo apenas o valor digitado pelo usuário.
-     */
     public String getCleanText() {
         if (mask == null || mask.isEmpty()) {
             return getText();
@@ -309,12 +211,6 @@ public class MaskedTextField extends JTextFieldListener {
         return cleanValue;
     }
 
-    /**
-     * Define o texto limpo (sem máscara) no campo.
-     * Se não houver máscara, define o texto diretamente.
-     *
-     * @param cleanText O texto sem formatação.
-     */
     public void setCleanText(String cleanText) {
         String oldValue = getCleanText();
 
@@ -337,12 +233,6 @@ public class MaskedTextField extends JTextFieldListener {
         }
     }
 
-    /**
-     * Verifica se o valor atual satisfaz todos os caracteres obrigatórios
-     * da alternativa de máscara aplicada.
-     *
-     * @return true se o campo está completo (ou não há máscara), false caso contrário.
-     */
     public boolean isComplete() {
         if (mask == null || mask.isEmpty()) {
             return true;
@@ -445,8 +335,6 @@ public class MaskedTextField extends JTextFieldListener {
             elements.add(Element.input(maskChar, optional, repeat));
         }
 
-        // O primeiro literal logo apos um quantificador '+' vira separador digitavel:
-        // o usuario precisa digita-lo para encerrar o grupo de repeticao.
         for (int idx = 1; idx < elements.size(); idx++) {
             Element prev = elements.get(idx - 1);
             Element cur = elements.get(idx);
@@ -478,11 +366,6 @@ public class MaskedTextField extends JTextFieldListener {
         return sb.toString();
     }
 
-    /**
-     * Tenta encaixar o texto digitado ({@code typed}) numa alternativa.
-     * O texto digitado inclui os separadores digitados pelo usuario; literais
-     * automaticos (que nao sao separadores) sao apenas renderizados.
-     */
     private MatchResult match(String typed, Alternative a) {
         StringBuilder display = new StringBuilder();
         StringBuilder clean = new StringBuilder();

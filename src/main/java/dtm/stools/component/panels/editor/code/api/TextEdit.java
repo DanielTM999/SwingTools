@@ -1,6 +1,5 @@
 package dtm.stools.component.panels.editor.code.api;
 
-
 public record TextEdit(Range range, String newText) {
 
     public static TextEdit replace(Range range, String newText) {

@@ -391,7 +391,6 @@ public class CodeEditor extends BlockingPanel {
         bindBreakpointActionKey();
     }
 
-
     public void setBreakpointLineHighlightEnabled(boolean enabled) {
         if (this.breakpointLineHighlightEnabled == enabled) {
             return;
@@ -407,7 +406,6 @@ public class CodeEditor extends BlockingPanel {
             }
         }
     }
-
 
     public void setBreakpointLineColor(Color color) {
         this.breakpointLineColor = color != null ? color : DEFAULT_BREAKPOINT_LINE_COLOR;
@@ -1082,11 +1080,6 @@ public class CodeEditor extends BlockingPanel {
         inspectionWidget.removeClickListener(listener);
     }
 
-    /**
-     * Troca a implementação visual do widget de inspeção. O novo widget herda o
-     * estado comportamental do anterior (habilitado, navegação e ouvintes de
-     * clique já registrados), de modo que apenas a aparência muda.
-     */
     public void setInspectionWidget(CodeEditorInspectionWidget widget) {
         if (widget == null || widget == inspectionWidget) return;
         CodeEditorInspectionWidget previous = inspectionWidget;

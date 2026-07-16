@@ -28,7 +28,6 @@ public class DomElementLoaderService<T extends Window> implements DomElementLoad
         this.window = window;
     }
 
-
     @Override
     public void load() {
         this.loadDomList = loadDomView();
@@ -119,6 +118,5 @@ public class DomElementLoaderService<T extends Window> implements DomElementLoad
         }
 
     }
-
 
 }

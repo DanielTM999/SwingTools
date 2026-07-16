@@ -92,7 +92,6 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
         dispachEvent(eventType, PanelEventListener.this, value, props);
     }
 
-
     protected void dispachEvent(String eventType, Component component, Object value, Map<String, Object> props){
         if (listeners != null && !listeners.isEmpty()) {
             List<Consumer<EventComponent>> listeners = this.listeners.get(eventType);
@@ -138,7 +137,6 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
             }
         }
     }
-
 
     protected <T> void dispachEvent(String eventType, Component component, Supplier<T> value){
         dispachEvent(eventType, component, value, new HashMap<>());
@@ -189,6 +187,5 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
             }
         }
     }
-
 
 }

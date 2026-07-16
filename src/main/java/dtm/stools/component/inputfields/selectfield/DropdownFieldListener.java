@@ -20,7 +20,6 @@ public class DropdownFieldListener<T> extends JComboBox<T> implements EventListe
 
     protected final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
 
-
     @Override
     public EventSubscription addEventListener(String eventType, Consumer<EventComponent> event) {
         if(eventType == null || eventType.isEmpty()) return () -> {};
@@ -165,6 +164,5 @@ public class DropdownFieldListener<T> extends JComboBox<T> implements EventListe
             return null;
         }
     }
-
 
 }

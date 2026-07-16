@@ -12,7 +12,6 @@ import java.awt.Font;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-
 public class CodeEditorGhostTextExample {
 
     public static void main(String[] args) {
@@ -45,9 +44,6 @@ public class CodeEditorGhostTextExample {
                 """);
         editor.getTextArea().setFont(new Font(Font.MONOSPACED, Font.PLAIN, 15));
 
-        // Gatilho -> texto sugerido. A sugestao comeca com espaco para continuar logo apos a
-        // palavra digitada. O '\n' torna o ghost multilinha; a indentacao (8/12 espacos) casa
-        // com o nivel do corpo do metodo no conteudo de exemplo.
         Map<String, String> snippets = new LinkedHashMap<>();
         snippets.put("sout", "System.out.println();");
         snippets.put("for", " (int i = 0; i < length; i++) {\n            \n        }");
@@ -63,7 +59,6 @@ public class CodeEditorGhostTextExample {
         frame.setVisible(true);
     }
 
-    /** Extrai o identificador imediatamente antes do cursor na linha atual. */
     private static String wordBeforeCaret(GhostTextContext context) {
         String line = context.currentLine();
         int col = Math.min(context.caretCol(), line.length());

@@ -18,14 +18,11 @@ public class DefaultTokenRenderProvider implements TokenRenderCodeEditorProvider
     @Override
     public void render(Collection<Token> tokens, TokenColorProvider colorProvider, CodeEditorTextArea textArea) {
         if (SwingUtilities.isEventDispatchThread()) {
-            // Chamado no EDT após a checagem de versão do highlight: aplicar na
-            // mesma task mantém a validação atômica — sair do EDT e voltar
-            // permitiria que ranges de um texto antigo fossem aplicados depois
-            // de uma nova tecla, causando flicker.
+
             textArea.replaceStyledRanges(buildRanges(tokens, colorProvider, textArea));
         } else {
             List<StyledRange> ranges = buildRanges(tokens, colorProvider, textArea);
-            // Um único invokeLater que aplica tudo de uma vez.
+
             SwingUtilities.invokeLater(() -> textArea.replaceStyledRanges(ranges));
         }
     }

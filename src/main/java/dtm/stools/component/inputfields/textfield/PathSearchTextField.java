@@ -105,7 +105,6 @@ public class PathSearchTextField<T> extends SearchTextField<T> {
         rebuildBreadcrumbs();
     }
 
-
     public java.util.List<String> getSegments() {
         String path = getText();
         if (path == null || path.isEmpty()) return new ArrayList<>();

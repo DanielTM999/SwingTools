@@ -1,6 +1,5 @@
 package dtm.stools.activity;
 
-
 import dtm.stools.context.DomElementLoader;
 import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
@@ -222,39 +221,14 @@ public abstract class DialogActivity extends JDialog implements IWindow {
 
     protected void onFocus(WindowEvent e) throws Exception {}
 
-
-    /**
-     * Evento chamado quando a janela é redimensionada.
-     * Pode ser sobrescrito para reagir a mudanças de tamanho.
-     */
     protected void onResize() {}
 
-    /**
-     * Evento chamado quando a janela é movida para outra posição na tela.
-     * Pode ser sobrescrito para reagir a mudanças de posição.
-     */
     protected void onMove() {}
 
-    /**
-     * Evento chamado quando a janela se torna visível.
-     * Pode ser sobrescrito para executar lógica ao exibir a janela.
-     */
     protected void onShow() {}
 
-    /**
-     * Evento chamado quando a janela é ocultada.
-     * Pode ser sobrescrito para executar lógica ao esconder a janela.
-     */
     protected void onHidden() {}
 
-    /**
-     * Manipula erros ocorridos na atividade.
-     * Deve ser sobrescrito para tratamento personalizado.
-     *
-     * <p>Por padrão, relança a exceção recebida.
-     *
-     * @param error Exceção ou erro capturado.
-     */
     protected void onError(String action, Throwable error){
         if (error instanceof RuntimeException) {
             throw (RuntimeException) error;

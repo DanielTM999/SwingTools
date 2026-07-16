@@ -770,7 +770,7 @@ public class DockPanel extends PanelEventListener {
     private void installDockDragHandlers(Component component, MouseAdapter adapter) {
         component.addMouseListener(adapter);
         component.addMouseMotionListener(adapter);
-        //component.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+
         if (component instanceof Container container) {
             for (Component child : container.getComponents()) {
                 installDockDragHandlers(child, adapter);

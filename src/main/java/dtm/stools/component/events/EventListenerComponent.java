@@ -61,7 +61,6 @@ public interface EventListenerComponent {
         };
     }
 
-
     void removeEventListner(String eventType, Consumer<EventComponent> event);
     void removeEventListner(String eventType);
 

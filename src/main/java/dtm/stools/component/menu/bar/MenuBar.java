@@ -625,14 +625,6 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
         return brandIconLabel;
     }
 
-    /**
-     * Constrói o ícone padrão exibido no canto inicial da {@code MenuBar}.
-     *
-     * <p>Pode ser sobrescrito por subclasses para customizar o desenho
-     * (ex.: usar uma letra diferente, outro formato, glifos vetoriais, etc).
-     *
-     * @return Imagem usada como ícone padrão.
-     */
     protected Image buildDefaultBrandIcon() {
         int size = Math.max(brandIconSize, 32);
         BufferedImage img = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);

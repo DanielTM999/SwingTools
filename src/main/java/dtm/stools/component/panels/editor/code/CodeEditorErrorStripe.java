@@ -14,14 +14,6 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Barra vertical fina (estilo "error stripe" do IntelliJ) que resume os
- * diagnósticos do documento. Fica à direita do editor: um quadradinho de status
- * no topo (com a severidade mais grave) e, abaixo, um marcador por diagnóstico
- * posicionado proporcionalmente à sua linha. É alimentada pelo
- * {@code DiagnosticsProvider} via {@link CodeEditorTextArea} e dispara um evento
- * de clique que, por padrão, navega até o diagnóstico.
- */
 public class CodeEditorErrorStripe extends JComponent {
 
     private final CodeEditorTextArea textArea;
@@ -37,15 +29,9 @@ public class CodeEditorErrorStripe extends JComponent {
     @Getter
     private int stripeWidth = 14;
 
-    /**
-     * Quando true, desenha um quadradinho de status (pior severidade) no topo da
-     * barra. Default false: o resumo já é mostrado pelo inspection widget, então
-     * o quadrado ficaria redundante.
-     */
     @Getter
     private boolean statusIndicatorEnabled = false;
 
-    /** Altura do quadradinho de status no topo da barra (quando habilitado). */
     @Getter
     @Setter
     private int statusIndicatorHeight = 14;
@@ -54,7 +40,6 @@ public class CodeEditorErrorStripe extends JComponent {
     @Setter
     private int markerHeight = 3;
 
-    /** Tolerância (px) para considerar que um clique atingiu um marcador. */
     @Getter
     @Setter
     private int clickTolerance = 4;

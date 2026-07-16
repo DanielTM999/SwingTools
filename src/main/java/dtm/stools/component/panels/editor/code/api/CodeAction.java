@@ -3,11 +3,6 @@ package dtm.stools.component.panels.editor.code.api;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * An editor-offered action for the cursor range (quick fix, refactoring, source action).
- * A CodeAction may carry a list of {@link TextEdit} to apply atomically,
- * a {@link Command} to dispatch, or both (edits run first, then the command).
- */
 public record CodeAction(
         String title,
         CodeActionKind kind,

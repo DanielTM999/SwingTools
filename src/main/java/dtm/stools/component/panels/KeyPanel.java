@@ -23,7 +23,6 @@ public class KeyPanel extends PanelEventListener {
     private final AtomicReference<ComponentAnimator<JPanel>> animator = new AtomicReference<>();
     private final AtomicLong idGenerator = new AtomicLong();
 
-
     public KeyPanel() {
         super(new KeyPanelLayout());
         setOpaque(true);
@@ -318,7 +317,6 @@ public class KeyPanel extends PanelEventListener {
         @Override public float getLayoutAlignmentY(Container target) { return 0.5f; }
         @Override public void invalidateLayout(Container target) {}
     }
-
 
     private static class KeyPanelContextChangeEventImple implements KeyPanelContextChangeEvent{
 

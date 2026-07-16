@@ -4,7 +4,6 @@ import dtm.stools.component.panels.editor.code.api.Range;
 
 import java.util.List;
 
-
 @FunctionalInterface
 public interface SelectionRangeProvider extends CodeEditorProvider {
 

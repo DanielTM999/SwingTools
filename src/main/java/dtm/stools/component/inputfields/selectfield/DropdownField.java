@@ -49,7 +49,6 @@ public class DropdownField extends DropdownFieldListener<Object> {
         }
     };
 
-
     public DropdownField(){
         init();
     }

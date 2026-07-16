@@ -244,7 +244,6 @@ public final class ModernDialog {
 
             header.add(typeChip, BorderLayout.WEST);
 
-
             if (draggable) {
                 int[] dragOffset = new int[2];
                 header.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));

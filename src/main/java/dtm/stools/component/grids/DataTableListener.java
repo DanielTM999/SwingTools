@@ -57,7 +57,6 @@ public class DataTableListener extends JTable implements EventListenerComponent 
         return new ConcurrentHashMap<>(listeners);
     }
 
-
     protected void dispachEvent(String eventType, Object value){
         dispachEvent(eventType, DataTableListener.this, value);
     }
@@ -147,7 +146,5 @@ public class DataTableListener extends JTable implements EventListenerComponent 
             }
         }
     }
-
-
 
 }

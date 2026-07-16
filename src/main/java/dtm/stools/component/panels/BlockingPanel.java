@@ -62,7 +62,6 @@ public abstract class BlockingPanel extends ViewPanel implements IWindowComponen
         }
     }
 
-
     public final void unlockUI(){
         unlockUI(null);
     }

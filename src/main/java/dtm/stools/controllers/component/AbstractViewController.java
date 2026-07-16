@@ -6,7 +6,6 @@ import dtm.stools.context.IWindowComponent;
 public abstract class AbstractViewController<T extends IWindowComponent>{
     protected T component;
 
-
     public void onInit(T component) {this.component = component;}
     public void onLoad(T component) {this.component = component;}
     public void onRemoved(T component) {}

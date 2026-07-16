@@ -17,15 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-/**
- * Tree-shaped, mutable representation of a {@link MenuBar} menu structure.
- *
- * <p>Use it together with
- * {@link MenuBar#getMenuTree()},
- * {@link MenuBar#setMenuTree(MenuNode)} and
- * {@link MenuBar#updateMenuTree(Consumer)} to capture, manipulate and
- * reapply the menu structure as a single object.</p>
- */
 @Getter
 @Setter
 @ToString(exclude = "parent")

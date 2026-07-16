@@ -374,16 +374,6 @@ public class CollapsibleMenuBar extends MenuBar {
         }
     }
 
-    /**
-     * Repinta uma faixa horizontal completa ao redor da barra após uma mudança
-     * de layout (colapsar/expandir, troca de ícone/tamanho).
-     *
-     * <p>O container direto da barra pode encolher junto com ela (ex.: um
-     * cabeçalho que dimensiona o host pelo {@code preferredSize} da barra).
-     * Repintar apenas o pai deixaria a área liberada — agora ocupada por
-     * componentes vizinhos — com resíduo visual. Por isso a repintura é feita
-     * em um ancestral estável (o {@code JRootPane}), cobrindo toda a largura.
-     */
     protected void repaintAfterLayoutChange() {
         repaint();
         JRootPane rootPane = getRootPane();

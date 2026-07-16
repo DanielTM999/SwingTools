@@ -175,30 +175,6 @@ public abstract class TransientPopupActivity extends JWindow implements IWindow 
 
     protected void onFocus(WindowEvent e) {}
 
-    /**
-     * Manipula erros ocorridos na atividade.
-     * Deve ser sobrescrito para tratamento personalizado de erros relacionados ao ciclo de vida da janela.
-     *
-     * <p>Por padrão, este método apenas relança a exceção recebida.
-     * Caso o desenvolvedor deseje adicionar lógica personalizada (como logging, notificações ou integração com serviços externos),
-     * isso pode ser feito sobrescrevendo este método.
-     * Se não tratado, o erro será relançado para o fluxo superior.</p>
-     *
-     * <strong>Nota:</strong> Este método trata exclusivamente falhas internas da estrutura da aplicação,
-     * como erros durante {@code init()}, {@code onDrawing()}, {@code dispose()}, entre outros
-     * pontos do ciclo de vida da {@code Activity}.
-     * <br>
-     * <strong>Ele <u>não</u> captura exceções lançadas por componentes adicionados pelo desenvolvedor</strong>,
-     * como listeners personalizados, ações em botões ou lógicas arbitrárias associadas à interface gráfica.
-     * <br>
-     * Para esses casos, é responsabilidade do desenvolvedor implementar o tratamento local dessas exceções.
-     *
-     * @implNote Este método não cobre exceções geradas por interações arbitrárias definidas pelo usuário.
-     * Tais exceções devem ser tratadas diretamente onde ocorrem ou encapsuladas em um mecanismo específico de captura.
-     *
-     * @param action Ação identificadora onde o erro ocorreu.
-     * @param error  Exceção ou erro capturado.
-     */
     protected void onError(String action, Throwable error) {
         if (error instanceof RuntimeException) {
             throw (RuntimeException) error;

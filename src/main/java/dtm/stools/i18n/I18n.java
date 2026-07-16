@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-
 public final class I18n {
 
     private static final AtomicReference<I18nLoadStrategy> LOAD_STRATEGY_REF = new AtomicReference<>(I18nLoadStrategy.KEEP_LAST);
@@ -40,7 +39,6 @@ public final class I18n {
     public static void setLoadStrategy(I18nLoadStrategy loadStrategy) {
         LOAD_STRATEGY_REF.set(Objects.requireNonNull(loadStrategy, "loadStrategy must not be null"));
     }
-
 
     public static void load(Class<?> loaderClass){
         load(loaderClass, null);
@@ -111,7 +109,6 @@ public final class I18n {
         }
     }
 
-
     public static boolean setLocale(Locale locale) {
         boolean localeExiste = Arrays.stream(Locale.getAvailableLocales())
                 .anyMatch(availableLocale ->
@@ -128,7 +125,6 @@ public final class I18n {
     public static Locale getLocale(){
         return LOCALE_REF.get() != null ? LOCALE_REF.get() : Locale.getDefault();
     }
-
 
     public static String getText(String key, String defaultValue) {
         return getText(key, () -> defaultValue);
@@ -164,7 +160,6 @@ public final class I18n {
         return ownerClass + "." + key;
     }
 
-
     public static Set<I18nElement> getElementsFromLocale(Locale locale) {
         Map<String, String> map = TEXTS.get(locale);
         if(map == null) return Set.of();
@@ -188,7 +183,6 @@ public final class I18n {
         return locales;
     }
 
-
     private static void loadFromURL(URL url){
         String fileName = getResourceFileName(url);
 
@@ -205,7 +199,6 @@ public final class I18n {
                     "O arquivo não possui extensão JSON: " + fileName
             );
         }
-
 
         String localeName = fileName.substring(0, extensionIndex);
 

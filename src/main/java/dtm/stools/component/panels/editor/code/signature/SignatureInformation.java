@@ -2,16 +2,6 @@ package dtm.stools.component.panels.editor.code.signature;
 
 import java.util.List;
 
-/**
- * Representa uma assinatura (sobrecarga) de uma funcao ou metodo.
- *
- * <p>O {@code label} e o texto completo da assinatura (ex.: {@code "max(int a, int b)"}).
- * Os {@link ParameterInformation parametros} sao usados para destacar o argumento
- * ativo enquanto o usuario digita.</p>
- *
- * <p>{@code activeParameter} permite que uma sobrecarga especifica sobrescreva o
- * parametro ativo definido em {@link SignatureHelp}; use {@code -1} para herdar.</p>
- */
 public record SignatureInformation(
         String label,
         String documentation,

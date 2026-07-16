@@ -4,13 +4,6 @@ import dtm.stools.component.menu.bar.MenuBar;
 
 import java.util.function.Consumer;
 
-/**
- * Accumulative editor for a {@link MenuBar}'s menu tree.
- *
- * <p>Captures a snapshot of the current tree on creation and lets the caller
- * mutate it incrementally, applying everything in a single shot via
- * {@link #commit()}.</p>
- */
 public class MenuTreeEditor {
 
     private final MenuBar bar;

@@ -16,22 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Widget de inspeção (estilo IntelliJ) exibido no canto superior direito do
- * editor. Mostra apenas as contagens de <b>erros</b> e <b>warnings</b>,
- * alimentadas pelo {@code DiagnosticsProvider} via {@link CodeEditorTextArea}.
- * Possui flag de habilitado (default ligado) e dispara um evento de clique que,
- * por padrão, navega até o primeiro erro (ou warning).
- */
 public class CodeEditorInspectionWidget extends JComponent {
 
-    /**
-     * Comportamento do widget quando não há erros nem warnings.
-     */
     public enum CleanMode {
-        /** Esconde o widget até receber algum diagnóstico (default). */
+
         HIDE,
-        /** Mantém o widget visível com um "tique" verde de "tudo certo". */
+
         SHOW_OK
     }
 
@@ -44,7 +34,6 @@ public class CodeEditorInspectionWidget extends JComponent {
     @Setter
     private boolean navigateOnClick = true;
 
-    /** O que fazer quando não há diagnósticos. Default {@link CleanMode#HIDE}. */
     @Getter
     private CleanMode cleanMode = CleanMode.HIDE;
 
@@ -68,12 +57,10 @@ public class CodeEditorInspectionWidget extends JComponent {
     @Setter
     private int gap = 10;
 
-    /** Distância (px) entre o topo do editor e o widget. */
     @Getter
     @Setter
     private int marginTop = 6;
 
-    /** Distância (px) entre a borda direita (scrollbar) e o widget. */
     @Getter
     @Setter
     private int marginRight = 12;
@@ -126,7 +113,6 @@ public class CodeEditorInspectionWidget extends JComponent {
         repaint();
     }
 
-    /** Decide se o widget deve estar visível conforme habilitado/limpo/modo. */
     protected void updateVisibility() {
         boolean shouldShow = enabled && (!isClean() || cleanMode == CleanMode.SHOW_OK);
         if (isVisible() != shouldShow) {
@@ -166,7 +152,7 @@ public class CodeEditorInspectionWidget extends JComponent {
         this.warningCount = warnings;
         updateVisibility();
         revalidate();
-        // o overlay (JLayeredPane) precisa reposicionar quando o tamanho muda
+
         Container parent = getParent();
         if (parent != null) parent.revalidate();
         repaint();
@@ -184,7 +170,6 @@ public class CodeEditorInspectionWidget extends JComponent {
         }
     }
 
-    /** Diagnósticos representados pelo widget (apenas erros e warnings). */
     protected List<Diagnostic> collectDiagnostics() {
         List<Diagnostic> out = new ArrayList<>();
         for (Diagnostic d : textArea.getDiagnostics()) {
@@ -219,12 +204,6 @@ public class CodeEditorInspectionWidget extends JComponent {
         return errorCount + " erro(s), " + warningCount + " warning(s)";
     }
 
-    /**
-     * Copia as características comportamentais (estado de habilitado, navegação e
-     * ouvintes de clique já registrados) de um widget anterior. Usado ao trocar a
-     * implementação visual via {@code CodeEditor.setInspectionWidget(...)} para que
-     * o usuário possa mudar só a aparência sem perder o comportamento.
-     */
     protected void inheritStateFrom(CodeEditorInspectionWidget previous) {
         if (previous == null || previous == this) return;
         this.enabled = previous.enabled;
@@ -234,7 +213,6 @@ public class CodeEditorInspectionWidget extends JComponent {
         updateVisibility();
     }
 
-    /** Desconecta o widget dos diagnósticos do editor. Chamado ao ser substituído. */
     public void dispose() {
         textArea.removeDiagnosticsChangeListener(diagnosticsListener);
     }
@@ -267,7 +245,6 @@ public class CodeEditorInspectionWidget extends JComponent {
         g2.dispose();
     }
 
-    /** Desenha o fundo do widget. Sobrescreva para mudar a aparência da "pílula". */
     protected void paintWidgetBackground(Graphics2D g2) {
         Color editorBg = textArea.getDefaultStyle().getBackground();
         g2.setColor(new Color(editorBg.getRed(), editorBg.getGreen(), editorBg.getBlue(), 200));
@@ -298,7 +275,7 @@ public class CodeEditorInspectionWidget extends JComponent {
         int y = cy - s / 2;
         g2.setColor(color);
         g2.fillOval(x, y, s, s);
-        // sinal de exclamação branco
+
         g2.setColor(Color.WHITE);
         int cx = x + s / 2;
         g2.fillRect(cx - 1, y + 2, 2, s - 6);
@@ -312,7 +289,7 @@ public class CodeEditorInspectionWidget extends JComponent {
         int[] ys = {y + s, y + s, y};
         g2.setColor(color);
         g2.fillPolygon(xs, ys, 3);
-        // sinal de exclamação escuro
+
         g2.setColor(new Color(40, 40, 40));
         int cx = x + s / 2;
         g2.fillRect(cx - 1, y + 4, 2, s - 7);
@@ -322,7 +299,7 @@ public class CodeEditorInspectionWidget extends JComponent {
     protected void paintCheck(Graphics2D g2, int x, int cy) {
         int s = iconSize;
         int y = cy - s / 2;
-        // badge verde preenchido com o "tique" branco — bem visível, nunca "some"
+
         g2.setColor(okColor);
         g2.fillOval(x, y, s, s);
         g2.setColor(Color.WHITE);

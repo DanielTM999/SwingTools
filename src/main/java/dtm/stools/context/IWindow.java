@@ -14,7 +14,7 @@ public interface IWindow {
     void dispose();
     boolean isDisplayable();
     void setVisible(boolean visibility);
-    
+
     boolean putInClient(String key, Object value);
     boolean putInClient(String key, Object value, boolean replace);
     <T> T getFromClient(String key);
@@ -26,6 +26,5 @@ public interface IWindow {
     void reloadDomElements();
 
     default WindowExecutor getWindowExecutor(){return null;};
-
 
 }

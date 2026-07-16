@@ -49,22 +49,13 @@ public class SearchTextField<T> extends MaskedTextField{
 
     private int popupHeight = 120;
 
-    /**
-     * Cria um novo campo de texto sem máscara.
-     */
     public SearchTextField() {
         this(null, '_');
     }
 
-    /**
-     * Cria um novo campo de texto com máscara.
-     *
-     * @param mask A string de máscara (ex: "###.###.###-##"). Se null ou vazio, funciona como JTextField normal.
-     */
     public SearchTextField(String mask) {
         this(mask, '_');
     }
-
 
     public SearchTextField(int columns) {
         this(null, '_', columns);
@@ -149,8 +140,6 @@ public class SearchTextField<T> extends MaskedTextField{
         events.add(EventType.SELECT);
     }
 
-
-    /** Define a lista base de objetos para busca */
     public void setDataSource(List<T> data) {
         dataSources.clear();
         if (data != null) {
@@ -158,62 +147,52 @@ public class SearchTextField<T> extends MaskedTextField{
         }
     }
 
-    /** Adiciona uma opção de busca (ex: obj -> ((Cliente)obj).getNome()) */
     public void addSearchOption(Function<T, String> fn) {
         if (fn != null) {
             searchOptions.add(fn);
         }
     }
 
-    /** Define o número mínimo de caracteres para iniciar a busca */
     public void setMinLength(int length) {
         if (length < 1) length = 1;
         minLength.set(length);
     }
 
-    /** Retorna o valor atual do minLength */
     public int getMinLength() {
         return minLength.get();
     }
 
-    /** Define o número máximo de resultados a exibir */
     public void setMaxResults(int max) {
         if (max < 1) max = 10;
         maxResults.set(max);
     }
 
-    /** Retorna o valor atual do maxResults */
     public int getMaxResults() {
         return maxResults.get();
     }
 
-    /** Define a função de exibição dos itens */
     public void setDisplayFunction(Function<T, String> fn) {
         if (fn != null) {
             displayFunction = fn;
         }
     }
 
-    /** Define uma estratégia customizada de busca (ex: busca por início, regex, etc) */
     public void setSearchStrategy(BiPredicate<String, String> strategy) {
         if (strategy != null) {
             this.searchStrategy = strategy;
         }
     }
 
-    /** Usa estratégia de busca que só encontra itens que começam com o texto */
     public void useStartsWithSearch() {
         this.searchStrategy = (text, value) ->
                 value.toLowerCase().startsWith(text.toLowerCase());
     }
 
-    /** Usa estratégia de busca exata (igual) */
     public void useExactSearch() {
         this.searchStrategy = (text, value) ->
                 value.equalsIgnoreCase(text);
     }
 
-    /** Define se a busca é case sensitive */
     public void setCaseSensitive(boolean caseSensitive) {
         this.caseSensitive.set(caseSensitive);
         if (caseSensitive) {
@@ -221,24 +200,20 @@ public class SearchTextField<T> extends MaskedTextField{
         }
     }
 
-    /** Ordena resultados alfabeticamente pela função de exibição */
     public void sortResultsAlphabetically() {
         this.sortComparator = Comparator.comparing(displayFunction);
     }
 
-    /** Define a altura do popup de sugestões */
     public void setPopupHeight(int height) {
         if (height > 0) {
             this.popupHeight = height;
         }
     }
 
-    /** Retorna o item atualmente selecionado na lista (ou null) */
     public T getSelectedSuggestion() {
         return suggestionList.getSelectedValue();
     }
 
-    /** Força a abertura do popup com todos os resultados */
     public void showAllSuggestions() {
         submitTask(() -> {
             List<T> results = getAllResults();
@@ -246,13 +221,11 @@ public class SearchTextField<T> extends MaskedTextField{
         });
     }
 
-    /** Limpa o campo e fecha o popup */
     public void clearAndClose() {
         setText("");
         suggestionPopup.setVisible(false);
     }
 
-    /** Fecha o popup de sugestões */
     public void closePopup() {
         suggestionPopup.setVisible(false);
     }
@@ -453,6 +426,5 @@ public class SearchTextField<T> extends MaskedTextField{
             submitTask(task);
         }
     }
-
 
 }

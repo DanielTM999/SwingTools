@@ -42,7 +42,6 @@ public class ActivityWindowExecutor implements WindowExecutor {
         return null;
     }
 
-
     @Override
     public void executeAsync(ThrowableRunnable runnable) {
         executeAsync(runnable, "undefined");
@@ -70,7 +69,6 @@ public class ActivityWindowExecutor implements WindowExecutor {
             return null;
         });
     }
-
 
     private void callExceptionHandler(String action, Throwable throwable){
         if (onErrorReference != null) {

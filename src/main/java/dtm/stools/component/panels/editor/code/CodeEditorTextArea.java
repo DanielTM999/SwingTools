@@ -191,7 +191,6 @@ public class CodeEditorTextArea extends JComponent {
 
     protected record LineColorInfoInternal(Color background, Color foreground) {}
 
-
     protected static final String ACTION_MOVE_LINE_UP = "codeEditor.moveLineUp";
     protected static final String ACTION_MOVE_LINE_DOWN = "codeEditor.moveLineDown";
     protected static final String ACTION_DUPLICATE_LINE_UP = "codeEditor.duplicateLineUp";
@@ -302,7 +301,7 @@ public class CodeEditorTextArea extends JComponent {
     protected final AtomicInteger ghostTextVersion = new AtomicInteger();
 
     protected Timer ghostTextIdleTimer;
-    // Controla "1 disparo por posicao": o idle so dispara novamente se o caret mudar de lugar.
+
     protected boolean ghostIdleConsumed = false;
     protected int ghostIdleLastLine = -1;
     protected int ghostIdleLastCol = -1;
@@ -728,7 +727,6 @@ public class CodeEditorTextArea extends JComponent {
     @Getter
     protected KeyStroke previousBookmarkKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F8, InputEvent.SHIFT_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
 
-
     @Getter @Setter
     protected DefinitionLocationProvider definitionLocationProvider;
 
@@ -762,11 +760,9 @@ public class CodeEditorTextArea extends JComponent {
     @Getter
     protected BracketMatcher bracketMatcher = BracketMatcher.defaultMatcher();
 
-
     protected final Deque<Range> selectionExpansionStack = new ArrayDeque<>();
     protected List<Range> selectionChainCache = Collections.emptyList();
     protected int selectionChainIndex = -1;
-
 
     @Getter
     protected int caretLine = 0;
@@ -1309,13 +1305,10 @@ public class CodeEditorTextArea extends JComponent {
         return Math.max(0, Math.min(off, buffer.length()));
     }
 
-    // ===== Ghost text (shadow text / inline suggestion) =====
-
     public boolean hasGhostText() {
         return ghostText != null && !ghostText.isEmpty();
     }
 
-    /** Define o modo de ativacao do ghost text; {@code DISABLED} descarta a sugestao ativa e para o timer. */
     public void setGhostTextActivationMode(GhostTextActivationMode mode) {
         this.ghostTextActivationMode = mode == null ? GhostTextActivationMode.BOTH : mode;
         if (this.ghostTextActivationMode == GhostTextActivationMode.DISABLED) {
@@ -1324,18 +1317,15 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
-    /** Ghost text esta ativo (habilitado e modo diferente de DISABLED). */
     protected boolean isGhostTextActive() {
         return ghostTextEnabled && ghostTextActivationMode != GhostTextActivationMode.DISABLED;
     }
 
-    /** O modo atual dispara ghost text ao digitar. */
     protected boolean isGhostTypingActivation() {
         return ghostTextActivationMode == GhostTextActivationMode.TYPING
                 || ghostTextActivationMode == GhostTextActivationMode.BOTH;
     }
 
-    /** O modo atual dispara ghost text quando o cursor fica ocioso. */
     protected boolean isGhostCaretIdleActivation() {
         return ghostTextActivationMode == GhostTextActivationMode.CARET_IDLE
                 || ghostTextActivationMode == GhostTextActivationMode.BOTH;
@@ -1347,10 +1337,6 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
-    /**
-     * (Re)agenda o timer de cursor ocioso. Chamado a cada atividade do caret; so dispara ghost text
-     * apos {@code ghostTextCaretIdleDelay} ms sem novas atividades.
-     */
     protected void scheduleGhostIdleTimer() {
         if (!isGhostTextActive() || !isGhostCaretIdleActivation()
                 || ghostTextProvider == null || readOnly
@@ -1359,13 +1345,13 @@ public class CodeEditorTextArea extends JComponent {
             stopGhostIdleTimer();
             return;
         }
-        // Se o caret mudou de lugar, libera novo disparo; senao mantem o estado "consumido".
+
         if (caretLine != ghostIdleLastLine || caretCol != ghostIdleLastCol) {
             ghostIdleLastLine = caretLine;
             ghostIdleLastCol = caretCol;
             ghostIdleConsumed = false;
         }
-        // Ja disparou por ociosidade nesta posicao: nao dispara de novo ate o caret mudar.
+
         if (ghostIdleConsumed) {
             stopGhostIdleTimer();
             return;
@@ -1380,14 +1366,13 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected void fireGhostIdle() {
-        // Marca a posicao como consumida antes de pedir, garantindo no maximo 1 disparo por posicao.
+
         ghostIdleConsumed = true;
         ghostIdleLastLine = caretLine;
         ghostIdleLastCol = caretCol;
         requestGhostText(GhostTextContext.TriggerKind.CARET_IDLE);
     }
 
-    /** Quantidade de linhas extras (após a linha-âncora) que o ghost multilinha precisa reservar. */
     protected int ghostReservedRows() {
         if (!hasGhostText()) return 0;
         int newlines = 0;
@@ -1397,7 +1382,6 @@ public class CodeEditorTextArea extends JComponent {
         return newlines;
     }
 
-    /** Limpa a sugestão fantasma ativa. Retorna {@code true} se havia algo a limpar. */
     public boolean clearGhostText() {
         if (!hasGhostText()) return false;
         boolean multiline = ghostReservedRows() > 0;
@@ -1425,14 +1409,13 @@ public class CodeEditorTextArea extends JComponent {
         repaint();
     }
 
-    /** Dispara explicitamente uma requisição de ghost text no cursor atual. */
     public void triggerGhostText() {
         requestGhostText(GhostTextContext.TriggerKind.EXPLICIT);
     }
 
     protected void requestGhostText(GhostTextContext.TriggerKind kind) {
         if (!isGhostTextActive() || ghostTextProvider == null || readOnly) return;
-        // Coexiste com o autocomplete: o popup nao impede o ghost (so seleção/ghost ja ativo bloqueiam).
+
         if (hasSelection() || hasGhostText()) return;
 
         GhostTextProvider provider = ghostTextProvider;
@@ -1455,7 +1438,7 @@ public class CodeEditorTextArea extends JComponent {
             task.whenComplete((text, error) -> SwingUtilities.invokeLater(() -> {
                 if (request != ghostTextVersion.get()) return;
                 if (error != null || text == null || text.isEmpty()) return;
-                // O cursor precisa estar exatamente onde a sugestão foi ancorada.
+
                 if (caretLine != anchorLine || caretCol != anchorCol) return;
                 if (hasSelection()) return;
                 setActiveGhostText(text, anchorLine, anchorCol, caretOffset());
@@ -1463,12 +1446,11 @@ public class CodeEditorTextArea extends JComponent {
         });
     }
 
-    /** Insere a sugestão fantasma ativa no documento e move o cursor para o fim do trecho. */
     protected boolean acceptGhostText() {
         if (!hasGhostText() || readOnly) return false;
         String text = ghostText;
         int offset = ghostAnchorOffset;
-        // Invalida o estado antes de inserir (insertText dispara o listener que também limparia).
+
         ghostText = null;
         ghostAnchorLine = -1;
         ghostAnchorCol = -1;
@@ -2237,7 +2219,6 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
-    /** Captura {offset do anchor, span em linhas} de cada região dobrada. */
     protected List<int[]> captureFoldedAnchorOffsets() {
         List<int[]> list = new ArrayList<>();
         for (FoldRegion r : foldRegions) {
@@ -2260,15 +2241,12 @@ public class CodeEditorTextArea extends JComponent {
             } else if (oldOff >= editStart + removedLen) {
                 newOff = oldOff + delta;
             } else {
-                // Âncora estava dentro do trecho removido: a região dobrada deixou de
-                // existir. Re-dobrar em editStart colapsaria a região errada (ex.: o
-                // bloco recém-colado), escondendo texto — então não restaura nada.
+
                 continue;
             }
             newOff = Math.max(0, Math.min(newOff, buffer.length()));
             int newLine = buffer.lineOfOffset(newOff);
-            // Só restaura a dobra se a região ainda existir com o mesmo span; dobrar
-            // uma região de span diferente esconderia linhas que estavam visíveis.
+
             for (int i = 0; i < foldRegions.size(); i++) {
                 FoldRegion r = foldRegions.get(i);
                 if (r.startLine() == newLine && r.endLine() - r.startLine() == span) {
@@ -2808,7 +2786,7 @@ public class CodeEditorTextArea extends JComponent {
         ensureStyledRangesIndex();
         StyledRange[] arr = sortedStyledRanges;
         int n = arr.length;
-        // busca binária pelo maior índice i com arr[i].start <= offset
+
         int lo = 0, hi = n - 1, found = -1;
         while (lo <= hi) {
             int mid = (lo + hi) >>> 1;
@@ -2819,8 +2797,7 @@ public class CodeEditorTextArea extends JComponent {
                 hi = mid - 1;
             }
         }
-        // anda pra trás procurando o range mais recente que cobre offset
-        // (ranges não-sobrepostos resolvem na 1ª iteração)
+
         for (int i = found; i >= 0; i--) {
             StyledRange r = arr[i];
             if (offset < r.getEndOffset()) {
@@ -2828,8 +2805,7 @@ public class CodeEditorTextArea extends JComponent {
                     return r.getStyle();
                 }
             }
-            // se este range termina antes do offset e nenhum anterior alcança, encerra cedo
-            // (otimização: para o caso comum de ranges curtos, paramos rapidamente)
+
             if (r.getEndOffset() <= offset && r.getStartOffset() <= offset
                     && (i == 0 || arr[i - 1].getEndOffset() <= offset)) {
                 break;
@@ -2889,13 +2865,6 @@ public class CodeEditorTextArea extends JComponent {
         return new int[]{line, line};
     }
 
-    /**
-     * Intervalo de linhas que deve se mover/duplicar junto com {@code line}: o bloco
-     * dobrado ancorado nela (se houver) estendido pelas regiões dobradas encadeadas —
-     * ex.: {@code } else {}, onde a linha final de uma região dobrada é o anchor da
-     * próxima. Sem essa extensão, mover por cima da cadeia deletaria as linhas
-     * escondidas entre os blocos.
-     */
     protected int[] getMoveBlockRange(int line) {
         int[] range = getBlockRange(line);
         if (foldingEnabled) {
@@ -2906,7 +2875,6 @@ public class CodeEditorTextArea extends JComponent {
         return range;
     }
 
-    /** Regiões dobradas contidas em {@code startLine..endLine}, relativas a {@code startLine}. */
     protected List<int[]> foldedRegionsWithin(int startLine, int endLine) {
         List<int[]> list = new ArrayList<>();
         if (!foldingEnabled) return list;
@@ -2918,7 +2886,6 @@ public class CodeEditorTextArea extends JComponent {
         return list;
     }
 
-    /** Re-dobra em {@code newStart} as regiões capturadas por {@link #foldedRegionsWithin}. */
     protected void refoldRelative(List<int[]> spans, int newStart) {
         for (int[] s : spans) {
             refoldAt(newStart + s[0], newStart + s[1]);
@@ -2929,12 +2896,6 @@ public class CodeEditorTextArea extends JComponent {
         return buffer.offsetOfLine(line) + buffer.lineAt(line).length();
     }
 
-    /**
-     * Re-dobra a região {@code startLine..endLine} somente se ela ainda existir com
-     * exatamente esse span. Dobrar uma região de span diferente (ex.: as chaves
-     * re-parearam após a edição) esconderia linhas que estavam visíveis — nesse
-     * caso é mais seguro deixar desdobrado.
-     */
     protected void refoldAt(int startLine, int endLine) {
         for (int i = 0; i < foldRegions.size(); i++) {
             FoldRegion r = foldRegions.get(i);
@@ -3462,12 +3423,6 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
-    /**
-     * Desdobra as regiões que escondem a linha do caret (ex.: após undo/redo
-     * restaurar o caret para dentro de um bloco dobrado), para o texto não
-     * "sumir" da tela. Diferente de {@link #ensureCaretVisible()}, que move o
-     * caret para o anchor, aqui a intenção é revelar o local da edição.
-     */
     protected void unfoldToRevealCaret() {
         if (!foldingEnabled) return;
         boolean changed = false;
@@ -3509,12 +3464,6 @@ public class CodeEditorTextArea extends JComponent {
         recomputeFoldRegions(true);
     }
 
-    /**
-     * Recalcula as regiões de fold. {@code preserveFoldedByLine} controla se o estado
-     * "folded" é preservado casando (startLine, endLine) com as regiões anteriores —
-     * isso só é válido quando as linhas do buffer NÃO foram deslocadas pela edição;
-     * após insert/delete a restauração deve ser feita por offset ({@link #restoreFoldedByOffsets}).
-     */
     protected void recomputeFoldRegions(boolean preserveFoldedByLine) {
         if (!foldingEnabled || foldRules.isEmpty()) {
             foldRegions = new ArrayList<>();
@@ -3950,7 +3899,7 @@ public class CodeEditorTextArea extends JComponent {
             int visualCol = 0;
             List<InlayHint> pushHints = pushInlayHintsForLine(i, defaultFm);
             int pushHintIndex = 0;
-            // Coluna onde o ghost text inline empurra o texto seguinte (-1 quando não há ghost nesta linha).
+
             int ghostPushCol = (i == ghostAnchorLine && isGhostVisibleAtAnchor()) ? ghostAnchorCol : -1;
             boolean ghostPushApplied = false;
             while (col < renderLength) {
@@ -3974,7 +3923,7 @@ public class CodeEditorTextArea extends JComponent {
                         runEnd = pushCol;
                     }
                 }
-                // Quebra a run na âncora do ghost para inserir o espaço da sugestão antes do texto seguinte.
+
                 if (ghostPushCol > col && ghostPushCol < runEnd) {
                     runEnd = ghostPushCol;
                 }
@@ -4120,7 +4069,7 @@ public class CodeEditorTextArea extends JComponent {
 
     protected void paintGhostText(Graphics2D g2, FontMetrics fm, int lineHeight) {
         if (!hasGhostText()) return;
-        // Só desenha quando o cursor está exatamente onde a sugestão foi ancorada.
+
         if (ghostAnchorLine != caretLine || ghostAnchorCol != caretCol) return;
 
         Color color = ghostTextColor;
@@ -4134,7 +4083,7 @@ public class CodeEditorTextArea extends JComponent {
         g2.setColor(color);
 
         String lineText = buffer.lineAt(caretLine);
-        // Base (sem empurrão): o ghost fica logo após o caret; o texto real é que é deslocado.
+
         int startX = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
         int y = yOfBufferLine(caretLine);
         int ascent = fm.getAscent();
@@ -4678,8 +4627,7 @@ public class CodeEditorTextArea extends JComponent {
                                 caretLine--;
                                 caretCol = buffer.lineAt(caretLine).length();
                                 deleteText(offset - 1, offset);
-                                // o join pode ter colocado o caret na última linha
-                                // (oculta) de uma região dobrada — revela o local
+
                                 unfoldToRevealCaret();
                             }
                         }
@@ -6428,11 +6376,6 @@ public class CodeEditorTextArea extends JComponent {
         if (hoverDocumentationPopup != null) hoverDocumentationPopup.hide();
     }
 
-    /**
-     * Esconde o popup de hover e cancela qualquer disparo pendente enquanto o usuario edita
-     * (digitando/apagando). O hover so reaparece apos um novo movimento do mouse, pois e ele quem
-     * reinicia o {@link #hoverTimer}. Tambem invalida requisicoes de hover em andamento.
-     */
     protected void suppressHoverWhileEditing() {
         if (hoverTimer != null) hoverTimer.stop();
         hoverDocumentationVersion.incrementAndGet();
@@ -6505,7 +6448,6 @@ public class CodeEditorTextArea extends JComponent {
         return signatureHelpPopup != null && signatureHelpPopup.isVisible();
     }
 
-    /** Solicita signature help de forma explicita (atalho ou chamada via API). */
     public void triggerSignatureHelp() {
         triggerSignatureHelp('\0');
     }
@@ -6521,7 +6463,6 @@ public class CodeEditorTextArea extends JComponent {
         if (!isSignatureHelpVisible() || signatureHelpProvider == null) return;
         requestSignatureHelp(SignatureHelpContext.TriggerKind.CONTENT_CHANGE, '\0');
     }
-
 
     protected void handleSignatureHelpAfterTyping(char c) {
         if (signatureHelpProvider == null) return;
@@ -7262,11 +7203,6 @@ public class CodeEditorTextArea extends JComponent {
                 + ghostPushWidthBeforeColumn(line, col, fm);
     }
 
-    /**
-     * Posição X de uma coluna SEM considerar o empurrão do ghost text. Usada pelo próprio
-     * desenho do ghost e pelo caret/scroll, que representam o ponto de inserção e ficam
-     * sempre à esquerda da sugestão.
-     */
     protected int baseVisualXForColumn(int line, String lineText, int col, FontMetrics fm) {
         int safeCol = Math.min(Math.max(0, col), lineText.length());
         int x = 4 + textWidth(fm, lineText.substring(0, safeCol), 0);
@@ -7278,11 +7214,6 @@ public class CodeEditorTextArea extends JComponent {
         return x;
     }
 
-    /**
-     * Largura que o ghost text empurra o texto real à direita do caret. Só vale na linha-âncora,
-     * quando a sugestão está visível (caret exatamente na âncora) e apenas para colunas a partir
-     * da âncora — assim o caret continua à esquerda da sugestão e o texto seguinte é deslocado.
-     */
     protected int ghostPushWidthBeforeColumn(int line, int col, FontMetrics fm) {
         if (!isGhostVisibleAtAnchor()) return 0;
         if (line != ghostAnchorLine) return 0;
@@ -7290,12 +7221,10 @@ public class CodeEditorTextArea extends JComponent {
         return ghostFirstSegmentWidth(fm);
     }
 
-    /** A sugestão está sendo desenhada (caret na âncora). Mesmo critério de {@link #paintGhostText}. */
     protected boolean isGhostVisibleAtAnchor() {
         return hasGhostText() && ghostAnchorLine == caretLine && ghostAnchorCol == caretCol;
     }
 
-    /** Largura do primeiro segmento (até a primeira quebra) da sugestão, que fica inline no caret. */
     protected int ghostFirstSegmentWidth(FontMetrics fm) {
         if (!hasGhostText()) return 0;
         int nl = ghostText.indexOf('\n');
@@ -7574,7 +7503,6 @@ public class CodeEditorTextArea extends JComponent {
         rebindIdeActionKeys();
     }
 
-
     protected void installIdeActions() {
         getActionMap().put(ACTION_GO_TO_DEFINITION, new AbstractAction() {
             @Override
@@ -7728,7 +7656,6 @@ public class CodeEditorTextArea extends JComponent {
         return applied;
     }
 
-
     public void beginCompoundEdit() {
         buffer.beginCompound(captureEditorState());
     }
@@ -7778,7 +7705,6 @@ public class CodeEditorTextArea extends JComponent {
         }
         return new Range(p, p);
     }
-
 
     public void triggerGoToDefinition() {
         if (definitionLocationProvider == null && definitionProvider == null) return;
@@ -8197,7 +8123,6 @@ public class CodeEditorTextArea extends JComponent {
         navBackStack.clear();
         navForwardStack.clear();
     }
-
 
     public void openLocation(Location location) {
         if (location == null || location.range() == null) return;

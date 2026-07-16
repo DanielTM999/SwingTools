@@ -84,12 +84,6 @@ public class HoverDocumentationPopup {
         applyTextSelectionEnabled();
     }
 
-    /**
-     * Garante a janela do hover, criada com {@link Window#setAutoRequestFocus(boolean) auto-request
-     * focus desabilitado}: ao aparecer nao rouba o foco do editor (o usuario continua digitando),
-     * mas pode receber foco quando o usuario clica dentro dela, habilitando selecao de texto nativa
-     * e Ctrl+C. Recriada se a janela ancestral do editor mudar.
-     */
     protected void ensureWindow() {
         Window ancestor = SwingUtilities.getWindowAncestor(owner);
         if (window != null && ownerWindow == ancestor) return;
@@ -101,7 +95,7 @@ public class HoverDocumentationPopup {
         try {
             window.setBackground(new Color(0, 0, 0, 0));
         } catch (Exception ignored) {
-            // Plataforma sem suporte a translucidez por pixel: mantem opaco.
+
         }
         JComponent content = (JComponent) window.getContentPane();
         content.setLayout(new BorderLayout());
@@ -111,7 +105,7 @@ public class HoverDocumentationPopup {
         window.addWindowFocusListener(new WindowAdapter() {
             @Override
             public void windowLostFocus(WindowEvent e) {
-                // Usuario tirou o foco da janela (ex.: clicou de volta no editor): esconde.
+
                 hide();
             }
         });
@@ -148,11 +142,6 @@ public class HoverDocumentationPopup {
         mouseInside = isMousePointerInside();
     }
 
-    /**
-     * Ajusta a posicao desejada (em coordenadas de tela) para que a janela do hover caiba inteira
-     * dentro da area util do monitor que contem o ponto-ancora, considerando insets do sistema
-     * (barra de tarefas) e setups multi-monitor. Evita que o popup apareca cortado fora da tela.
-     */
     protected Point clampToScreen(Point desired, Dimension size) {
         Rectangle bounds = screenBoundsFor(desired);
         int x = desired.x;
@@ -229,8 +218,7 @@ public class HoverDocumentationPopup {
     }
 
     protected void applyTextSelectionEnabled() {
-        // A janela do hover nao rouba foco ao aparecer (setAutoRequestFocus(false)), mas ganha foco
-        // quando o usuario clica dentro dela; assim a selecao de texto nativa + Ctrl+C funcionam.
+
         contentPane.setFocusable(textSelectionEnabled);
         contentPane.setEnabled(true);
         contentPane.setCursor(Cursor.getPredefinedCursor(
@@ -290,10 +278,7 @@ public class HoverDocumentationPopup {
             }
             return "<html><body>" + html + "</body></html>";
         }
-        // TEXT e MARKDOWN: por padrao o popup interpreta markdown, incluindo blocos de codigo
-        // cercados (```lang ... ```) de qualquer linguagem, listas, enfase, etc. Conteudo
-        // realmente plano continua renderizando como paragrafo. Caso o commonmark nao esteja
-        // disponivel, o MarkdownSupport degrada para escape + <br> (comportamento antigo do TEXT).
+
         return "<html><body>"
                 + markdownSupport.render(info.content(), this::escapeHtml)
                 + "</body></html>";

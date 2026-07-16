@@ -15,12 +15,6 @@ import java.awt.Font;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Demonstra o {@link SignatureHelpProvider}. Digite uma chamada como
- * {@code max(} ou {@code substring(} e o popup de assinatura aparece acima do
- * caret, destacando o parametro ativo conforme as virgulas sao digitadas.
- * Ctrl+Up / Ctrl+Down alternam entre sobrecargas; Ctrl+Shift+P reabre o popup.
- */
 public class CodeEditorSignatureHelpExample {
 
     public static void main(String[] args) {
@@ -103,7 +97,6 @@ public class CodeEditorSignatureHelpExample {
         frame.setVisible(true);
     }
 
-    /** Conta as virgulas no nivel superior da chamada atual para achar o parametro ativo. */
     private static int activeParameterIndex(SignatureHelpContext context) {
         String text = context.textBeforeCaret();
         int depth = 0;
@@ -125,7 +118,6 @@ public class CodeEditorSignatureHelpExample {
         return insideCall ? commas : 0;
     }
 
-    /** Extrai o identificador imediatamente antes do '(' que abre a chamada atual. */
     private static String callNameBeforeCaret(SignatureHelpContext context) {
         String text = context.textBeforeCaret();
         int depth = 0;
