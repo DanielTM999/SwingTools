@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dtm.stools.utils.ResourceUtils;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -187,8 +190,7 @@ public final class I18n {
 
 
     private static void loadFromURL(URL url){
-        File file = new File(url.getPath());
-        String fileName = file.getName();
+        String fileName = getResourceFileName(url);
 
         int extensionIndex = fileName.lastIndexOf('.');
 
@@ -220,13 +222,24 @@ public final class I18n {
             throw new IllegalArgumentException("Locale não disponível: " + localeName);
         }
 
-        loadMapFromFile(locale, file);
+        loadMapFromURL(locale, url);
     }
 
-    private static void loadMapFromFile(Locale locale, File file){
-        try {
+    private static String getResourceFileName(URL url) {
+        String path = url.getPath();
+        int separatorIndex = path.lastIndexOf('/');
+
+        String fileName = separatorIndex >= 0
+                ? path.substring(separatorIndex + 1)
+                : path;
+
+        return URLDecoder.decode(fileName, StandardCharsets.UTF_8);
+    }
+
+    private static void loadMapFromURL(Locale locale, URL url){
+        try (InputStream inputStream = openResourceStream(url)) {
             Map<String, String> loadedTexts = MAPPER.readValue(
-                    file,
+                    inputStream,
                     new TypeReference<Map<String, String>>() {}
             );
 
@@ -243,10 +256,16 @@ public final class I18n {
 
         } catch (IOException exception) {
             throw new IllegalArgumentException(
-                    "Não foi possível carregar o arquivo JSON: " + file.getAbsolutePath(),
+                    "Não foi possível carregar o arquivo JSON: " + url,
                     exception
             );
         }
+    }
+
+    private static InputStream openResourceStream(URL url) throws IOException {
+        URLConnection connection = url.openConnection();
+        connection.setUseCaches(false);
+        return connection.getInputStream();
     }
 
     private static void putText(Map<String, String> texts, String key, String value) {
