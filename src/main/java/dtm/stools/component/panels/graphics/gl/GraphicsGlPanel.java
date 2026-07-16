@@ -29,6 +29,11 @@ public class GraphicsGlPanel extends AbstractGraphicsPanel<GraphicsGlContext> {
         graphicsGlHost.setRenderer(renderer);
     }
 
+    @Override
+    public GraphicsRender<GraphicsGlContext> getRenderer() {
+        return graphicsGlHost.getRenderer();
+    }
+
     public GraphicsGlContext getGraphicsContext() {
         return graphicsGlHost.getContext();
     }

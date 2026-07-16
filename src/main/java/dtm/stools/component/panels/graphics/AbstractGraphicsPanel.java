@@ -17,6 +17,7 @@ public abstract class AbstractGraphicsPanel<C extends GraphicsContext> extends J
     }
 
     public abstract void setRenderer(GraphicsRender<C> renderer);
+    public abstract GraphicsRender<C> getRenderer();
 
     public abstract void runOnUiThread(Runnable task);
 

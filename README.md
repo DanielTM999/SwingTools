@@ -964,6 +964,8 @@ Listeners disponíveis:
 
 ## 19. GraphicsPanel e GraphicsGlPanel
 
+Esta secao resume o pacote `dtm.stools.component.panels.graphics`. A documentacao detalhada fica em `docs/Graphics.md`, com paginas especificas para `AbstractGraphicsPanel` e `GraphicsGlPanel`.
+
 A base gráfica fica em `dtm.stools.component.panels.graphics`. O contrato principal é `AbstractGraphicsPanel<C extends GraphicsContext>`, que padroniza renderer, loop de render, FPS, VSync, input e ciclo de vida.
 
 `GraphicsGlPanel` é a implementação OpenGL em `dtm.stools.component.panels.graphics.gl`.
@@ -987,24 +989,74 @@ panel.setVsync(true);
 
 Principais contratos:
 
+Arquitetura pratica:
+
+- O painel Swing hospeda uma superficie nativa (`Canvas`) e nao desenha por `paintComponent`.
+- O renderer roda na thread de render GL; componentes Swing continuam na EDT.
+- `setRenderer(...)` define ou troca o renderer; `getRenderer()` retorna a instancia atualmente configurada.
+- Recursos GL devem ser criados em `initialize(...)`, desenhados/atualizados em `render(...)`, ajustados em `resize(...)` e liberados em `dispose(...)`.
+- Multithread pode preparar dados, mas a acao de desenho deve ficar no renderer.
+- `runOnUiThread(...)` neste modulo significa thread do contexto grafico, nao EDT do Swing; use como recurso de escape para tarefa curta de contexto, nao como fluxo normal de desenho.
+
 | Classe/interface | Uso |
 |---|---|
 | `AbstractGraphicsPanel<C>` | Base para painéis gráficos |
 | `GraphicsRender<C>` | Callbacks `initialize`, `render`, `resize` e `dispose` |
 | `GraphicsContext` | Tamanho, input e `runOnUiThread` |
 | `GraphicsInput` | Estado de teclado, mouse e scroll |
+| `GraphicsInputState` | Implementacao ligada a listeners AWT/Swing |
+| `GraphicsHost<C>` | Ponte entre painel e backend grafico concreto |
 | `RenderThreadingMode` | Scheduler `SHARED` ou `INDIVIDUAL` |
 | `GraphicsGlPanel` | Painel OpenGL concreto |
 | `GraphicsGlRender` | Renderer OpenGL com helper `runOnUiThread` |
 | `GraphicsGlContext` | Contexto GL com FPS, delta time e frame count |
 | `GL` | Bindings nativos OpenGL expostos em Java |
 
+Ciclo de vida resumido:
+
+1. Crie o `GraphicsGlPanel` e defina o renderer.
+2. Configure `setFPS`, `setVsync` e `setRenderMode` antes de mostrar o painel.
+3. Ao entrar na hierarquia Swing, o painel registra o host no scheduler.
+4. A thread de render cria o contexto nativo quando o canvas esta displayable.
+5. O renderer recebe `initialize(...)`, depois `resize(...)` e entao `render(...)` a cada frame.
+6. Ao trocar renderer ou descartar o painel, o renderer anterior recebe `dispose(...)`.
+
+`getRenderer()` e util para recuperar a instancia configurada no painel, mas nao garante que ela ja tenha sido inicializada no contexto GL.
+
+Threading:
+
+| Operacao | Thread correta |
+|---|---|
+| Criar/adicionar componentes Swing | EDT |
+| Manipular `JButton`, `JFrame`, labels e layouts | EDT |
+| Chamar `GL.*`, criar buffers, shaders, VAOs e uniforms | Thread de render GL |
+| Atualizar/desenhar recursos GL | Preferencialmente dentro do renderer; `panel.runOnUiThread(...)` ou `renderer.runOnUiThread(...)` so como recurso de escape para tarefa curta de contexto |
+
+Modos de render:
+
+| Modo | Uso |
+|---|---|
+| `RenderThreadingMode.SHARED` | Padrao. Varios paineis dividem uma thread `SwingTools-GL-Render`. |
+| `RenderThreadingMode.INDIVIDUAL` | Cada painel usa uma thread propria. Indicado para cenas pesadas ou sensiveis a latencia. |
+
+Input por frame:
+
+| Metodo | Uso |
+|---|---|
+| `isKeyDown(KeyEvent.VK_...)` | Consulta tecla pressionada |
+| `isMouseButtonDown(MouseEvent.BUTTON...)` | Consulta botao do mouse |
+| `getMouseX()` / `getMouseY()` | Posicao mais recente do mouse na superficie |
+| `isMouseInside()` | Indica se o mouse esta dentro do canvas |
+| `getWheelRotation()` | Rolagem acumulada; guarde o valor anterior se precisar de delta por frame |
+
 Cuidados principais:
 
 - Configure `setFPS`, `setVsync` e `setRenderMode` antes de mostrar o painel quando possível.
-- Use `runOnUiThread(...)` para tocar em recursos GL a partir de listeners Swing ou workers.
+- Prefira tocar em recursos GL dentro do renderer. Workers podem preparar dados, mas o desenho deve acontecer em `render(...)`. Use `runOnUiThread(...)` apenas como recurso de escape quando algum codigo externo saiu do renderer e realmente precisar executar uma tarefa curta no contexto GL.
 - Chame `dispose()` ao fechar janelas descartáveis para liberar o contexto e os recursos nativos.
-- Veja detalhes em `docs/AbstractGraphicsPanel.md` e `docs/GraphicsGlPanel.md`.
+- Chame `requestFocusInWindow()` se o renderer depender de teclado.
+- `GraphicsGlPanel` depende do nativo `graphicsgl`; Windows usa `graphicsgl.dll`, Linux usa `libgraphicsgl.so` quando empacotado, e macOS ainda nao e suportado pelo loader GL atual.
+- Veja detalhes em `docs/Graphics.md`, `docs/AbstractGraphicsPanel.md` e `docs/GraphicsGlPanel.md`.
 
 ---
 
@@ -1314,7 +1366,7 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `CodeEditorTabsExample` | `CodeEditor` dentro de `TabbedPanel` |
 | `GraphicsGlPanelExample` | Triângulo OpenGL, input, VSync e FPS |
 | `GraphicsGlCubeExample` | Cubo 3D usando `GraphicsGlPanel` |
-| `GraphicsGlParallelRunOnUiExample` | Geração paralela com atualização segura via `runOnUiThread` |
+| `GraphicsGlParallelRunOnUiExample` | Geração paralela com uso excepcional de `runOnUiThread` para atualizar recurso GL |
 | `MenuBarFlatLafThemeExample` | `MenuBar` com FlatLaf dark/light |
 | `ModernComponentDialogExample` | Dialog moderno com componente customizado e retorno tipado |
 | `ModernInputDialogExample` | Input dialog moderno |

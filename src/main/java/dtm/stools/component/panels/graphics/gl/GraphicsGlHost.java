@@ -53,6 +53,11 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
     }
 
     @Override
+    public GraphicsRender<GraphicsGlContext> getRenderer() {
+        return renderer;
+    }
+
+    @Override
     public void dispose() {
         requestDispose(true, true);
     }
