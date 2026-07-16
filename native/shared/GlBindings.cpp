@@ -62,6 +62,15 @@ typedef void (STGL_APIENTRY *PFN_glUniform1i)(GLint, GLint);
 typedef void (STGL_APIENTRY *PFN_glUniformMatrix4fv)(GLint, GLsizei, GLboolean, const GLfloat*);
 typedef void (STGL_APIENTRY *PFN_glDrawArrays)(GLenum, GLint, GLsizei);
 typedef void (STGL_APIENTRY *PFN_glDrawElements)(GLenum, GLsizei, GLenum, const void*);
+typedef void (STGL_APIENTRY *PFN_glGenTextures)(GLsizei, GLuint*);
+typedef void (STGL_APIENTRY *PFN_glDeleteTextures)(GLsizei, const GLuint*);
+typedef void (STGL_APIENTRY *PFN_glBindTexture)(GLenum, GLuint);
+typedef void (STGL_APIENTRY *PFN_glTexImage2D)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void*);
+typedef void (STGL_APIENTRY *PFN_glTexSubImage2D)(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const void*);
+typedef void (STGL_APIENTRY *PFN_glTexParameteri)(GLenum, GLenum, GLint);
+typedef void (STGL_APIENTRY *PFN_glActiveTexture)(GLenum);
+typedef void (STGL_APIENTRY *PFN_glBlendFunc)(GLenum, GLenum);
+typedef void (STGL_APIENTRY *PFN_glPixelStorei)(GLenum, GLint);
 
 static PFN_glGetError p_glGetError = nullptr;
 static PFN_glGetString p_glGetString = nullptr;
@@ -102,6 +111,15 @@ static PFN_glUniform1i p_glUniform1i = nullptr;
 static PFN_glUniformMatrix4fv p_glUniformMatrix4fv = nullptr;
 static PFN_glDrawArrays p_glDrawArrays = nullptr;
 static PFN_glDrawElements p_glDrawElements = nullptr;
+static PFN_glGenTextures p_glGenTextures = nullptr;
+static PFN_glDeleteTextures p_glDeleteTextures = nullptr;
+static PFN_glBindTexture p_glBindTexture = nullptr;
+static PFN_glTexImage2D p_glTexImage2D = nullptr;
+static PFN_glTexSubImage2D p_glTexSubImage2D = nullptr;
+static PFN_glTexParameteri p_glTexParameteri = nullptr;
+static PFN_glActiveTexture p_glActiveTexture = nullptr;
+static PFN_glBlendFunc p_glBlendFunc = nullptr;
+static PFN_glPixelStorei p_glPixelStorei = nullptr;
 
 static const GLenum STGL_INFO_LOG_LENGTH = 0x8B84;
 
@@ -155,6 +173,15 @@ bool stgl_load_functions() {
     ok &= stgl_load(p_glUniformMatrix4fv, "glUniformMatrix4fv");
     ok &= stgl_load(p_glDrawArrays, "glDrawArrays");
     ok &= stgl_load(p_glDrawElements, "glDrawElements");
+    ok &= stgl_load(p_glGenTextures, "glGenTextures");
+    ok &= stgl_load(p_glDeleteTextures, "glDeleteTextures");
+    ok &= stgl_load(p_glBindTexture, "glBindTexture");
+    ok &= stgl_load(p_glTexImage2D, "glTexImage2D");
+    ok &= stgl_load(p_glTexSubImage2D, "glTexSubImage2D");
+    ok &= stgl_load(p_glTexParameteri, "glTexParameteri");
+    ok &= stgl_load(p_glActiveTexture, "glActiveTexture");
+    ok &= stgl_load(p_glBlendFunc, "glBlendFunc");
+    ok &= stgl_load(p_glPixelStorei, "glPixelStorei");
     g_loaded = ok;
     return ok;
 }
@@ -379,6 +406,64 @@ JNIEXPORT void JNICALL STGL_CLASS(glDrawElements)(JNIEnv*, jclass, jint mode, ji
     if (p_glDrawElements) {
         p_glDrawElements((GLenum)mode, count, (GLenum)type, reinterpret_cast<const void*>((intptr_t)offset));
     }
+}
+
+JNIEXPORT jint JNICALL STGL_CLASS(glGenTextures)(JNIEnv*, jclass) {
+    GLuint id = 0;
+    if (p_glGenTextures) p_glGenTextures(1, &id);
+    return (jint)id;
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glDeleteTextures)(JNIEnv*, jclass, jint texture) {
+    GLuint id = (GLuint)texture;
+    if (p_glDeleteTextures) p_glDeleteTextures(1, &id);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glBindTexture)(JNIEnv*, jclass, jint target, jint texture) {
+    if (p_glBindTexture) p_glBindTexture((GLenum)target, (GLuint)texture);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glTexImage2D)(JNIEnv* env, jclass, jint target, jint level, jint internalFormat,
+                                                jint width, jint height, jint border, jint format, jint type,
+                                                jintArray pixels) {
+    if (!p_glTexImage2D) return;
+    if (!pixels) {
+        p_glTexImage2D((GLenum)target, level, internalFormat, width, height, border,
+                       (GLenum)format, (GLenum)type, nullptr);
+        return;
+    }
+    void* ptr = env->GetPrimitiveArrayCritical(pixels, nullptr);
+    if (!ptr) return;
+    p_glTexImage2D((GLenum)target, level, internalFormat, width, height, border,
+                   (GLenum)format, (GLenum)type, ptr);
+    env->ReleasePrimitiveArrayCritical(pixels, ptr, JNI_ABORT);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glTexSubImage2D)(JNIEnv* env, jclass, jint target, jint level, jint xoffset,
+                                                   jint yoffset, jint width, jint height, jint format, jint type,
+                                                   jintArray pixels) {
+    if (!p_glTexSubImage2D || !pixels) return;
+    void* ptr = env->GetPrimitiveArrayCritical(pixels, nullptr);
+    if (!ptr) return;
+    p_glTexSubImage2D((GLenum)target, level, xoffset, yoffset, width, height,
+                      (GLenum)format, (GLenum)type, ptr);
+    env->ReleasePrimitiveArrayCritical(pixels, ptr, JNI_ABORT);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glTexParameteri)(JNIEnv*, jclass, jint target, jint pname, jint param) {
+    if (p_glTexParameteri) p_glTexParameteri((GLenum)target, (GLenum)pname, param);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glActiveTexture)(JNIEnv*, jclass, jint texture) {
+    if (p_glActiveTexture) p_glActiveTexture((GLenum)texture);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glBlendFunc)(JNIEnv*, jclass, jint sfactor, jint dfactor) {
+    if (p_glBlendFunc) p_glBlendFunc((GLenum)sfactor, (GLenum)dfactor);
+}
+
+JNIEXPORT void JNICALL STGL_CLASS(glPixelStorei)(JNIEnv*, jclass, jint pname, jint param) {
+    if (p_glPixelStorei) p_glPixelStorei((GLenum)pname, param);
 }
 
 }

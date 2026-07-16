@@ -49,6 +49,25 @@ public final class GL {
     public static final int GL_LINK_STATUS = 0x8B82;
     public static final int GL_INFO_LOG_LENGTH = 0x8B84;
 
+    public static final int GL_TEXTURE_2D = 0x0DE1;
+    public static final int GL_TEXTURE0 = 0x84C0;
+    public static final int GL_RGBA = 0x1908;
+    public static final int GL_RGBA8 = 0x8058;
+    public static final int GL_BGRA = 0x80E1;
+    public static final int GL_TEXTURE_MIN_FILTER = 0x2801;
+    public static final int GL_TEXTURE_MAG_FILTER = 0x2800;
+    public static final int GL_NEAREST = 0x2600;
+    public static final int GL_LINEAR = 0x2601;
+    public static final int GL_TEXTURE_WRAP_S = 0x2802;
+    public static final int GL_TEXTURE_WRAP_T = 0x2803;
+    public static final int GL_CLAMP_TO_EDGE = 0x812F;
+    public static final int GL_UNPACK_ALIGNMENT = 0x0CF5;
+
+    public static final int GL_ZERO = 0;
+    public static final int GL_ONE = 1;
+    public static final int GL_SRC_ALPHA = 0x0302;
+    public static final int GL_ONE_MINUS_SRC_ALPHA = 0x0303;
+
     static {
         GlNativeLoader.load();
     }
@@ -103,4 +122,24 @@ public final class GL {
 
     public static native void glDrawArrays(int mode, int first, int count);
     public static native void glDrawElements(int mode, int count, int type, long offset);
+
+    public static native int glGenTextures();
+    public static native void glDeleteTextures(int texture);
+    public static native void glBindTexture(int target, int texture);
+
+    /**
+     * Envia pixels para a textura ligada. {@code pixels} pode ser null (aloca sem dados).
+     * Para BufferedImage TYPE_INT_ARGB use format {@link #GL_BGRA} + type {@link #GL_UNSIGNED_BYTE}.
+     */
+    public static native void glTexImage2D(int target, int level, int internalFormat,
+                                           int width, int height, int border,
+                                           int format, int type, int[] pixels);
+
+    public static native void glTexSubImage2D(int target, int level, int xoffset, int yoffset,
+                                              int width, int height, int format, int type, int[] pixels);
+
+    public static native void glTexParameteri(int target, int pname, int param);
+    public static native void glActiveTexture(int texture);
+    public static native void glBlendFunc(int sfactor, int dfactor);
+    public static native void glPixelStorei(int pname, int param);
 }
