@@ -134,6 +134,25 @@
                                     </arguments>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>build-native-gl-win</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${native.build.skip}</skip>
+                                    <executable>cmd</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <environmentVariables>
+                                        <JAVA_HOME>${java.home}</JAVA_HOME>
+                                    </environmentVariables>
+                                    <arguments>
+                                        <argument>/c</argument>
+                                        <argument>${project.basedir}\native\win\build-gl-mingw.bat</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -258,6 +277,24 @@
                                     </environmentVariables>
                                     <arguments>
                                         <argument>${project.basedir}/native/linux/build.sh</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>build-native-gl-linux</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${native.build.skip}</skip>
+                                    <executable>bash</executable>
+                                    <workingDirectory>${project.basedir}</workingDirectory>
+                                    <environmentVariables>
+                                        <JAVA_HOME>${java.home}</JAVA_HOME>
+                                    </environmentVariables>
+                                    <arguments>
+                                        <argument>${project.basedir}/native/linux/build-gl.sh</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

@@ -28,15 +28,16 @@ O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer
 16. [GridViewTable](#16-gridviewtable)
 17. [TreeView](#17-treeview)
 18. [CodeEditor](#18-codeeditor)
-19. [Dialogs, popups e notificações](#19-dialogs-popups-e-notificações)
-20. [FlexBoxLayout](#20-flexboxlayout)
-21. [JsonLookAndFeel](#21-jsonlookandfeel)
-22. [System tray](#22-system-tray)
-23. [Utilitários](#23-utilitários)
-24. [Recursos nativos](#24-recursos-nativos)
-25. [Exemplos disponíveis](#25-exemplos-disponíveis)
-26. [CI e empacotamento](#26-ci-e-empacotamento)
-27. [Status e observações](#27-status-e-observações)
+19. [GraphicsPanel e GraphicsGlPanel](#19-graphicspanel-e-graphicsglpanel)
+20. [Dialogs, popups e notificações](#20-dialogs-popups-e-notificações)
+21. [FlexBoxLayout](#21-flexboxlayout)
+22. [JsonLookAndFeel](#22-jsonlookandfeel)
+23. [System tray](#23-system-tray)
+24. [Utilitários](#24-utilitários)
+25. [Recursos nativos](#25-recursos-nativos)
+26. [Exemplos disponíveis](#26-exemplos-disponíveis)
+27. [CI e empacotamento](#27-ci-e-empacotamento)
+28. [Status e observações](#28-status-e-observações)
 
 ---
 
@@ -60,9 +61,10 @@ SwingTools cobre vários pontos comuns de uma aplicação desktop:
 | Tabelas | `GridViewTable` com reflexão, anotações, seleção, edição e paginação |
 | Árvore | `TreeView` com checkbox, lazy load, busca, filtro, edição, popup e drag and drop |
 | Editor | `CodeEditor` com gutter, minimap, busca, folding, markers, providers e extensões |
+| Gráficos | `AbstractGraphicsPanel` e `GraphicsGlPanel` com renderer, loop, FPS, input e OpenGL nativo |
 | Feedback | Dialogs modernos, input dialog, popups, toasts e notificações empilháveis |
 | Tema | `JsonLookAndFeel` para aplicar tema por JSON |
-| Nativo | File picker nativo para Windows, macOS e Linux via bibliotecas JNI |
+| Nativo | File picker nativo e suporte OpenGL via bibliotecas JNI |
 
 ---
 
@@ -168,7 +170,7 @@ Principais diretórios:
 | `src/main/java/dtm/stools/component` | Componentes visuais e infra de componentes |
 | `src/main/java/dtm/stools/component/inputfields` | Campos de formulário |
 | `src/main/java/dtm/stools/component/menu` | Menu bar e popup menus |
-| `src/main/java/dtm/stools/component/panels` | Painéis, tabs, dock, editor, file picker e loading |
+| `src/main/java/dtm/stools/component/panels` | Painéis, tabs, dock, editor, gráficos, file picker e loading |
 | `src/main/java/dtm/stools/component/tree` | Árvore avançada |
 | `src/main/java/dtm/stools/component/grids` | Tabela baseada em modelo |
 | `src/main/java/dtm/stools/configs` | Look and feel por JSON e system tray |
@@ -189,7 +191,7 @@ A biblioteca é organizada em camadas:
 1. **Janela e contexto:** `Activity`, `DialogActivity`, `IWindow`, `WindowContext`, `WindowExecutor`.
 2. **Controller e binding:** classes abstratas de controller e anotações `@ViewRef` / `@ClientRef`.
 3. **Componentes e eventos:** painéis base, componentes de formulário, eventos tipados e listeners.
-4. **Componentes complexos:** menus, tabs, dock, tree, grid, file picker e code editor.
+4. **Componentes complexos:** menus, tabs, dock, tree, grid, file picker, code editor e painéis gráficos.
 5. **Infra visual:** look and feel por JSON, FlatLaf, utilitários de fonte, imagem e recursos.
 6. **Integração nativa:** file picker via bibliotecas `.dll`, `.dylib` e `.so`.
 
@@ -960,7 +962,53 @@ Listeners disponíveis:
 
 ---
 
-## 19. Dialogs, popups e notificações
+## 19. GraphicsPanel e GraphicsGlPanel
+
+A base gráfica fica em `dtm.stools.component.panels.graphics`. O contrato principal é `AbstractGraphicsPanel<C extends GraphicsContext>`, que padroniza renderer, loop de render, FPS, VSync, input e ciclo de vida.
+
+`GraphicsGlPanel` é a implementação OpenGL em `dtm.stools.component.panels.graphics.gl`.
+
+```java
+import dtm.stools.component.panels.graphics.gl.GL;
+import dtm.stools.component.panels.graphics.gl.GraphicsGlContext;
+import dtm.stools.component.panels.graphics.gl.GraphicsGlPanel;
+import dtm.stools.component.panels.graphics.gl.GraphicsGlRender;
+
+GraphicsGlPanel panel = new GraphicsGlPanel(new GraphicsGlRender() {
+    @Override
+    public void render(GraphicsGlContext context) {
+        GL.glClearColor(0.1f, 0.1f, 0.14f, 1f);
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT);
+    }
+});
+panel.setFPS(60);
+panel.setVsync(true);
+```
+
+Principais contratos:
+
+| Classe/interface | Uso |
+|---|---|
+| `AbstractGraphicsPanel<C>` | Base para painéis gráficos |
+| `GraphicsRender<C>` | Callbacks `initialize`, `render`, `resize` e `dispose` |
+| `GraphicsContext` | Tamanho, input e `runOnUiThread` |
+| `GraphicsInput` | Estado de teclado, mouse e scroll |
+| `RenderThreadingMode` | Scheduler `SHARED` ou `INDIVIDUAL` |
+| `GraphicsGlPanel` | Painel OpenGL concreto |
+| `GraphicsGlRender` | Renderer OpenGL com helper `runOnUiThread` |
+| `GraphicsGlContext` | Contexto GL com FPS, delta time e frame count |
+| `GL` | Bindings nativos OpenGL expostos em Java |
+
+Cuidados principais:
+
+- Configure `setFPS`, `setVsync` e `setRenderMode` antes de mostrar o painel quando possível.
+- Use `runOnUiThread(...)` para tocar em recursos GL a partir de listeners Swing ou workers.
+- Chame `dispose()` ao fechar janelas descartáveis para liberar o contexto e os recursos nativos.
+- Veja detalhes em `docs/AbstractGraphicsPanel.md` e `docs/GraphicsGlPanel.md`.
+
+---
+
+## 20. Dialogs, popups e notificações
 
 ### Dialogs
 
@@ -1041,7 +1089,7 @@ Notifications.modernDialogBuilder()
 
 ---
 
-## 20. FlexBoxLayout
+## 21. FlexBoxLayout
 
 `FlexBoxLayout` implementa `LayoutManager2` inspirado em CSS Flexbox.
 
@@ -1095,7 +1143,7 @@ JPanel scrollable = FlexBoxLayout.scrollablePanel(modernDialogBuilder -> modernD
 
 ---
 
-## 21. JsonLookAndFeel
+## 22. JsonLookAndFeel
 
 `JsonLookAndFeel` aplica tema visual em Swing a partir de JSON, usando Jackson e `UIManager`.
 
@@ -1159,7 +1207,7 @@ A documentação mais detalhada fica em `docs/JsonLookAndFeel_Documentacao.md`.
 
 ---
 
-## 22. System tray
+## 23. System tray
 
 `Activity` possui suporte a system tray via `SystemTrayConfiguration`.
 
@@ -1179,7 +1227,7 @@ Por padrão, clique esquerdo no ícone restaura a janela.
 
 ---
 
-## 23. Utilitários
+## 24. Utilitários
 
 ### FontUtils
 
@@ -1215,15 +1263,17 @@ Por padrão, clique esquerdo no ícone restaura a janela.
 
 ---
 
-## 24. Recursos nativos
+## 25. Recursos nativos
 
-O projeto contém um file picker nativo por plataforma.
+O projeto contém um file picker nativo por plataforma e suporte nativo para o contexto OpenGL usado pelo `GraphicsGlPanel`.
 
 | Plataforma | Fonte | Binário empacotado |
 |---|---|---|
 | Windows | `native/win/OsFilePicker.cpp` | `src/main/resources/native/win/amd64/osfilepicker.dll` |
+| Windows | `native/win/GraphicsGl.cpp` | `src/main/resources/native/win/amd64/graphicsgl.dll` |
 | macOS | `native/mac/OsFilePicker.mm` | `src/main/resources/native/mac/aarch64/libosfilepicker.dylib` |
 | Linux | `native/linux/OsFilePicker.cpp` | `src/main/resources/native/linux/amd64/libosfilepicker.so` |
+| Linux | `native/linux/GraphicsGl.cpp` | fonte disponivel em `native/linux`; empacotamento depende do build nativo |
 
 Scripts:
 
@@ -1231,8 +1281,10 @@ Scripts:
 |---|---|
 | `native/win/build.bat` | Build Windows |
 | `native/win/build-mingw.bat` | Build Windows com MinGW |
+| `native/win/build-gl-mingw.bat` | Build do suporte OpenGL no Windows |
 | `native/mac/build.sh` | Build macOS |
 | `native/linux/build.sh` | Build Linux |
+| `native/linux/build-gl.sh` | Build do suporte OpenGL no Linux |
 
 O `pom.xml` possui perfis ativados por sistema operacional:
 
@@ -1250,7 +1302,7 @@ mvn package -Dnative.build.skip=true
 
 ---
 
-## 25. Exemplos disponíveis
+## 26. Exemplos disponíveis
 
 Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 
@@ -1260,6 +1312,9 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `CodeEditorContextMenuExample` | Provider de menu de contexto no editor |
 | `CodeEditorMarkerEventsExample` | Breakpoints, bookmarks e eventos de marker |
 | `CodeEditorTabsExample` | `CodeEditor` dentro de `TabbedPanel` |
+| `GraphicsGlPanelExample` | Triângulo OpenGL, input, VSync e FPS |
+| `GraphicsGlCubeExample` | Cubo 3D usando `GraphicsGlPanel` |
+| `GraphicsGlParallelRunOnUiExample` | Geração paralela com atualização segura via `runOnUiThread` |
 | `MenuBarFlatLafThemeExample` | `MenuBar` com FlatLaf dark/light |
 | `ModernComponentDialogExample` | Dialog moderno com componente customizado e retorno tipado |
 | `ModernInputDialogExample` | Input dialog moderno |
@@ -1272,7 +1327,7 @@ Como são demos Swing, a forma mais simples é executar a classe desejada pela I
 
 ---
 
-## 26. CI e empacotamento
+## 27. CI e empacotamento
 
 O workflow `.github/workflows/build.yml` faz build multi-plataforma:
 
@@ -1297,7 +1352,7 @@ O `maven-jar-plugin` exclui:
 
 ---
 
-## 27. Status e observações
+## 28. Status e observações
 
 Este projeto é uma biblioteca Swing em evolução com foco em uso prático. Há muitos componentes funcionais, exemplos manuais e documentação complementar para partes específicas.
 

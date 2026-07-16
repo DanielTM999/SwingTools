@@ -384,29 +384,13 @@ public class CodeEditorTextArea extends JComponent {
 
     protected final AtomicInteger documentSymbolVersion = new AtomicInteger();
 
-    protected final ExecutorService highlightExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "CodeEditorTextArea-Highlight");
-        t.setDaemon(true);
-        return t;
-    });
+    protected ExecutorService highlightExecutor = createHighlightExecutor();
 
-    protected final ExecutorService diagnosticsExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "CodeEditorTextArea-Diagnostics");
-        t.setDaemon(true);
-        return t;
-    });
+    protected ExecutorService diagnosticsExecutor = createDiagnosticsExecutor();
 
-    protected final ExecutorService providerExecutor = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "CodeEditorTextArea-Provider");
-        t.setDaemon(true);
-        return t;
-    });
+    protected ExecutorService providerExecutor = createProviderExecutor();
 
-    protected final ExecutorService wordCaretEventExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "CodeEditorTextArea-WordCaretEvent");
-        t.setDaemon(true);
-        return t;
-    });
+    protected ExecutorService wordCaretEventExecutor = createWordCaretEventExecutor();
 
     @Getter
     @Setter
@@ -456,21 +440,13 @@ public class CodeEditorTextArea extends JComponent {
 
     protected volatile Future<?> currentCodeLensTask;
 
-    protected final ExecutorService codeLensExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "CodeEditorTextArea-CodeLens");
-        t.setDaemon(true);
-        return t;
-    });
+    protected ExecutorService codeLensExecutor = createCodeLensExecutor();
 
     protected volatile CompletableFuture<List<AutoCompleteItem>> currentAutoCompleteTask;
 
     protected final AtomicInteger autoCompleteVersion = new AtomicInteger();
 
-    protected final ExecutorService autoCompleteExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "CodeEditorTextArea-AutoComplete");
-        t.setDaemon(true);
-        return t;
-    });
+    protected ExecutorService autoCompleteExecutor = createAutoCompleteExecutor();
 
     protected static final class CodeLensItemBounds {
         final CodeLens lens;
@@ -885,6 +861,174 @@ public class CodeEditorTextArea extends JComponent {
         applySyntaxHighlight();
     }
 
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        ensureExecutorsStarted();
+    }
+
+    @Override
+    public void removeNotify() {
+        cancelAsyncWork();
+        shutdownExecutors();
+        super.removeNotify();
+    }
+
+    protected void ensureExecutorsStarted() {
+        getHighlightExecutor();
+        getDiagnosticsExecutor();
+        getProviderExecutor();
+        getWordCaretEventExecutor();
+        getCodeLensExecutor();
+        getAutoCompleteExecutor();
+    }
+
+    protected void cancelAsyncWork() {
+        highlightVersion.incrementAndGet();
+        diagnosticsVersion.incrementAndGet();
+        codeLensVersion.incrementAndGet();
+        inlayHintVersion.incrementAndGet();
+        hoverDocumentationVersion.incrementAndGet();
+        documentSymbolVersion.incrementAndGet();
+        autoCompleteVersion.incrementAndGet();
+        ghostTextVersion.incrementAndGet();
+        signatureHelpVersion.incrementAndGet();
+
+        cancelFuture(currentHighlightTask);
+        cancelFuture(currentDiagnosticsTask);
+        cancelFuture(currentInlayHintTask);
+        cancelFuture(currentCodeLensTask);
+        CompletableFuture<List<AutoCompleteItem>> autoCompleteTask = currentAutoCompleteTask;
+        if (autoCompleteTask != null && !autoCompleteTask.isDone()) {
+            autoCompleteTask.cancel(true);
+        }
+
+        if (diagnosticsDebounceTimer != null) diagnosticsDebounceTimer.stop();
+        if (ghostTextIdleTimer != null) ghostTextIdleTimer.stop();
+        if (hoverTimer != null) hoverTimer.stop();
+        if (hoverDocumentationHideTimer != null) hoverDocumentationHideTimer.stop();
+
+        hideAutoCompletePopup();
+        clearGhostText();
+        hideHoverDocumentation();
+        hideSignatureHelp();
+    }
+
+    private void cancelFuture(Future<?> future) {
+        if (future != null && !future.isDone()) {
+            future.cancel(true);
+        }
+    }
+
+    protected synchronized ExecutorService getHighlightExecutor() {
+        if (!isExecutorActive(highlightExecutor)) {
+            highlightExecutor = createHighlightExecutor();
+        }
+        return highlightExecutor;
+    }
+
+    protected synchronized ExecutorService getDiagnosticsExecutor() {
+        if (!isExecutorActive(diagnosticsExecutor)) {
+            diagnosticsExecutor = createDiagnosticsExecutor();
+        }
+        return diagnosticsExecutor;
+    }
+
+    protected synchronized ExecutorService getProviderExecutor() {
+        if (!isExecutorActive(providerExecutor)) {
+            providerExecutor = createProviderExecutor();
+        }
+        return providerExecutor;
+    }
+
+    protected synchronized ExecutorService getWordCaretEventExecutor() {
+        if (!isExecutorActive(wordCaretEventExecutor)) {
+            wordCaretEventExecutor = createWordCaretEventExecutor();
+        }
+        return wordCaretEventExecutor;
+    }
+
+    protected synchronized ExecutorService getCodeLensExecutor() {
+        if (!isExecutorActive(codeLensExecutor)) {
+            codeLensExecutor = createCodeLensExecutor();
+        }
+        return codeLensExecutor;
+    }
+
+    protected synchronized ExecutorService getAutoCompleteExecutor() {
+        if (!isExecutorActive(autoCompleteExecutor)) {
+            autoCompleteExecutor = createAutoCompleteExecutor();
+        }
+        return autoCompleteExecutor;
+    }
+
+    private boolean isExecutorActive(ExecutorService executor) {
+        return executor != null && !executor.isShutdown() && !executor.isTerminated();
+    }
+
+    private ExecutorService createHighlightExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-Highlight");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    private ExecutorService createDiagnosticsExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-Diagnostics");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    private ExecutorService createProviderExecutor() {
+        return Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-Provider");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    private ExecutorService createWordCaretEventExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-WordCaretEvent");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    private ExecutorService createCodeLensExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-CodeLens");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    private ExecutorService createAutoCompleteExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-AutoComplete");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    protected void shutdownExecutors() {
+        shutdownExecutor(highlightExecutor);
+        shutdownExecutor(diagnosticsExecutor);
+        shutdownExecutor(providerExecutor);
+        shutdownExecutor(wordCaretEventExecutor);
+        shutdownExecutor(codeLensExecutor);
+        shutdownExecutor(autoCompleteExecutor);
+    }
+
+    private void shutdownExecutor(ExecutorService executor) {
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdownNow();
+        }
+    }
+
     protected void refreshSearchOnTextChange() {
         if (searchQuery == null || searchQuery.isEmpty()) return;
         int previousIndex = searchCurrentIndex;
@@ -989,7 +1133,7 @@ public class CodeEditorTextArea extends JComponent {
         int insertOff = caretOff - prefix.length();
         CompletionContext ctx = createAutoCompleteContext(caretOff, caretLine, caretCol, prefix, insertOff, kind);
         if (kind == CompletionContext.TriggerKind.TYPING) {
-            autoCompleteExecutor.submit(() -> {
+            getAutoCompleteExecutor().submit(() -> {
                 boolean shouldTrigger;
                 try {
                     shouldTrigger = provider.shouldAutoTrigger(ctx);
@@ -1030,10 +1174,11 @@ public class CodeEditorTextArea extends JComponent {
         CompletableFuture<List<AutoCompleteItem>> previous = currentAutoCompleteTask;
         if (previous != null && !previous.isDone()) previous.cancel(true);
 
-        autoCompleteExecutor.submit(() -> {
+        ExecutorService executor = getAutoCompleteExecutor();
+        executor.submit(() -> {
             CompletableFuture<List<AutoCompleteItem>> task;
             try {
-                task = provider.getSuggestionsAsync(ctx, autoCompleteExecutor);
+                task = provider.getSuggestionsAsync(ctx, executor);
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(this::hideAutoCompletePopup);
                 return;
@@ -1298,10 +1443,11 @@ public class CodeEditorTextArea extends JComponent {
                 new TextBuffer(buffer.getText()), caretOff, anchorLine, anchorCol, kind);
 
         int request = ghostTextVersion.incrementAndGet();
-        autoCompleteExecutor.submit(() -> {
+        ExecutorService executor = getAutoCompleteExecutor();
+        executor.submit(() -> {
             CompletableFuture<String> task;
             try {
-                task = provider.getGhostTextAsync(ctx, autoCompleteExecutor);
+                task = provider.getGhostTextAsync(ctx, executor);
             } catch (Exception ex) {
                 return;
             }
@@ -5591,7 +5737,7 @@ public class CodeEditorTextArea extends JComponent {
         ContextMenuProvider provider = contextMenuProvider;
         int x = e.getX();
         int y = e.getY();
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             JPopupMenu menu;
             try {
                 menu = provider.getPopupMenu(e);
@@ -5699,7 +5845,7 @@ public class CodeEditorTextArea extends JComponent {
             return;
         }
         List<WordCaretChangeListener> listeners = List.copyOf(wordCaretChangeListeners);
-        wordCaretEventExecutor.submit(() -> {
+        getWordCaretEventExecutor().submit(() -> {
             for (WordCaretChangeListener listener : listeners) {
                 try {
                     listener.onWordCaretChanged(event);
@@ -5857,7 +6003,7 @@ public class CodeEditorTextArea extends JComponent {
                     } catch (Exception ignored) {
                         return null;
                     }
-                }, providerExecutor)
+                }, getProviderExecutor())
                 .thenAccept(formatted -> SwingUtilities.invokeLater(() ->
                         applyFormattedDocument(sourceText, caretOff, formatted)));
     }
@@ -5899,7 +6045,7 @@ public class CodeEditorTextArea extends JComponent {
                     } catch (Exception ignored) {
                         return null;
                     }
-                }, providerExecutor)
+                }, getProviderExecutor())
                 .thenAccept(formatted -> SwingUtilities.invokeLater(() ->
                         applyFormattedSelection(sourceText, start, end, formatted)));
     }
@@ -5993,7 +6139,7 @@ public class CodeEditorTextArea extends JComponent {
         final List<Diagnostic> prevDiagnostics = lastDiagnostics;
         final String prevText = lastDiagnosticsText;
 
-        currentDiagnosticsTask = diagnosticsExecutor.submit(() -> {
+        currentDiagnosticsTask = getDiagnosticsExecutor().submit(() -> {
             try {
                 List<Diagnostic> list;
                 if (provider.supportsIncremental()
@@ -6051,7 +6197,7 @@ public class CodeEditorTextArea extends JComponent {
         final String textSnapshot = buffer.getText();
         final CodeLensContext ctx = new CodeLensContext(new TextBuffer(textSnapshot));
 
-        currentCodeLensTask = codeLensExecutor.submit(() -> {
+        currentCodeLensTask = getCodeLensExecutor().submit(() -> {
             try {
                 List<CodeLens> list = provider.getCodeLenses(ctx);
 
@@ -6092,7 +6238,7 @@ public class CodeEditorTextArea extends JComponent {
         if (currentHighlightTask != null && !currentHighlightTask.isDone()) {
             currentHighlightTask.cancel(true);
         }
-        currentHighlightTask = highlightExecutor.submit(() -> {
+        currentHighlightTask = getHighlightExecutor().submit(() -> {
             try {
                 Collection<Token> tokens;
                 if (tokenizer.supportsIncremental()
@@ -6188,7 +6334,7 @@ public class CodeEditorTextArea extends JComponent {
                 0,
                 Math.max(0, bufferSnapshot.lineCount() - 1));
 
-        currentInlayHintTask = providerExecutor.submit(() -> {
+        currentInlayHintTask = getProviderExecutor().submit(() -> {
             try {
                 List<InlayHint> list = provider.getInlayHints(ctx);
                 final List<InlayHint> snapshot = list != null ? List.copyOf(list) : List.of();
@@ -6245,7 +6391,7 @@ public class CodeEditorTextArea extends JComponent {
         int offset = bufferSnapshot.offsetOfLine(safeLine) + Math.min(col, bufferSnapshot.lineAt(safeLine).length());
         HoverDocumentationContext ctx = new HoverDocumentationContext(bufferSnapshot, safeLine, col, offset);
         HoverDocumentationProvider provider = hoverDocumentationProvider;
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             HoverInfo info;
             try {
                 info = provider.provideHover(ctx);
@@ -6413,10 +6559,11 @@ public class CodeEditorTextArea extends JComponent {
         SignatureHelpContext ctx = new SignatureHelpContext(
                 snapshot, caretOff, line, col, kind, triggerChar, retrigger, active);
 
-        providerExecutor.submit(() -> {
+        ExecutorService executor = getProviderExecutor();
+        executor.submit(() -> {
             CompletableFuture<SignatureHelp> task;
             try {
-                task = provider.provideSignatureHelpAsync(ctx, providerExecutor);
+                task = provider.provideSignatureHelpAsync(ctx, executor);
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(this::hideSignatureHelp);
                 return;
@@ -7639,7 +7786,7 @@ public class CodeEditorTextArea extends JComponent {
         DefinitionProvider definitionProvider = this.definitionProvider;
         String textSnapshot = buffer.getText();
         DefinitionContext ctx = new DefinitionContext(textSnapshot, new Position(caretLine, caretCol), caretOffset());
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             if(definitionLocationProvider == null) return;
             List<Location> locations;
             try {
@@ -7653,7 +7800,7 @@ public class CodeEditorTextArea extends JComponent {
                 if (!snapshot.isEmpty()) openLocation(snapshot.getFirst());
             });
         });
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             if(definitionProvider == null) return;
             definitionProvider.onDefinitionsRequest(ctx);
         });
@@ -7665,7 +7812,7 @@ public class CodeEditorTextArea extends JComponent {
         String textSnapshot = buffer.getText();
         DefinitionContext ctx = new DefinitionContext(textSnapshot,
                 new Position(caretLine, caretCol), caretOffset());
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             List<Location> refs;
             try {
                 refs = provider.findReferences(ctx);
@@ -7714,7 +7861,7 @@ public class CodeEditorTextArea extends JComponent {
         String textSnapshot = buffer.getText();
         RenameContext ctx = new RenameContext(textSnapshot,
                 new Position(caretLine, caretCol), caretOffset(), newName);
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             List<TextEdit> edits;
             try {
                 edits = provider.computeRenameEdits(ctx);
@@ -7739,7 +7886,7 @@ public class CodeEditorTextArea extends JComponent {
             if (diagnosticIntersects(d, range)) intersecting.add(d);
         }
         CodeActionContext ctx = new CodeActionContext(textSnapshot, range, intersecting);
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             List<CodeAction> actions;
             try {
                 actions = provider.getCodeActions(ctx);
@@ -7808,7 +7955,7 @@ public class CodeEditorTextArea extends JComponent {
         if (commentProvider == null) return;
         CommentProvider provider = commentProvider;
         String textSnapshot = buffer.getText();
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             String prefix;
             try {
                 prefix = provider.lineCommentPrefix();
@@ -7875,7 +8022,7 @@ public class CodeEditorTextArea extends JComponent {
         if (commentProvider == null) return;
         CommentProvider provider = commentProvider;
         String textSnapshot = buffer.getText();
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             String[] delim;
             try {
                 delim = provider.blockCommentDelimiters();
@@ -7958,7 +8105,7 @@ public class CodeEditorTextArea extends JComponent {
     protected void computeSelectionChainAsync(int offset) {
         SelectionRangeProvider provider = selectionRangeProvider;
         String textSnapshot = buffer.getText();
-        providerExecutor.submit(() -> {
+        getProviderExecutor().submit(() -> {
             List<Range> chain;
             try {
                 chain = provider.getSelectionRanges(textSnapshot, offset);
@@ -8189,7 +8336,7 @@ public class CodeEditorTextArea extends JComponent {
             } catch (Exception ignored) {
                 return -1;
             }
-        }, providerExecutor);
+        }, getProviderExecutor());
     }
 
     public void jumpToMatchingBracket() {
@@ -8231,7 +8378,7 @@ public class CodeEditorTextArea extends JComponent {
             } catch (Exception ignored) {
                 return Collections.emptyList();
             }
-        }, providerExecutor);
+        }, getProviderExecutor());
         future.thenAccept(symbols -> SwingUtilities.invokeLater(() -> {
             if (version != documentSymbolVersion.get()) return;
             if (!buffer.getText().equals(textSnapshot)) return;

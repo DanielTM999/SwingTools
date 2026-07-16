@@ -39,6 +39,8 @@ EventListenerComponent
       CurrencyField
     SearchTextField<T>
       PathSearchTextField
+  AbstractGraphicsPanel<C extends GraphicsContext> extends JPanel
+    GraphicsGlPanel
 ```
 
 ## Base e infraestrutura
@@ -80,6 +82,8 @@ EventListenerComponent
 | `DockPanel` | [DockPanel.md](DockPanel.md) | Layout de docking por regioes |
 | `CodeEditor` | [CodeEditor.md](CodeEditor.md) | Editor de codigo extensivel |
 | Contratos do `CodeEditor` | [CodeEditor_Contratos.md](CodeEditor_Contratos.md) | Providers, diagnostics, autocomplete, CodeLens e modelos semanticos |
+| `AbstractGraphicsPanel` | [AbstractGraphicsPanel.md](AbstractGraphicsPanel.md) | Base para paineis graficos com renderer, loop, FPS, input e ciclo de vida |
+| `GraphicsGlPanel` | [GraphicsGlPanel.md](GraphicsGlPanel.md) | Painel OpenGL com contexto nativo, callbacks de render e helper `GL` |
 | `FilePickerInputPanel` | [FilePickerInputPanel.md](FilePickerInputPanel.md) | Seletor de arquivo em Swing |
 | `OsFilePicker` | [OsFilePicker.md](OsFilePicker.md) | File picker nativo via JNI |
 
