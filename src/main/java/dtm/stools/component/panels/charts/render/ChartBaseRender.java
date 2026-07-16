@@ -307,6 +307,25 @@ public abstract class ChartBaseRender implements GraphicsGlRender {
         return entries;
     }
 
+    protected static double niceNumber(double range, boolean round) {
+        if (range <= 0) return 1;
+        double exponent = Math.floor(Math.log10(range));
+        double fraction = range / Math.pow(10, exponent);
+        double niceFraction;
+        if (round) {
+            if (fraction < 1.5) niceFraction = 1;
+            else if (fraction < 3) niceFraction = 2;
+            else if (fraction < 7) niceFraction = 5;
+            else niceFraction = 10;
+        } else {
+            if (fraction <= 1) niceFraction = 1;
+            else if (fraction <= 2) niceFraction = 2;
+            else if (fraction <= 5) niceFraction = 5;
+            else niceFraction = 10;
+        }
+        return niceFraction * Math.pow(10, exponent);
+    }
+
     protected static String formatValue(double value) {
         double abs = Math.abs(value);
         if (abs >= 1_000_000_000d) return trimNumber(value / 1_000_000_000d) + "B";

@@ -117,7 +117,7 @@ public abstract class CartesianChartRender extends ChartBaseRender {
         return plotRect.x + (float) index / (count - 1) * plotRect.width;
     }
 
-    private void computeValueRange(ChartDataSource ds) {
+    protected double[] computeDataRange(ChartDataSource ds) {
         double min = Double.POSITIVE_INFINITY;
         double max = Double.NEGATIVE_INFINITY;
         for (ChartSeries series : ds.getSeriesList()) {
@@ -126,6 +126,13 @@ public abstract class CartesianChartRender extends ChartBaseRender {
                 max = Math.max(max, point.getValue());
             }
         }
+        return new double[]{min, max};
+    }
+
+    private void computeValueRange(ChartDataSource ds) {
+        double[] dataRange = computeDataRange(ds);
+        double min = dataRange[0];
+        double max = dataRange[1];
         if (min > max) {
             min = 0;
             max = 1;
@@ -149,25 +156,6 @@ public abstract class CartesianChartRender extends ChartBaseRender {
         axisMin = fixedMin != null ? fixedMin : Math.floor(min / step) * step;
         axisMax = fixedMax != null ? fixedMax : Math.ceil(max / step) * step;
         tickStep = step;
-    }
-
-    private static double niceNumber(double range, boolean round) {
-        if (range <= 0) return 1;
-        double exponent = Math.floor(Math.log10(range));
-        double fraction = range / Math.pow(10, exponent);
-        double niceFraction;
-        if (round) {
-            if (fraction < 1.5) niceFraction = 1;
-            else if (fraction < 3) niceFraction = 2;
-            else if (fraction < 7) niceFraction = 5;
-            else niceFraction = 10;
-        } else {
-            if (fraction <= 1) niceFraction = 1;
-            else if (fraction <= 2) niceFraction = 2;
-            else if (fraction <= 5) niceFraction = 5;
-            else niceFraction = 10;
-        }
-        return niceFraction * Math.pow(10, exponent);
     }
 
     private List<String> computeCategories(ChartDataSource ds) {

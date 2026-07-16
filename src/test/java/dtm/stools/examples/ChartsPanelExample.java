@@ -1,13 +1,14 @@
 package dtm.stools.examples;
 
 import dtm.stools.component.panels.charts.ChartsPanel;
-import dtm.stools.component.panels.charts.render.BarChartRender;
-import dtm.stools.component.panels.charts.render.LineChartRender;
-import dtm.stools.component.panels.charts.render.PieChartRender;
+import dtm.stools.component.panels.charts.render.*;
+import dtm.stools.component.panels.charts.style.ChartColor;
 import dtm.stools.component.panels.charts.style.LegendPosition;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class ChartsPanelExample {
@@ -27,36 +28,63 @@ public class ChartsPanelExample {
         lineRender.setSubtitle("Comparativo 2025 x 2026");
         fillMonthly(lineRender);
 
-        ChartsPanel<LineChartRender> lineChart = new ChartsPanel<>(lineRender);
-        lineChart.setFPS(60);
-
         BarChartRender barRender = new BarChartRender();
         barRender.setTitle("Vendas por trimestre");
         fillQuarterly(barRender);
-
-        ChartsPanel<BarChartRender> barChart = new ChartsPanel<>(barRender);
-        barChart.setFPS(60);
 
         PieChartRender pieRender = new PieChartRender();
         pieRender.setTitle("Participação por produto");
         pieRender.setLegendPosition(LegendPosition.RIGHT);
         fillShare(pieRender);
 
-        ChartsPanel<PieChartRender> pieChart = new ChartsPanel<>(pieRender);
-        pieChart.setFPS(60);
+        AreaChartRender areaRender = new AreaChartRender();
+        areaRender.setTitle("Tráfego semanal");
+        fillTraffic(areaRender);
 
-        JPanel grid = new JPanel(new GridLayout(1, 3, 8, 8));
+        StackedBarChartRender stackedRender = new StackedBarChartRender();
+        stackedRender.setTitle("Custos por mês");
+        fillCosts(stackedRender);
+
+        HorizontalBarChartRender hbarRender = new HorizontalBarChartRender();
+        hbarRender.setTitle("Vendas por região");
+        fillRegions(hbarRender);
+
+        RadarChartRender radarRender = new RadarChartRender();
+        radarRender.setTitle("Perfil dos times");
+        fillTeams(radarRender);
+
+        GaugeChartRender gaugeRender = new GaugeChartRender();
+        gaugeRender.setTitle("Uso de CPU");
+        gaugeRender.setUnit("%");
+        gaugeRender.setValueLabel("núcleo 0");
+        gaugeRender.setMaxValue(100);
+        gaugeRender.addColorStop(0f, ChartColor.hex("#22C55E"));
+        gaugeRender.addColorStop(0.6f, ChartColor.hex("#F59E0B"));
+        gaugeRender.addColorStop(0.85f, ChartColor.hex("#EF4444"));
+        gaugeRender.setValue(35 + RANDOM.nextInt(60));
+
+        JPanel grid = new JPanel(new GridLayout(2, 4, 8, 8));
         grid.setBackground(new Color(0x0D0F14));
         grid.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        grid.add(lineChart);
-        grid.add(barChart);
-        grid.add(pieChart);
+        grid.add(wrap(lineRender));
+        grid.add(wrap(barRender));
+        grid.add(wrap(pieRender));
+        grid.add(wrap(areaRender));
+        grid.add(wrap(stackedRender));
+        grid.add(wrap(hbarRender));
+        grid.add(wrap(radarRender));
+        grid.add(wrap(gaugeRender));
 
         JButton randomize = new JButton("Randomizar dados");
         randomize.addActionListener(e -> {
             fillMonthly(lineRender);
             fillQuarterly(barRender);
             fillShare(pieRender);
+            fillTraffic(areaRender);
+            fillCosts(stackedRender);
+            fillRegions(hbarRender);
+            fillTeams(radarRender);
+            gaugeRender.setValue(35 + RANDOM.nextInt(60));
         });
 
         JFrame frame = new JFrame("SwingTools - Charts (OpenGL)");
@@ -64,9 +92,15 @@ public class ChartsPanelExample {
         frame.setLayout(new BorderLayout());
         frame.add(grid, BorderLayout.CENTER);
         frame.add(randomize, BorderLayout.SOUTH);
-        frame.setSize(1500, 520);
+        frame.setSize(1500, 860);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+    }
+
+    private static <R extends ChartBaseRender> ChartsPanel<R> wrap(R render) {
+        ChartsPanel<R> panel = new ChartsPanel<>(render);
+        panel.setFPS(60);
+        return panel;
     }
 
     private static void fillMonthly(LineChartRender render) {
@@ -115,17 +149,51 @@ public class ChartsPanelExample {
 
     private static void fillShare(PieChartRender render) {
         String[] products = {"Alpha", "Beta", "Gamma", "Delta", "Omega"};
-        var share = render.getDataSource().series("Participação");
-        double[] values = new double[products.length];
-        for (int i = 0; i < products.length; i++) {
-            values[i] = 10 + RANDOM.nextInt(90);
+        Map<String, Integer> values = new LinkedHashMap<>();
+        for (String product : products) {
+            values.put(product, 10 + RANDOM.nextInt(90));
         }
-        if (share.isEmpty()) {
-            for (int i = 0; i < products.length; i++) {
-                share.add(products[i], values[i]);
+        render.getDataSource().addSeries("Participação", values);
+    }
+
+    private static void fillTraffic(AreaChartRender render) {
+        String[] days = {"Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"};
+        Map<String, Integer> values = new LinkedHashMap<>();
+        for (String day : days) {
+            values.put(day, 200 + RANDOM.nextInt(350));
+        }
+        render.getDataSource().addSeries("Visitas", values);
+    }
+
+    private static void fillCosts(StackedBarChartRender render) {
+        String[] months = {"Jan", "Fev", "Mar", "Abr", "Mai"};
+        String[] groups = {"Infra", "Pessoal", "Marketing"};
+        for (String group : groups) {
+            Map<String, Integer> values = new LinkedHashMap<>();
+            for (String month : months) {
+                values.put(month, 10 + RANDOM.nextInt(45));
             }
-        } else {
-            share.setValues(values);
+            render.getDataSource().addSeries(group, values);
+        }
+    }
+
+    private static void fillRegions(HorizontalBarChartRender render) {
+        String[] regions = {"Sudeste", "Sul", "Nordeste", "Centro-Oeste", "Norte"};
+        Map<String, Integer> values = new LinkedHashMap<>();
+        for (String region : regions) {
+            values.put(region, 15 + RANDOM.nextInt(75));
+        }
+        render.getDataSource().addSeries("2026", values);
+    }
+
+    private static void fillTeams(RadarChartRender render) {
+        String[] skills = {"Velocidade", "Qualidade", "Entrega", "Inovação", "Suporte", "Custo"};
+        for (String team : new String[]{"Time A", "Time B"}) {
+            Map<String, Integer> values = new LinkedHashMap<>();
+            for (String skill : skills) {
+                values.put(skill, 40 + RANDOM.nextInt(60));
+            }
+            render.getDataSource().addSeries(team, values);
         }
     }
 }
