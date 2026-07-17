@@ -597,6 +597,10 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         breakpointListeners.forEach(l -> l.onBreakpointToggled(line, active));
     }
 
+    private void fireGutterRightClicked(int line) {
+        breakpointListeners.forEach(l -> l.onGutterRightClicked(line));
+    }
+
     private BreakpointLayer getOrCreateBreakpointLayer() {
         BreakpointLayer bp = getLayer(BreakpointLayer.class);
         if (bp == null) {
@@ -669,6 +673,11 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
                 int line = lineAtGutterY(e.getY());
                 if (line < 0) {
                     clearTransientHoverStateAndRepaint();
+                    return;
+                }
+
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    fireGutterRightClicked(line);
                     return;
                 }
 
