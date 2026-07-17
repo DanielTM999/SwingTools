@@ -29,6 +29,7 @@ import java.util.List;
 public class CodeEditorGutter extends JComponent implements LineChangeListener {
 
     private final List<BreakpointListener> breakpointListeners = new ArrayList<>();
+    private final List<GutterRightClickListener> gutterRightClickListeners = new ArrayList<>();
     private final BreakpointChangeListener breakpointRepaintListener = (breakpoint, added) -> repaint();
 
     @Getter
@@ -556,6 +557,16 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         breakpointListeners.remove(listener);
     }
 
+    public void addGutterRightClickListener(GutterRightClickListener listener) {
+        if (listener != null && !gutterRightClickListeners.contains(listener)) {
+            gutterRightClickListeners.add(listener);
+        }
+    }
+
+    public void removeGutterRightClickListener(GutterRightClickListener listener) {
+        gutterRightClickListeners.remove(listener);
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         validateTransientHoverState();
@@ -597,8 +608,9 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         breakpointListeners.forEach(l -> l.onBreakpointToggled(line, active));
     }
 
-    private void fireGutterRightClicked(int line) {
-        breakpointListeners.forEach(l -> l.onGutterRightClicked(line));
+    private void fireGutterRightClicked(MouseEvent event, int line) {
+        GutterRightClickEvent gutterEvent = new GutterRightClickEvent(line, event);
+        gutterRightClickListeners.forEach(l -> l.onGutterRightClicked(gutterEvent));
     }
 
     private BreakpointLayer getOrCreateBreakpointLayer() {
@@ -677,7 +689,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
                 }
 
                 if (SwingUtilities.isRightMouseButton(e)) {
-                    fireGutterRightClicked(line);
+                    fireGutterRightClicked(e, line);
                     return;
                 }
 

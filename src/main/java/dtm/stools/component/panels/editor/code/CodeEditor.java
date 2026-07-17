@@ -931,6 +931,10 @@ public class CodeEditor extends BlockingPanel {
         textArea.setShowIndentGuides(show);
     }
 
+    public boolean isShowIndentGuides() {
+        return textArea.isShowIndentGuides();
+    }
+
     public void addHoverListener(HoverListener l) {
         textArea.addHoverListener(l);
     }
