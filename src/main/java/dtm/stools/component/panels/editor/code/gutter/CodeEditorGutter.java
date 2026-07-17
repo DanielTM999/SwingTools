@@ -12,6 +12,7 @@ import dtm.stools.component.panels.editor.code.listeners.BookmarkChangeListener;
 import dtm.stools.component.panels.editor.code.listeners.BreakpointChangeListener;
 import dtm.stools.component.panels.editor.code.listeners.LineChangeListener;
 import dtm.stools.component.panels.editor.code.prototype.Breakpoint;
+import dtm.stools.component.panels.editor.code.prototype.styles.BreakpointStyle;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -276,6 +277,19 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         return bp == null || bp.isEnableOnClick();
     }
 
+    public void enableBreakpointEmptyLine(boolean enabled) {
+        getOrCreateBreakpointLayer().enableBreakpointEmptyLine(enabled);
+    }
+
+    public void setBreakpointEmptyLineEnabled(boolean enabled) {
+        enableBreakpointEmptyLine(enabled);
+    }
+
+    public boolean isBreakpointEmptyLineEnabled() {
+        BreakpointLayer bp = getLayer(BreakpointLayer.class);
+        return bp == null || bp.isEnableBreakpointEmptyLine();
+    }
+
     public void setBookmarkPreviewOnHoverEnabled(boolean enabled) {
         BookmarkLayer bookmark = getLayer(BookmarkLayer.class);
         if (bookmark == null) {
@@ -390,7 +404,9 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     }
 
     public void addBreakpoint(int line) {
-        getOrCreateBreakpointLayer().addBreakpoint(line);
+        BreakpointLayer bp = getOrCreateBreakpointLayer();
+        if (!isBreakpointAddAllowedAtLine(bp, line)) return;
+        bp.addBreakpoint(line);
     }
 
     public void removeBreakpoint(int line) {
@@ -400,7 +416,9 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     }
 
     public void toggleBreakpoint(int line) {
-        getOrCreateBreakpointLayer().toggleBreakpoint(line);
+        BreakpointLayer bp = getOrCreateBreakpointLayer();
+        if (!isBreakpointToggleAllowedAtLine(bp, line)) return;
+        bp.toggleBreakpoint(line);
     }
 
     public void clearBreakpoints() {
@@ -458,6 +476,27 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     public void setBreakpointInactiveIcon(Icon icon) {
         getOrCreateBreakpointLayer().setInactiveIcon(icon);
         repaint();
+    }
+
+    public boolean setBreakpointStyle(int line, BreakpointStyle style) {
+        BreakpointLayer bp = getLayer(BreakpointLayer.class);
+        boolean changed = bp != null && bp.setBreakpointStyle(line, style);
+        if (changed) repaint();
+        return changed;
+    }
+
+    public boolean setBreakpointInactiveStyle(int line, BreakpointStyle inactiveStyle) {
+        BreakpointLayer bp = getLayer(BreakpointLayer.class);
+        boolean changed = bp != null && bp.setBreakpointInactiveStyle(line, inactiveStyle);
+        if (changed) repaint();
+        return changed;
+    }
+
+    public boolean setBreakpointStyles(int line, BreakpointStyle style, BreakpointStyle inactiveStyle) {
+        BreakpointLayer bp = getLayer(BreakpointLayer.class);
+        boolean changed = bp != null && bp.setBreakpointStyles(line, style, inactiveStyle);
+        if (changed) repaint();
+        return changed;
     }
 
     public void addBreakpointChangeListener(BreakpointChangeListener listener) {
@@ -581,6 +620,39 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         return textArea.getFontMetrics(font).getHeight();
     }
 
+    private int lineAtGutterY(int y) {
+        if (y < 0) return -1;
+        int total = textArea.getBuffer().lineCount();
+        if (total <= 0) return -1;
+
+        int line = textArea.bufferLineAtY(y);
+        if (line < 0 || line >= total || textArea.isLineHidden(line)) {
+            return -1;
+        }
+
+        int lineY = textArea.yOfBufferLine(line);
+        int lineHeight = getLineHeight();
+        return y >= lineY && y < lineY + lineHeight ? line : -1;
+    }
+
+    private boolean isBreakpointToggleAllowedAtLine(BreakpointLayer bp, int line) {
+        if (!isValidLineIndex(line)) return false;
+        return bp.hasBreakpoint(line) || isBreakpointAddAllowedAtLine(bp, line);
+    }
+
+    private boolean isBreakpointAddAllowedAtLine(BreakpointLayer bp, int line) {
+        if (!isValidLineIndex(line)) return false;
+        return bp.isEnableBreakpointEmptyLine() || !isBlankLine(line);
+    }
+
+    private boolean isValidLineIndex(int line) {
+        return line >= 0 && line < textArea.getBuffer().lineCount();
+    }
+
+    private boolean isBlankLine(int line) {
+        return textArea.getBuffer().lineAt(line).trim().isEmpty();
+    }
+
     private void addListeners() {
         textArea.addComponentListener(new ComponentAdapter() {
             @Override
@@ -594,7 +666,11 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (textArea.isInCodeLensRow(e.getY())) return;
-                int line = textArea.bufferLineAtY(e.getY());
+                int line = lineAtGutterY(e.getY());
+                if (line < 0) {
+                    clearTransientHoverStateAndRepaint();
+                    return;
+                }
 
                 LineMarkerLayer marker = getLayer(LineMarkerLayer.class);
                 if (marker != null && marker.hasLineColor(line) && marker.isLineMarkerClick(CodeEditorGutter.this, e.getX())) {
@@ -614,6 +690,9 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
                 if (breakpointEnabled) {
                     BreakpointLayer bp = getLayer(BreakpointLayer.class);
                     if (bp != null && bp.isEnableOnClick() && !isBookmarkClick(e.getX())) {
+                        if (!isBreakpointToggleAllowedAtLine(bp, line)) {
+                            return;
+                        }
                         bp.onMouseClick(e, line);
                         fireBreakpointToggled(line, bp.hasBreakpoint(line));
                         repaint();
@@ -676,7 +755,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
                     }
                     return;
                 }
-                int line = textArea.bufferLineAtY(e.getY());
+                int line = lineAtGutterY(e.getY());
                 int total = textArea.getBuffer().lineCount();
                 if (line < 0 || line >= total) {
                     setCursor(Cursor.getDefaultCursor());
@@ -688,6 +767,13 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
                 }
                 setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 if (bp.hasBreakpoint(line)) {
+                    if (bp.getHoverLine() != -1) {
+                        bp.clearHover();
+                        repaint();
+                    }
+                    return;
+                }
+                if (!isBreakpointAddAllowedAtLine(bp, line)) {
                     if (bp.getHoverLine() != -1) {
                         bp.clearHover();
                         repaint();
@@ -720,7 +806,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         if (marker == null || !marker.isLineMarkerClick(this, e.getX())) {
             return false;
         }
-        int line = textArea.bufferLineAtY(e.getY());
+        int line = lineAtGutterY(e.getY());
         int total = textArea.getBuffer().lineCount();
         if (line < 0 || line >= total || !marker.hasLineColor(line)) {
             return false;
@@ -745,7 +831,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         clearBreakpointHover();
         clearBookmarkHover();
 
-        int line = textArea.bufferLineAtY(e.getY());
+        int line = lineAtGutterY(e.getY());
         int total = textArea.getBuffer().lineCount();
         boolean foldAnchor = line >= 0 && line < total && textArea.isFoldAnchorLine(line);
         setCursor(foldAnchor
@@ -777,7 +863,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
             }
             return true;
         }
-        int line = textArea.bufferLineAtY(e.getY());
+        int line = lineAtGutterY(e.getY());
         int total = textArea.getBuffer().lineCount();
         if (line < 0 || line >= total) {
             setCursor(Cursor.getDefaultCursor());
@@ -826,7 +912,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
             return;
         }
 
-        int mouseLine = textArea.bufferLineAtY(mouse.y);
+        int mouseLine = lineAtGutterY(mouse.y);
         boolean changed = false;
 
         BreakpointLayer bp = getLayer(BreakpointLayer.class);

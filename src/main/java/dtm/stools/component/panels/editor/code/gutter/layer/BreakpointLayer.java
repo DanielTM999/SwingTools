@@ -71,6 +71,11 @@ public class BreakpointLayer implements GutterLayer, TransferableLayer {
     @Getter
     @Setter
     @Builder.Default
+    private boolean enableBreakpointEmptyLine = false;
+
+    @Getter
+    @Setter
+    @Builder.Default
     private float previewAlpha = 0.35f;
 
     @Getter
@@ -79,6 +84,10 @@ public class BreakpointLayer implements GutterLayer, TransferableLayer {
 
     public void clearHover() {
         this.hoverLine = -1;
+    }
+
+    public void enableBreakpointEmptyLine(boolean enabled) {
+        this.enableBreakpointEmptyLine = enabled;
     }
 
     public boolean isEffectiveOverlay(int gutterWidth) {
@@ -119,6 +128,40 @@ public class BreakpointLayer implements GutterLayer, TransferableLayer {
         addBreakpoint(line,
                 BreakpointStyle.builder().icon(icon).build(),
                 BreakpointStyle.builder().icon(inactiveIcon).build());
+    }
+
+    public boolean setBreakpointStyle(int line, BreakpointStyle style) {
+        Breakpoint current = breakpoints.get(line);
+        if (current == null) return false;
+        Breakpoint updated = current.toBuilder()
+                .style(style != null ? style : defaultStyle)
+                .build();
+        breakpoints.put(line, updated);
+        fireBreakpointChanged(updated, true);
+        return true;
+    }
+
+    public boolean setBreakpointInactiveStyle(int line, BreakpointStyle inactiveStyle) {
+        Breakpoint current = breakpoints.get(line);
+        if (current == null) return false;
+        Breakpoint updated = current.toBuilder()
+                .inactiveStyle(inactiveStyle)
+                .build();
+        breakpoints.put(line, updated);
+        fireBreakpointChanged(updated, true);
+        return true;
+    }
+
+    public boolean setBreakpointStyles(int line, BreakpointStyle style, BreakpointStyle inactiveStyle) {
+        Breakpoint current = breakpoints.get(line);
+        if (current == null) return false;
+        Breakpoint updated = current.toBuilder()
+                .style(style != null ? style : defaultStyle)
+                .inactiveStyle(inactiveStyle)
+                .build();
+        breakpoints.put(line, updated);
+        fireBreakpointChanged(updated, true);
+        return true;
     }
 
     public void removeBreakpoint(int line) {

@@ -26,6 +26,7 @@ import dtm.stools.component.panels.editor.code.prototype.LineColorInfo;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
 import dtm.stools.component.panels.editor.code.prototype.folding.FoldRegion;
 import dtm.stools.component.panels.editor.code.prototype.folding.FoldRule;
+import dtm.stools.component.panels.editor.code.prototype.styles.BreakpointStyle;
 import dtm.stools.component.panels.editor.code.prototype.styles.StyledRange;
 import dtm.stools.component.panels.editor.code.prototype.styles.TextStyle;
 import dtm.stools.component.panels.editor.code.api.CodeAction;
@@ -318,6 +319,18 @@ public class CodeEditor extends BlockingPanel {
         return getGutter().isBreakpointEnableOnClick();
     }
 
+    public void enableBreakpointEmptyLine(boolean enabled) {
+        getGutter().enableBreakpointEmptyLine(enabled);
+    }
+
+    public void setBreakpointEmptyLineEnabled(boolean enabled) {
+        getGutter().setBreakpointEmptyLineEnabled(enabled);
+    }
+
+    public boolean isBreakpointEmptyLineEnabled() {
+        return getGutter().isBreakpointEmptyLineEnabled();
+    }
+
     public void addBreakpoint(int line) {
         getGutter().addBreakpoint(line);
     }
@@ -368,6 +381,18 @@ public class CodeEditor extends BlockingPanel {
 
     public void setBreakpointInactiveIcon(Icon icon) {
         getGutter().setBreakpointInactiveIcon(icon);
+    }
+
+    public boolean setBreakpointStyle(int line, BreakpointStyle style) {
+        return getGutter().setBreakpointStyle(line, style);
+    }
+
+    public boolean setBreakpointInactiveStyle(int line, BreakpointStyle inactiveStyle) {
+        return getGutter().setBreakpointInactiveStyle(line, inactiveStyle);
+    }
+
+    public boolean setBreakpointStyles(int line, BreakpointStyle style, BreakpointStyle inactiveStyle) {
+        return getGutter().setBreakpointStyles(line, style, inactiveStyle);
     }
 
     public Set<Integer> getBreakpointLines() {
