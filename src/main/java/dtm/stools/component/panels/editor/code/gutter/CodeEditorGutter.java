@@ -29,7 +29,9 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
 
     private final List<BreakpointListener> breakpointListeners = new ArrayList<>();
     private final BreakpointChangeListener breakpointRepaintListener = (breakpoint, added) -> repaint();
-    @Getter private final CodeEditorTextArea textArea;
+
+    @Getter
+    private final CodeEditorTextArea textArea;
 
     public static final int FOLD_CHEVRON_WIDTH = 14;
 
@@ -53,15 +55,14 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     @Getter
     private Color lineNumberColor = UIManager.getColor("Label.disabledForeground");
 
-    @Getter
-    private Font lineNumberFont = UIManager.getFont("Label.font");
+    private Font lineNumberFont;
+    private boolean fontExplicitlySet;
 
     @Getter
     private final List<GutterLayer> layers = new ArrayList<>();
 
     public CodeEditorGutter(CodeEditorTextArea textArea) {
         this.textArea = textArea;
-        setFont(textArea.getFont());
         setOpaque(true);
         setBackground(UIManager.getColor("Panel.background"));
         textArea.addLineChangeListener(this);
@@ -146,7 +147,7 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     private int getRequiredLineNumberWidth() {
         LineNumberLayer layer = getLayer(LineNumberLayer.class);
         if (layer == null) return 0;
-        return layer.getRequiredWidth(this, getFontMetrics(lineNumberFont), getLineCount());
+        return layer.getRequiredWidth(this, getFontMetrics(getLineNumberFont()), getLineCount());
     }
 
     public boolean isBreakpointOverlayActive() {
@@ -160,6 +161,14 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         repaint();
     }
 
+    @Override
+    public void setFont(Font font) {
+        super.setFont(font);
+        fontExplicitlySet = true;
+        revalidate();
+        repaint();
+    }
+
     public void setBorderColor(Color borderColor) {
         this.borderColor = borderColor;
         repaint();
@@ -170,8 +179,42 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
         repaint();
     }
 
+    public Font getLineNumberFont() {
+        if (lineNumberFont != null) {
+            return lineNumberFont;
+        }
+
+        Font font = fontExplicitlySet ? getFont() : null;
+        if (font != null) {
+            return font;
+        }
+
+        font = textArea != null ? textArea.getFont() : null;
+        if (font != null) {
+            return font;
+        }
+
+        font = UIManager.getFont("TextArea.font");
+        if (font != null) {
+            return font;
+        }
+
+        font = UIManager.getFont("Label.font");
+        if (font != null) {
+            return font;
+        }
+
+        font = getFont();
+        if (font != null) {
+            return font;
+        }
+
+        return new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+    }
+
     public void setLineNumberFont(Font lineNumberFont) {
         this.lineNumberFont = lineNumberFont;
+        revalidate();
         repaint();
     }
 

@@ -66,6 +66,11 @@ public class BreakpointLayer implements GutterLayer, TransferableLayer {
     @Getter
     @Setter
     @Builder.Default
+    private boolean hideNumberOnHover = true;
+
+    @Getter
+    @Setter
+    @Builder.Default
     private float previewAlpha = 0.35f;
 
     @Getter

@@ -12,6 +12,9 @@ public class LineNumberLayer implements GutterLayer {
     public void paint(Graphics g, CodeEditorGutter gutter, int line, int x, int y, int width, int height) {
         if (gutter.isBreakpointEnabled()) {
             BreakpointLayer bp = gutter.getLayer(BreakpointLayer.class);
+            if (bp != null && bp.isHideNumberOnHover() && bp.getHoverLine() == line) {
+                return;
+            }
             if (bp != null && bp.hasBreakpoint(line) && bp.isOverlay()
                     && bp.isEffectiveOverlay(gutter.getGutterWidth())) {
                 return;
