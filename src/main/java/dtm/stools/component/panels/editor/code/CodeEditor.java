@@ -311,6 +311,10 @@ public class CodeEditor extends BlockingPanel {
         getGutter().enableBreakpoint(enabled);
     }
 
+    public boolean isBreakpointEnabled() {
+        return getGutter().isBreakpointEnabled();
+    }
+
     public void setBreakpointEnableOnClick(boolean enabled) {
         getGutter().setBreakpointEnableOnClick(enabled);
     }
@@ -454,6 +458,10 @@ public class CodeEditor extends BlockingPanel {
     }
 
     public boolean isBookmarkEnabled() {
+        return getGutter().isBookmarkEnabled();
+    }
+
+    public boolean isBookmarkEnable() {
         return getGutter().isBookmarkEnabled();
     }
 
