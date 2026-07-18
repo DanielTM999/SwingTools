@@ -14,7 +14,6 @@ import dtm.stools.internal.window.ActivityWindowExecutor;
 import dtm.stools.models.SystemTrayConfigurationConcrete;
 import lombok.Getter;
 import lombok.NonNull;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -385,7 +384,18 @@ public abstract class Activity extends JFrame implements IWindow {
     }
 
     private void setupSystemTray(){
-        if(!systemTrayConfiguration.isAvaiable() && this.tray != null) return;
+        if (!systemTrayConfiguration.isAvaiable()) {
+            return;
+        }
+
+        if (!SystemTray.isSupported()) {
+            return;
+        }
+
+        if (tray != null) {
+            return;
+        }
+
         initSystemTray();
         trayImage = systemTrayConfiguration.getImage();
         if (trayImage == null) {
