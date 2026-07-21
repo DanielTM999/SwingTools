@@ -40,10 +40,11 @@ public class TabbedPanel extends PanelEventListener {
     private final JButton tabListButton = new JButton("Tabs");
     private final List<String> mruKeys = new ArrayList<>();
 
-    @Getter
     private String currentKey;
+
     @Getter
     private String lastKey;
+
     @Getter
     private boolean closeButtonsVisible = true;
 
@@ -118,6 +119,35 @@ public class TabbedPanel extends PanelEventListener {
 
         entry.setTitleForeground(color);
         updateTabHeader(key);
+    }
+
+    public boolean isSplit() {
+        return isDockModeEnabled() && getDockGroups().size() > 1;
+    }
+
+    public String getCurrentKey() {
+        TabbedPanel focusedGroup = getFocusedTabGroup();
+        return focusedGroup.currentKey;
+    }
+
+    public String getMainCurrentKey() {
+        return currentKey;
+    }
+
+    public TabbedPanel getFocusedTabGroup() {
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getPermanentFocusOwner();
+
+        if (focusOwner == null) {
+            return this;
+        }
+
+        for (TabbedPanel group : resolveGroupsForVisibility()) {
+            if (focusOwner == group || SwingUtilities.isDescendingFrom(focusOwner, group)) {
+                return group;
+            }
+        }
+
+        return this;
     }
 
     public void clearTabTitleForeground(String key) {
@@ -256,8 +286,10 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     public boolean closeCurrentTab() {
-        String key = getCurrentKey();
-        return key != null && closeTab(key);
+        TabbedPanel focusedGroup = getFocusedTabGroup();
+        String key = focusedGroup.currentKey;
+
+        return key != null && focusedGroup.closeTab(key);
     }
 
     public boolean closeAllTabs() {
@@ -1213,8 +1245,13 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     public Component getCurrent() {
-        String key = getCurrentKey();
-        TabEntry entry = key == null ? null : tabsByKey.get(key);
+        TabbedPanel focusedGroup = getFocusedTabGroup();
+
+        String key = focusedGroup.currentKey;
+        TabEntry entry = key == null
+                ? null
+                : focusedGroup.tabsByKey.get(key);
+
         return entry == null ? null : entry.getComponent();
     }
 
@@ -1961,9 +1998,13 @@ public class TabbedPanel extends PanelEventListener {
 
     private boolean detachTabForTransfer(TabEntry entry) {
         int index = tabbedPane.indexOfComponent(entry.getComponent());
-        if (index < 0) return false;
+        if (index < 0) {
+            return false;
+        }
 
         boolean wasCurrent = Objects.equals(currentKey, entry.getKey());
+        String oldKey = currentKey;
+
         suppressSelectionEvent = true;
         try {
             tabbedPane.removeTabAt(index);
@@ -1976,11 +2017,28 @@ public class TabbedPanel extends PanelEventListener {
         mruKeys.remove(entry.getKey());
 
         if (wasCurrent) {
-            currentKey = null;
+            String newKey = null;
+
             if (tabbedPane.getTabCount() > 0) {
-                int fallbackIndex = Math.min(index, tabbedPane.getTabCount() - 1);
-                tabbedPane.setSelectedIndex(fallbackIndex);
+                int fallbackIndex = Math.min(
+                        index,
+                        tabbedPane.getTabCount() - 1
+                );
+
+                Component fallbackComponent =
+                        tabbedPane.getComponentAt(fallbackIndex);
+
+                newKey = keyByComponent.get(fallbackComponent);
+
+                suppressSelectionEvent = true;
+                try {
+                    tabbedPane.setSelectedIndex(fallbackIndex);
+                } finally {
+                    suppressSelectionEvent = false;
+                }
             }
+
+            fireSelectionChange(oldKey, newKey);
         }
 
         revalidate();
@@ -2007,7 +2065,7 @@ public class TabbedPanel extends PanelEventListener {
             if (before.isCanceled()) return false;
         }
 
-        Component selectedBeforeMove = getCurrent();
+        Component selectedBeforeMove = getLocalCurrent();
         Component tabHeader = tabbedPane.getTabComponentAt(oldIndex);
         suppressSelectionEvent = true;
         try {
@@ -2127,6 +2185,14 @@ public class TabbedPanel extends PanelEventListener {
 
     private static boolean isSameOrDescendant(Component component, Container root) {
         return component == root || SwingUtilities.isDescendingFrom(component, root);
+    }
+
+    private Component getLocalCurrent() {
+        TabEntry entry = currentKey == null
+                ? null
+                : tabsByKey.get(currentKey);
+
+        return entry == null ? null : entry.getComponent();
     }
 
 }
