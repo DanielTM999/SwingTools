@@ -27,7 +27,8 @@ public class AutoCompletePopup {
     protected final JScrollPane scroll;
     protected final JPanel centerPanel = new JPanel(new CardLayout());
     protected final JPanel loadingPanel = new JPanel(new GridBagLayout());
-    protected final JLabel detailLabel = new JLabel();
+    protected final JTextArea detailArea = new JTextArea();
+    protected final JScrollPane detailScroll;
     protected final JLabel loadingLabel = new JLabel(text("loading", "Buscando sugestoes..."));
     protected final LoadingSpinner loadingSpinner = new LoadingSpinner();
     protected Runnable acceptHandler;
@@ -41,6 +42,9 @@ public class AutoCompletePopup {
 
     @Getter
     protected Dimension popupSize = new Dimension(360, 180);
+
+    @Getter
+    protected int detailMaxHeight = 120;
 
     public AutoCompletePopup(JComponent owner) {
         this.owner = owner;
@@ -77,13 +81,26 @@ public class AutoCompletePopup {
         loadingContent.add(loadingLabel);
         loadingPanel.add(loadingContent);
 
-        detailLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, blend(popupForeground, popupBackground, 0.88f)),
-                BorderFactory.createEmptyBorder(7, 10, 7, 10)
-        ));
-        detailLabel.setOpaque(true);
-        detailLabel.setBackground(popupBackground);
-        detailLabel.setForeground(blend(popupForeground, popupBackground, 0.35f));
+        detailArea.setEditable(false);
+        detailArea.setFocusable(false);
+        detailArea.setLineWrap(true);
+        detailArea.setWrapStyleWord(true);
+        detailArea.setBorder(BorderFactory.createEmptyBorder(7, 10, 7, 10));
+        detailArea.setOpaque(true);
+        detailArea.setBackground(popupBackground);
+        detailArea.setForeground(blend(popupForeground, popupBackground, 0.35f));
+        detailArea.setFont(UIManager.getFont("Label.font"));
+
+        detailScroll = new JScrollPane(detailArea);
+        detailScroll.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, blend(popupForeground, popupBackground, 0.88f)));
+        detailScroll.setOpaque(true);
+        detailScroll.setBackground(popupBackground);
+        detailScroll.getViewport().setOpaque(true);
+        detailScroll.getViewport().setBackground(popupBackground);
+        detailScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        detailScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        detailScroll.getVerticalScrollBar().setUnitIncrement(16);
+        detailScroll.setVisible(false);
 
         centerPanel.setOpaque(false);
         centerPanel.add(scroll, COMPLETIONS_CARD);
@@ -93,7 +110,7 @@ public class AutoCompletePopup {
         popup.setBackground(popupBackground);
         popup.setLayout(new BorderLayout());
         popup.add(centerPanel, BorderLayout.CENTER);
-        popup.add(detailLabel, BorderLayout.SOUTH);
+        popup.add(detailScroll, BorderLayout.SOUTH);
         popup.setFocusable(false);
 
         list.addListSelectionListener(e -> updateDetail());
@@ -125,11 +142,31 @@ public class AutoCompletePopup {
     protected void updateDetail() {
         AutoCompleteItem sel = list.getSelectedValue();
         if (sel == null || sel.description() == null || sel.description().isBlank()) {
-            detailLabel.setVisible(false);
-        } else {
-            detailLabel.setText("<html>" + escapeHtml(sel.description()) + "</html>");
-            detailLabel.setVisible(true);
+            detailScroll.setVisible(false);
+            detailScroll.setPreferredSize(null);
+            return;
         }
+
+        detailArea.setText(sel.description());
+        detailArea.setCaretPosition(0);
+
+        int textWidth = Math.max(80, popupSize.width - detailScrollBarWidth());
+        detailArea.setSize(textWidth, Short.MAX_VALUE);
+
+        int contentHeight = detailArea.getPreferredSize().height;
+        int borderHeight = detailScroll.getInsets().top + detailScroll.getInsets().bottom;
+        int height = Math.min(detailMaxHeight, contentHeight + borderHeight);
+
+        detailScroll.setPreferredSize(new Dimension(popupSize.width, height));
+        detailScroll.setVisible(true);
+        detailScroll.getVerticalScrollBar().setValue(0);
+        detailScroll.revalidate();
+    }
+
+    private int detailScrollBarWidth() {
+        JScrollBar bar = detailScroll.getVerticalScrollBar();
+        int width = bar == null ? 0 : bar.getPreferredSize().width;
+        return width > 0 ? width : 12;
     }
 
     public void show(List<AutoCompleteItem> items, int x, int y, String prefix, int insertOffset) {
@@ -158,7 +195,7 @@ public class AutoCompletePopup {
         loading = true;
         this.triggerPrefix = prefix == null ? "" : prefix;
         this.triggerOffset = insertOffset;
-        detailLabel.setVisible(false);
+        detailScroll.setVisible(false);
         int width = Math.min(popupSize.width, 300);
         loadingPanel.setPreferredSize(new Dimension(width, 54));
         centerPanel.setPreferredSize(loadingPanel.getPreferredSize());
@@ -200,6 +237,12 @@ public class AutoCompletePopup {
     public void setPopupSize(Dimension size) {
         this.popupSize = size;
         scroll.setPreferredSize(size);
+        updateDetail();
+    }
+
+    public void setDetailMaxHeight(int detailMaxHeight) {
+        this.detailMaxHeight = Math.max(0, detailMaxHeight);
+        updateDetail();
     }
 
     public void setAcceptHandler(Runnable acceptHandler) {
