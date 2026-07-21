@@ -161,6 +161,28 @@ public class TabbedPanel extends PanelEventListener {
         return key;
     }
 
+    public boolean isWithinRoot(Component component) {
+        if (component == null) {
+            return false;
+        }
+
+        if (isSameOrDescendant(component, this)) {
+            return true;
+        }
+
+        if (!isDockModeEnabled()) {
+            return false;
+        }
+
+        for (TabbedPanel group : getDockGroups()) {
+            if (isSameOrDescendant(component, group)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void addTab(String key, String title, Component component) {
         addTab(key, title, null, component, true, null);
     }
@@ -2101,6 +2123,10 @@ public class TabbedPanel extends PanelEventListener {
             put("oldKey", oldKey);
             put("newKey", newKey);
         }});
+    }
+
+    private static boolean isSameOrDescendant(Component component, Container root) {
+        return component == root || SwingUtilities.isDescendingFrom(component, root);
     }
 
 }
