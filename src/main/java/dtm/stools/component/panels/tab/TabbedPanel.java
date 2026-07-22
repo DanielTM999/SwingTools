@@ -11,6 +11,7 @@ import lombok.Setter;
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1887,6 +1888,9 @@ public class TabbedPanel extends PanelEventListener {
         tabbedPane.setToolTipTextAt(index, entry.getTooltip());
 
         JComponent header = createTabHeader(entry, Objects.equals(currentKey, key));
+
+        installTabHeaderHover(header, header, entry, new boolean[]{false});
+
         dragController.install(header, entry);
         tabbedPane.setTabComponentAt(index, header);
     }
@@ -2193,6 +2197,88 @@ public class TabbedPanel extends PanelEventListener {
                 : tabsByKey.get(currentKey);
 
         return entry == null ? null : entry.getComponent();
+    }
+
+    private void installTabHeaderHover(
+            JComponent header,
+            Component component,
+            TabEntry entry,
+            boolean[] hovered
+    ) {
+        MouseAdapter hoverListener = new MouseAdapter() {
+
+            @Override
+            public void mouseEntered(MouseEvent event) {
+                if (hovered[0]) {
+                    return;
+                }
+
+                hovered[0] = true;
+
+                dispatchTabEvent(
+                        EventTabbedPanel.TAB_HEADER_HOVER,
+                        entry,
+                        createHeaderMouseProperties(header, component, event)
+                );
+            }
+
+            @Override
+            public void mouseExited(MouseEvent event) {
+                Point pointInHeader = SwingUtilities.convertPoint(
+                        component,
+                        event.getPoint(),
+                        header
+                );
+
+                if (header.contains(pointInHeader)) {
+                    return;
+                }
+
+                if (!hovered[0]) {
+                    return;
+                }
+
+                hovered[0] = false;
+
+                dispatchTabEvent(
+                        EventTabbedPanel.TAB_HEADER_HOVER_EXIT,
+                        entry,
+                        createHeaderMouseProperties(header, component, event)
+                );
+            }
+        };
+
+        component.addMouseListener(hoverListener);
+
+        if (component instanceof Container container) {
+            for (Component child : container.getComponents()) {
+                installTabHeaderHover(
+                        header,
+                        child,
+                        entry,
+                        hovered
+                );
+            }
+        }
+    }
+
+
+    private Map<String, Object> createHeaderMouseProperties(JComponent header, Component internalComponent, MouseEvent event) {
+        Point pointInHeader = SwingUtilities.convertPoint(
+                internalComponent,
+                event.getPoint(),
+                header
+        );
+
+        Map<String, Object> properties = new HashMap<>();
+
+        properties.put("header", header);
+        properties.put("internalComponent", internalComponent);
+        properties.put("mouseEvent", event);
+        properties.put("mouseX", pointInHeader.x);
+        properties.put("mouseY", pointInHeader.y);
+
+        return properties;
     }
 
 }

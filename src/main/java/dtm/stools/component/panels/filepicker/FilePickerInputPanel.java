@@ -1,7 +1,6 @@
 package dtm.stools.component.panels.filepicker;
 
 import dtm.stools.component.events.EventType;
-import dtm.stools.component.inputfields.textfield.MaskedTextField;
 import dtm.stools.component.inputfields.textfield.PathSearchTextField;
 import dtm.stools.component.inputfields.textfield.SearchTextField;
 import dtm.stools.component.inputfields.filepicker.FileSelectionMode;
@@ -769,7 +768,7 @@ public class FilePickerInputPanel extends PanelEventListener {
             } else if (isFileTypeValid(file)) {
                 if(multiSelect.get()){
                     if(markAsSelectedFile(file)){
-                        dispachEvent(EventType.INPUT, this, file, new HashMap<>());
+                        dispatchEvent(EventType.INPUT, this, file, new HashMap<>());
                         updateSelectionCountLabel();
                         updateSelectedFilesList();
                     }
@@ -1114,7 +1113,7 @@ public class FilePickerInputPanel extends PanelEventListener {
         for (FileWrapper wrapper : wrappersToMark) {
             File file = wrapper.getFile();
             if (isFileTypeValid(file)) {
-                dispachEvent(EventType.INPUT, this, file, new HashMap<>());
+                dispatchEvent(EventType.INPUT, this, file, new HashMap<>());
                 selectedFiles.add(file);
             }
         }

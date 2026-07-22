@@ -67,7 +67,7 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
     public void addNotify() {
         super.addNotify();
         SwingUtilities.invokeLater(() -> {
-            dispachEvent(EventType.LOAD, this, this, new HashMap<>());
+            dispatchEvent(EventType.LOAD, this, this, new HashMap<>());
         });
     }
 
@@ -76,23 +76,23 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
         super.paintComponent(g);
     }
 
-    protected void dispachEvent(String eventType, Object value){
-        dispachEvent(eventType, PanelEventListener.this, value, new HashMap<>());
+    protected void dispatchEvent(String eventType, Object value){
+        dispatchEvent(eventType, PanelEventListener.this, value, new HashMap<>());
     }
 
-    protected <T> void dispachEvent(String eventType, Supplier<T> value){
-        dispachEvent(eventType, PanelEventListener.this, value);
+    protected <T> void dispatchEvent(String eventType, Supplier<T> value){
+        dispatchEvent(eventType, PanelEventListener.this, value);
     }
 
-    protected void dispachEvent(String eventType, Object value, Map<String, Object> props){
-        dispachEvent(eventType, PanelEventListener.this, value, props);
+    protected void dispatchEvent(String eventType, Object value, Map<String, Object> props){
+        dispatchEvent(eventType, PanelEventListener.this, value, props);
     }
 
-    protected <T> void dispachEvent(String eventType, Supplier<T> value, Map<String, Object> props){
-        dispachEvent(eventType, PanelEventListener.this, value, props);
+    protected <T> void dispatchEvent(String eventType, Supplier<T> value, Map<String, Object> props){
+        dispatchEvent(eventType, PanelEventListener.this, value, props);
     }
 
-    protected void dispachEvent(String eventType, Component component, Object value, Map<String, Object> props){
+    protected void dispatchEvent(String eventType, Component component, Object value, Map<String, Object> props){
         if (listeners != null && !listeners.isEmpty()) {
             List<Consumer<EventComponent>> listeners = this.listeners.get(eventType);
             if(listeners != null && !listeners.isEmpty()){
@@ -138,11 +138,11 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
         }
     }
 
-    protected <T> void dispachEvent(String eventType, Component component, Supplier<T> value){
-        dispachEvent(eventType, component, value, new HashMap<>());
+    protected <T> void dispatchEvent(String eventType, Component component, Supplier<T> value){
+        dispatchEvent(eventType, component, value, new HashMap<>());
     }
 
-    protected <T> void dispachEvent(String eventType, Component component, Supplier<T> value, Map<String, Object> props){
+    protected <T> void dispatchEvent(String eventType, Component component, Supplier<T> value, Map<String, Object> props){
         if (listeners != null && !listeners.isEmpty()) {
             List<Consumer<EventComponent>> listeners = this.listeners.get(eventType);
             if(listeners != null && !listeners.isEmpty()){

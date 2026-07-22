@@ -235,7 +235,7 @@ public class KeyPanel extends PanelEventListener {
         eventImple.next = next;
         eventImple.key = getCurrentKey();
 
-        dispachEvent(EventType.CHANGE, eventImple, new HashMap<String, Object>(){{
+        dispatchEvent(EventType.CHANGE, eventImple, new HashMap<String, Object>(){{
             put("id", getCurrentKey());
         }});
     }
@@ -246,7 +246,7 @@ public class KeyPanel extends PanelEventListener {
         eventImple.next = next;
         eventImple.key = getCurrentKey();
 
-        dispachEvent(EventType.BEFORE_CHANGE, eventImple, new HashMap<String, Object>(){{
+        dispatchEvent(EventType.BEFORE_CHANGE, eventImple, new HashMap<String, Object>(){{
             put("id", getCurrentKey());
         }});
 
@@ -291,7 +291,7 @@ public class KeyPanel extends PanelEventListener {
 
             if (parent instanceof KeyPanel keyPanel) {
                 keyPanel.notifyPanelsResized(w, h);
-                keyPanel.dispachEvent(EventType.RESIZE, new Dimension(w, h));
+                keyPanel.dispatchEvent(EventType.RESIZE, new Dimension(w, h));
             }
         }
 

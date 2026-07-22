@@ -3,11 +3,7 @@ package dtm.stools.component.panels.dock;
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.panels.base.PanelEventListener;
-import dtm.stools.component.panels.tab.EventTabbedPanel;
-import dtm.stools.component.panels.tab.TabConfig;
-import dtm.stools.component.panels.tab.TabEntry;
-import dtm.stools.component.panels.tab.TabEvent;
-import dtm.stools.component.panels.tab.TabbedPanel;
+import dtm.stools.component.panels.tab.*;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -693,7 +689,7 @@ public class DockPanel extends PanelEventListener {
         return header;
     }
 
-    private dtm.stools.component.panels.tab.TabHeaderFactory createDockHeaderFactory(DockEntry dockEntry) {
+    private TabHeaderFactory createDockHeaderFactory(DockEntry dockEntry) {
         return (tabs, tabEntry, selected) -> createDockTabHeader(tabs, tabEntry, dockEntry, selected);
     }
 

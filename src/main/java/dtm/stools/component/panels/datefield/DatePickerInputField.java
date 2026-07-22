@@ -695,7 +695,7 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
     }
 
     private void fireOnDataChange() {
-        dispachEvent(EventType.CHANGE, this::getSelectedDateTime);
+        dispatchEvent(EventType.CHANGE, this::getSelectedDateTime);
     }
 
     @Override

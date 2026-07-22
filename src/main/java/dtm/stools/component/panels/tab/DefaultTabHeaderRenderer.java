@@ -9,7 +9,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
-public class DefaultTabHeaderRenderer implements TabHeaderFactory{
+public class DefaultTabHeaderRenderer implements TabHeaderFactory {
 
     @Override
     public JComponent createHeader(TabbedPanel tabs, TabEntry entry, boolean selected) {

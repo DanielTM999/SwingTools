@@ -80,8 +80,8 @@ public class LoadingPanel extends PanelEventListener {
             }
         }
 
-        dispachEvent(EventType.CHANGE, this, loading, Map.of("loading", loading));
-        dispachEvent(loading ? START : STOP, this, loading, Map.of("loading", loading));
+        dispatchEvent(EventType.CHANGE, this, loading, Map.of("loading", loading));
+        dispatchEvent(loading ? START : STOP, this, loading, Map.of("loading", loading));
         repaint();
         return this;
     }
@@ -96,7 +96,7 @@ public class LoadingPanel extends PanelEventListener {
 
     public LoadingPanel setMessage(String message) {
         this.message = message == null ? "" : message;
-        dispachEvent(MESSAGE_CHANGE, this, this.message, Map.of("message", this.message));
+        dispatchEvent(MESSAGE_CHANGE, this, this.message, Map.of("message", this.message));
         repaint();
         return this;
     }
@@ -104,7 +104,7 @@ public class LoadingPanel extends PanelEventListener {
     public LoadingPanel setProgress(double progress) {
         this.progress = progress < 0 ? -1d : Math.max(0d, Math.min(1d, progress));
         updateTimer();
-        dispachEvent(PROGRESS, this, this.progress, Map.of("progress", this.progress));
+        dispatchEvent(PROGRESS, this, this.progress, Map.of("progress", this.progress));
         repaint();
         return this;
     }

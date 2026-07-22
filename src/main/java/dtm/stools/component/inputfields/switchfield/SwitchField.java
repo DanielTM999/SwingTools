@@ -97,10 +97,10 @@ public class SwitchField extends PanelEventListener {
 
         if (fireEvent) {
             Map<String, Object> props = Map.of("oldValue", oldValue, "newValue", selected);
-            dispachEvent(EventType.CHANGE, this, selected, props);
-            dispachEvent(selected ? SWITCH_ON : SWITCH_OFF, this, selected, props);
+            dispatchEvent(EventType.CHANGE, this, selected, props);
+            dispatchEvent(selected ? SWITCH_ON : SWITCH_OFF, this, selected, props);
             if (selected) {
-                dispachEvent(EventType.SELECT, this, selected, props);
+                dispatchEvent(EventType.SELECT, this, selected, props);
             }
         }
         return this;

@@ -22,7 +22,8 @@ public final class EventTabbedPanel {
     public static final String TAB_PINNED_CHANGE = "tabPinnedChange";
     public static final String TAB_DIRTY_CHANGE = "tabDirtyChange";
     public static final String BEFORE_TAB_CLOSE = "beforeTabClose";
+    public static final String TAB_HEADER_HOVER = "tabHeaderHover";
+    public static final String TAB_HEADER_HOVER_EXIT = "tabHeaderHoverExit";
 
-    private EventTabbedPanel() {
-    }
+    private EventTabbedPanel() { throw new IllegalArgumentException("EventTabbedPanel cannot be instantiated"); }
 }

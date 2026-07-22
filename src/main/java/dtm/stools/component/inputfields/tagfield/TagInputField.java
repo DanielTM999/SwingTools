@@ -150,7 +150,7 @@ public class TagInputField extends PanelEventListener {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER || e.getKeyCode() == KeyEvent.VK_TAB) {
                     commitInput();
-                    dispachEvent(EventType.SUBMIT, getTags());
+                    dispatchEvent(EventType.SUBMIT, getTags());
                     e.consume();
                 } else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE && inputField.getText().isEmpty()) {
                     removeLastTag();
@@ -243,7 +243,7 @@ public class TagInputField extends PanelEventListener {
 
         tags.clear();
         refreshTags();
-        dispachEvent(EventType.CLEAR, getTags());
+        dispatchEvent(EventType.CLEAR, getTags());
         dispatchChange(null, -1);
     }
 
@@ -452,18 +452,18 @@ public class TagInputField extends PanelEventListener {
 
     protected void dispatchInput() {
         if (internalTextUpdate) return;
-        dispachEvent(EventType.INPUT, inputField, inputField.getText(), Map.of("tags", getTags()));
+        dispatchEvent(EventType.INPUT, inputField, inputField.getText(), Map.of("tags", getTags()));
     }
 
     protected void dispatchChange(String tag, int index) {
         Map<String, Object> props = new HashMap<>();
         props.put("tag", tag);
         props.put("index", index);
-        dispachEvent(EventType.CHANGE, this, getTags(), props);
+        dispatchEvent(EventType.CHANGE, this, getTags(), props);
     }
 
     protected void dispatchTagEvent(String eventType, String tag, int index) {
-        dispachEvent(eventType, this, tag, Map.of("tag", tag, "index", index, "tags", getTags()));
+        dispatchEvent(eventType, this, tag, Map.of("tag", tag, "index", index, "tags", getTags()));
     }
 
     public interface TagRenderer {
