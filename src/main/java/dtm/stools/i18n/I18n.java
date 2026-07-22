@@ -256,9 +256,7 @@ public final class I18n {
     }
 
     private static InputStream openResourceStream(URL url) throws IOException {
-        URLConnection connection = url.openConnection();
-        connection.setUseCaches(false);
-        return connection.getInputStream();
+        return url.openStream();
     }
 
     private static void putText(Map<String, String> texts, String key, String value) {

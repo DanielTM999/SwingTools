@@ -529,21 +529,31 @@ public final class ResourceUtils {
     }
 
     private static URL toJarResourceUrl(URL jarUrl, String entryName) {
-        try {
-            String schemeSpecificPart =
-                    jarUrl.toExternalForm()
-                            + "!/"
-                            + entryName;
+        Objects.requireNonNull(jarUrl, "jarUrl não pode ser nula");
+        Objects.requireNonNull(entryName, "entryName não pode ser nulo");
 
-            return new URI(
-                    "jar",
-                    schemeSpecificPart,
+        try {
+            String normalizedJarUrl = jarUrl
+                    .toURI()
+                    .normalize()
+                    .toASCIIString();
+
+            String normalizedEntry = normalizeResourcePath(entryName);
+
+            String encodedEntryPath = new URI(
+                    null,
+                    null,
+                    "/" + normalizedEntry,
                     null
-            ).toURL();
+            ).getRawPath();
+
+            String resourceUrl = "jar:" + normalizedJarUrl + "!" + encodedEntryPath;
+
+            return URI.create(resourceUrl).toURL();
         } catch (Exception exception) {
             throw new IllegalStateException(
                     "Erro ao criar URL do recurso no JAR: "
-                            + entryName,
+                            + jarUrl + "!/" + entryName,
                     exception
             );
         }
