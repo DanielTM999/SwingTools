@@ -145,6 +145,14 @@ public class CodeEditorTextArea extends JComponent {
 
     @Getter
     @Setter
+    protected int caretScrollLeftMargin = 8;
+
+    @Getter
+    @Setter
+    protected int caretScrollRightMargin = 48;
+
+    @Getter
+    @Setter
     protected TextStyle defaultStyle = TextStyle.builder().build();
 
     @Getter
@@ -2356,11 +2364,30 @@ public class CodeEditorTextArea extends JComponent {
     protected void scrollToCaret() {
         FontMetrics fm = getFontMetrics(getFont());
         int lineHeight = fm.getHeight();
+
         String lineText = buffer.lineAt(caretLine);
-        int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
+
+        int cx = baseVisualXForColumn(
+                caretLine,
+                lineText,
+                caretCol,
+                fm
+        );
+
         int cy = yOfBufferLine(caretLine);
         int extra = hasCodeLens(caretLine) ? lineHeight : 0;
-        scrollRectToVisible(new Rectangle(cx - 2, cy - extra, 4, lineHeight + extra));
+
+        int x = Math.max(0, cx - caretScrollLeftMargin);
+        int width = caretScrollLeftMargin
+                + 2
+                + caretScrollRightMargin;
+
+        scrollRectToVisible(new Rectangle(
+                x,
+                cy - extra,
+                width,
+                lineHeight + extra
+        ));
     }
 
     protected int caretOffset() {
@@ -4124,9 +4151,14 @@ public class CodeEditorTextArea extends JComponent {
     public Dimension getPreferredSize() {
         FontMetrics fm = getFontMetrics(getFont());
         int lineHeight = fm.getHeight();
+
         int width = getMaxLineWidth();
         int bottomPadding = lineHeight * 5;
-        return new Dimension(width + 8, totalContentHeight() + bottomPadding);
+
+        return new Dimension(
+                width + caretScrollRightMargin + 8,
+                totalContentHeight() + bottomPadding
+        );
     }
 
     protected class KeyHandler extends KeyAdapter {
