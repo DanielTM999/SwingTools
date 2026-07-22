@@ -14,6 +14,7 @@ import java.util.concurrent.locks.LockSupport;
 class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
 
     private static final long DISPOSE_WAIT_MILLIS = 5000;
+    private static final int MAX_INITIALIZE_ATTEMPTS = 5;
 
     private final GraphicsGlCanvas canvas;
     private final GraphicsGlContext context;
@@ -34,6 +35,7 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
 
     private long contextHandle;
     private GraphicsRender<GraphicsGlContext> initializedRenderer;
+    private int initializeFailures;
     private long nextFrameNanos;
 
     GraphicsGlHost() {
@@ -193,18 +195,16 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         GraphicsRender<GraphicsGlContext> currentRenderer = renderer;
         if (currentRenderer != initializedRenderer) {
             disposeInitializedRenderer();
-            initializedRenderer = currentRenderer;
-            if (currentRenderer != null) {
-                try {
-                    if (currentRenderer instanceof GraphicsGlRender glRenderer) {
-                        GraphicsGlRenderContextRegistry.bind(glRenderer, context);
-                    }
-                    currentRenderer.initialize(context);
-                    currentRenderer.resize(context, context.getWidth(), context.getHeight());
-                    rendererReady = true;
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                }
+            if (currentRenderer == null) {
+                initializedRenderer = null;
+            } else if (initializeRenderer(currentRenderer)) {
+                initializedRenderer = currentRenderer;
+                initializeFailures = 0;
+            } else if (++initializeFailures >= MAX_INITIALIZE_ATTEMPTS) {
+                initializedRenderer = currentRenderer;
+            } else {
+                scheduleNext(frameStartNanos);
+                return;
             }
         }
 
@@ -241,6 +241,7 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
             contextHandle = 0;
         }
         initializedRenderer = null;
+        initializeFailures = 0;
         contextCreated = false;
         rendererReady = false;
         nextFrameNanos = 0;
@@ -270,6 +271,29 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         long next = nextFrameNanos + period;
         if (next <= frameStartNanos) next = frameStartNanos + period;
         nextFrameNanos = next;
+    }
+
+    private boolean initializeRenderer(GraphicsRender<GraphicsGlContext> currentRenderer) {
+        try {
+            if (currentRenderer instanceof GraphicsGlRender glRenderer) {
+                GraphicsGlRenderContextRegistry.bind(glRenderer, context);
+            }
+            currentRenderer.initialize(context);
+            currentRenderer.resize(context, context.getWidth(), context.getHeight());
+            rendererReady = true;
+            return true;
+        } catch (Throwable t) {
+            t.printStackTrace();
+            try {
+                currentRenderer.dispose(context);
+            } catch (Throwable ignored) {
+            }
+            if (currentRenderer instanceof GraphicsGlRender glRenderer) {
+                GraphicsGlRenderContextRegistry.unbind(glRenderer);
+            }
+            rendererReady = false;
+            return false;
+        }
     }
 
     private void drainTasks() {

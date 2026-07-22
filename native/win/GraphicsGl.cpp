@@ -22,6 +22,13 @@ struct GlSurface {
     HGLRC hglrc;
 };
 
+void release_frame_dc(GlSurface* s) {
+    if (!s->hdc) return;
+    if (wglGetCurrentDC() == s->hdc) wglMakeCurrent(nullptr, nullptr);
+    ReleaseDC(s->hwnd, s->hdc);
+    s->hdc = nullptr;
+}
+
 HWND get_hwnd(JNIEnv* env, jobject canvas) {
     JAWT awt;
     awt.version = JAWT_VERSION_9;
@@ -77,7 +84,12 @@ Java_dtm_stools_component_panels_graphics_gl_GlNative_nCreateContext(JNIEnv* env
     pfd.iLayerType = PFD_MAIN_PLANE;
 
     int pf = ChoosePixelFormat(hdc, &pfd);
-    if (pf == 0 || !SetPixelFormat(hdc, pf, &pfd)) {
+    if (pf == 0) {
+        ReleaseDC(hwnd, hdc);
+        return 0;
+    }
+
+    if (GetPixelFormat(hdc) == 0 && !SetPixelFormat(hdc, pf, &pfd)) {
         ReleaseDC(hwnd, hdc);
         return 0;
     }
@@ -112,7 +124,10 @@ Java_dtm_stools_component_panels_graphics_gl_GlNative_nCreateContext(JNIEnv* env
 
     stgl_load_functions();
 
-    GlSurface* s = new GlSurface{hwnd, hdc, ctx};
+    wglMakeCurrent(nullptr, nullptr);
+    ReleaseDC(hwnd, hdc);
+
+    GlSurface* s = new GlSurface{hwnd, nullptr, ctx};
     return reinterpret_cast<jlong>(s);
 }
 
@@ -120,14 +135,28 @@ JNIEXPORT jboolean JNICALL
 Java_dtm_stools_component_panels_graphics_gl_GlNative_nMakeCurrent(JNIEnv*, jclass, jlong handle) {
     if (!handle) return JNI_FALSE;
     GlSurface* s = reinterpret_cast<GlSurface*>(handle);
-    return wglMakeCurrent(s->hdc, s->hglrc) ? JNI_TRUE : JNI_FALSE;
+
+    release_frame_dc(s);
+
+    HDC hdc = GetDC(s->hwnd);
+    if (!hdc) return JNI_FALSE;
+
+    if (!wglMakeCurrent(hdc, s->hglrc)) {
+        ReleaseDC(s->hwnd, hdc);
+        return JNI_FALSE;
+    }
+
+    s->hdc = hdc;
+    return JNI_TRUE;
 }
 
 JNIEXPORT void JNICALL
 Java_dtm_stools_component_panels_graphics_gl_GlNative_nSwapBuffers(JNIEnv*, jclass, jlong handle) {
     if (!handle) return;
     GlSurface* s = reinterpret_cast<GlSurface*>(handle);
+    if (!s->hdc) return;
     SwapBuffers(s->hdc);
+    release_frame_dc(s);
 }
 
 JNIEXPORT void JNICALL

@@ -74,6 +74,10 @@ public class ChartsPanel<R extends ChartBaseRender> extends BlockingPanel {
         return graphicsGlPanel.isReady();
     }
 
+    public boolean isChartContextCreated() {
+        return graphicsGlPanel.isContextCreated();
+    }
+
     public boolean isRendering() {
         return graphicsGlPanel.isRendering();
     }
