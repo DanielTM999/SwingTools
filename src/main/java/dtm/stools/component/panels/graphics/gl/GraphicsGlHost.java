@@ -159,7 +159,8 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         if (disposeRequested || disposed) return;
 
         if (contextHandle == 0) {
-            if (!canvas.isDisplayable()) {
+            if (!canvas.isDisplayable() || !canvas.isShowing()
+                    || canvas.getWidth() <= 0 || canvas.getHeight() <= 0) {
                 scheduleNext(frameStartNanos);
                 return;
             }
@@ -212,11 +213,16 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         int h = Math.max(1, canvas.getHeight());
         if (w != context.getWidth() || h != context.getHeight()) {
             context.updateSize(w, h);
-            if (currentRenderer != null && rendererReady) {
-                try {
-                    currentRenderer.resize(context, w, h);
-                } catch (Throwable t) {
-                    t.printStackTrace();
+            if (currentRenderer != null) {
+                if (rendererReady) {
+                    try {
+                        currentRenderer.resize(context, w, h);
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    }
+                } else {
+                    initializedRenderer = null;
+                    initializeFailures = 0;
                 }
             }
         }
