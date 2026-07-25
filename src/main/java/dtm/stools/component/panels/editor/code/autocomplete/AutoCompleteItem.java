@@ -15,7 +15,34 @@ public record AutoCompleteItem(
         List<TextEdit> additionalTextEdits
 ) {
 
-    public enum Kind { TEXT, SNIPPET }
+    public enum Kind {
+        TEXT,
+        METHOD,
+        FUNCTION,
+        CONSTRUCTOR,
+        FIELD,
+        VARIABLE,
+        CLASS,
+        INTERFACE,
+        MODULE,
+        PROPERTY,
+        PARAMETER,
+        UNIT,
+        VALUE,
+        ENUM,
+        KEYWORD,
+        SNIPPET,
+        COLOR,
+        FILE,
+        REFERENCE,
+        FOLDER,
+        ENUM_MEMBER,
+        CONSTANT,
+        STRUCT,
+        EVENT,
+        OPERATOR,
+        TYPE_PARAMETER
+    }
 
     public AutoCompleteItem {
         additionalTextEdits = additionalTextEdits == null ? List.of() : List.copyOf(additionalTextEdits);

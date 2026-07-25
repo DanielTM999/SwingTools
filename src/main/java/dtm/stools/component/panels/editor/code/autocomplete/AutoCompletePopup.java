@@ -10,6 +10,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.util.List;
+import java.util.Locale;
 
 public class AutoCompletePopup {
 
@@ -340,12 +341,13 @@ public class AutoCompletePopup {
 
         private String kindInitial(AutoCompleteItem item) {
             if (item == null || item.kind() == null) return "T";
-            return item.isSnippet() ? "S" : "T";
+            return item.kind().name().substring(0, 1);
         }
 
         private String kindText(AutoCompleteItem item) {
             if (item == null || item.kind() == null) return text("kind.text", "text");
-            return item.isSnippet() ? text("kind.snippet", "snippet") : text("kind.text", "text");
+            String name = item.kind().name().toLowerCase(Locale.ROOT);
+            return text("kind." + name, name.replace('_', ' '));
         }
     }
 
