@@ -298,6 +298,22 @@ public class CodeEditor extends BlockingPanel {
         textArea.repaint();
     }
 
+    public boolean isHighlightSelectedTextOccurrences() {
+        return textArea.isHighlightSelectedTextOccurrences();
+    }
+
+    public void setHighlightSelectedTextOccurrences(boolean enabled) {
+        textArea.setHighlightSelectedTextOccurrences(enabled);
+    }
+
+    public Color getSelectedTextOccurrencesColor() {
+        return textArea.getSelectedTextOccurrencesColor();
+    }
+
+    public void setSelectedTextOccurrencesColor(Color color) {
+        textArea.setSelectedTextOccurrencesColor(color);
+    }
+
     public Color getCurrentLineColor() {
         return textArea.getCurrentLineColor();
     }

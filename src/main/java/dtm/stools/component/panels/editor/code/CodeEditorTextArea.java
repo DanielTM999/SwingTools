@@ -102,6 +102,15 @@ public class CodeEditorTextArea extends JComponent {
 
     private static final int HOVER_DOCUMENTATION_HIDE_DELAY = 400;
     private static final int HOVER_DOCUMENTATION_REACH_PADDING = 18;
+    private static final int SELECTED_TEXT_OCCURRENCES_DELAY = 75;
+
+    private static Color createDefaultSelectedTextOccurrencesColor() {
+        Color base = UIManager.getColor("TextArea.selectionBackground");
+        if (base == null) {
+            base = new Color(51, 153, 255);
+        }
+        return new Color(base.getRed(), base.getGreen(), base.getBlue(), Math.min(base.getAlpha(), 64));
+    }
 
     protected static final Map<Character, Character> DEFAULT_PAIRS = Map.of(
             '(', ')',
@@ -158,6 +167,18 @@ public class CodeEditorTextArea extends JComponent {
     @Getter
     @Setter
     protected Color selectionColor;
+
+    @Getter
+    protected boolean highlightSelectedTextOccurrences = true;
+
+    @Getter
+    protected Color selectedTextOccurrencesColor = createDefaultSelectedTextOccurrencesColor();
+
+    protected volatile int[] selectedTextOccurrenceOffsets = new int[0];
+    protected volatile Future<?> currentSelectedTextOccurrencesTask;
+    protected final AtomicInteger selectedTextOccurrencesVersion = new AtomicInteger();
+    protected ExecutorService selectedTextOccurrencesExecutor = createSelectedTextOccurrencesExecutor();
+    protected Timer selectedTextOccurrencesTimer;
 
     @Getter
     @Setter
@@ -844,6 +865,7 @@ public class CodeEditorTextArea extends JComponent {
             @Override
             public void onTextChanged() {
                 refreshSearchOnTextChange();
+                scheduleSelectedTextOccurrencesRefresh();
                 selectionChainCache = Collections.emptyList();
                 selectionChainIndex = -1;
                 applySyntaxHighlight();
@@ -869,6 +891,7 @@ public class CodeEditorTextArea extends JComponent {
     public void addNotify() {
         super.addNotify();
         ensureExecutorsStarted();
+        scheduleSelectedTextOccurrencesRefresh();
     }
 
     @Override
@@ -885,6 +908,7 @@ public class CodeEditorTextArea extends JComponent {
         getWordCaretEventExecutor();
         getCodeLensExecutor();
         getAutoCompleteExecutor();
+        getSelectedTextOccurrencesExecutor();
     }
 
     protected void cancelAsyncWork() {
@@ -897,11 +921,16 @@ public class CodeEditorTextArea extends JComponent {
         autoCompleteVersion.incrementAndGet();
         ghostTextVersion.incrementAndGet();
         signatureHelpVersion.incrementAndGet();
+        selectedTextOccurrencesVersion.incrementAndGet();
 
         cancelFuture(currentHighlightTask);
         cancelFuture(currentDiagnosticsTask);
         cancelFuture(currentInlayHintTask);
         cancelFuture(currentCodeLensTask);
+        cancelFuture(currentSelectedTextOccurrencesTask);
+        if (selectedTextOccurrencesTimer != null) {
+            selectedTextOccurrencesTimer.stop();
+        }
         CompletableFuture<List<AutoCompleteItem>> autoCompleteTask = currentAutoCompleteTask;
         if (autoCompleteTask != null && !autoCompleteTask.isDone()) {
             autoCompleteTask.cancel(true);
@@ -966,6 +995,13 @@ public class CodeEditorTextArea extends JComponent {
         return autoCompleteExecutor;
     }
 
+    protected synchronized ExecutorService getSelectedTextOccurrencesExecutor() {
+        if (!isExecutorActive(selectedTextOccurrencesExecutor)) {
+            selectedTextOccurrencesExecutor = createSelectedTextOccurrencesExecutor();
+        }
+        return selectedTextOccurrencesExecutor;
+    }
+
     private boolean isExecutorActive(ExecutorService executor) {
         return executor != null && !executor.isShutdown() && !executor.isTerminated();
     }
@@ -1018,6 +1054,14 @@ public class CodeEditorTextArea extends JComponent {
         });
     }
 
+    private ExecutorService createSelectedTextOccurrencesExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "CodeEditorTextArea-SelectedTextOccurrences");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
     protected void shutdownExecutors() {
         shutdownExecutor(highlightExecutor);
         shutdownExecutor(diagnosticsExecutor);
@@ -1025,6 +1069,7 @@ public class CodeEditorTextArea extends JComponent {
         shutdownExecutor(wordCaretEventExecutor);
         shutdownExecutor(codeLensExecutor);
         shutdownExecutor(autoCompleteExecutor);
+        shutdownExecutor(selectedTextOccurrencesExecutor);
     }
 
     private void shutdownExecutor(ExecutorService executor) {
@@ -1650,6 +1695,18 @@ public class CodeEditorTextArea extends JComponent {
         return getSelectedText();
     }
 
+    public void setHighlightSelectedTextOccurrences(boolean enabled) {
+        if (highlightSelectedTextOccurrences == enabled) return;
+        highlightSelectedTextOccurrences = enabled;
+        scheduleSelectedTextOccurrencesRefresh();
+    }
+
+    public void setSelectedTextOccurrencesColor(Color color) {
+        if (Objects.equals(selectedTextOccurrencesColor, color)) return;
+        selectedTextOccurrencesColor = color;
+        repaint();
+    }
+
     public void setCaretPosition(int line, int col) {
         caretLine = Math.max(0, Math.min(line, buffer.lineCount() - 1));
         caretCol = Math.max(0, Math.min(col, buffer.lineAt(caretLine).length()));
@@ -2134,7 +2191,14 @@ public class CodeEditorTextArea extends JComponent {
     protected void fireStateChangedIfNeeded() {
         CodeEditorState state = getEditorState();
         if (state.equals(lastState)) return;
+        CodeEditorState previousState = lastState;
         lastState = state;
+        if (previousState == null
+                || previousState.selectionActive() != state.selectionActive()
+                || previousState.selectionStartOffset() != state.selectionStartOffset()
+                || previousState.selectionEndOffset() != state.selectionEndOffset()) {
+            scheduleSelectedTextOccurrencesRefresh();
+        }
         for (CodeEditorStateListener listener : stateListeners) {
             listener.onStateChanged(state);
         }
@@ -2142,6 +2206,106 @@ public class CodeEditorTextArea extends JComponent {
             lastWordCaretChangeOffset = state.caretOffset();
             fireWordCaretChangeEvent(state.caretLine(), state.caretCol());
         }
+    }
+
+    protected void scheduleSelectedTextOccurrencesRefresh() {
+        selectedTextOccurrencesVersion.incrementAndGet();
+        selectedTextOccurrenceOffsets = new int[0];
+        cancelFuture(currentSelectedTextOccurrencesTask);
+        if (selectedTextOccurrencesTimer != null) {
+            selectedTextOccurrencesTimer.stop();
+        }
+        if (!highlightSelectedTextOccurrences || !hasSelection()) {
+            repaint();
+            return;
+        }
+        if (selectedTextOccurrencesTimer == null) {
+            selectedTextOccurrencesTimer = new Timer(
+                    SELECTED_TEXT_OCCURRENCES_DELAY,
+                    e -> submitSelectedTextOccurrencesRefresh());
+            selectedTextOccurrencesTimer.setRepeats(false);
+        }
+        selectedTextOccurrencesTimer.restart();
+        repaint();
+    }
+
+    protected void submitSelectedTextOccurrencesRefresh() {
+        if (!highlightSelectedTextOccurrences || !hasSelection()) return;
+        int version = selectedTextOccurrencesVersion.get();
+        int bufferVersion = buffer.getVersion();
+        int selectionStart = getSelectionStart();
+        int selectionEnd = getSelectionEnd();
+        String selectedText = buffer.substring(selectionStart, selectionEnd);
+        if (selectedText.isEmpty()) return;
+        String textSnapshot = buffer.getText();
+        currentSelectedTextOccurrencesTask = getSelectedTextOccurrencesExecutor().submit(() -> {
+            int[] matches = findSelectedTextOccurrences(
+                    textSnapshot,
+                    selectedText,
+                    selectionStart,
+                    selectionEnd);
+            if (Thread.currentThread().isInterrupted()) return;
+            SwingUtilities.invokeLater(() -> {
+                if (version != selectedTextOccurrencesVersion.get()) return;
+                if (!highlightSelectedTextOccurrences || bufferVersion != buffer.getVersion()) return;
+                if (!hasSelection()
+                        || selectionStart != getSelectionStart()
+                        || selectionEnd != getSelectionEnd()) {
+                    return;
+                }
+                selectedTextOccurrenceOffsets = matches;
+                repaint();
+            });
+        });
+    }
+
+    protected static int[] findSelectedTextOccurrences(
+            String text,
+            String selectedText,
+            int selectionStart,
+            int selectionEnd) {
+        if (text == null || selectedText == null || selectedText.isEmpty()) {
+            return new int[0];
+        }
+        boolean identifier = isIdentifierText(selectedText);
+        int[] matches = new int[16];
+        int size = 0;
+        int from = 0;
+        while (from <= text.length() - selectedText.length()) {
+            if (Thread.currentThread().isInterrupted()) {
+                return new int[0];
+            }
+            int start = text.indexOf(selectedText, from);
+            if (start < 0) break;
+            int end = start + selectedText.length();
+            if ((start != selectionStart || end != selectionEnd)
+                    && (!identifier || hasIdentifierBoundaries(text, start, end))) {
+                if (size + 2 > matches.length) {
+                    matches = Arrays.copyOf(matches, matches.length << 1);
+                }
+                matches[size++] = start;
+                matches[size++] = end;
+            }
+            from = end;
+        }
+        return size == matches.length ? matches : Arrays.copyOf(matches, size);
+    }
+
+    protected static boolean isIdentifierText(String text) {
+        if (text.isEmpty() || !Character.isJavaIdentifierStart(text.charAt(0))) {
+            return false;
+        }
+        for (int i = 1; i < text.length(); i++) {
+            if (!Character.isJavaIdentifierPart(text.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected static boolean hasIdentifierBoundaries(String text, int start, int end) {
+        return (start == 0 || !Character.isJavaIdentifierPart(text.charAt(start - 1)))
+                && (end == text.length() || !Character.isJavaIdentifierPart(text.charAt(end)));
     }
 
     public void setTabSize(int tabSize) {
@@ -3896,6 +4060,8 @@ public class CodeEditorTextArea extends JComponent {
             g2.fillRect(0, ly, getWidth(), lineHeight);
         }
 
+        paintSelectedTextOccurrences(g2, defaultFm, lineHeight);
+
         if (hasSelection() || hasExtraSelections()) {
             paintSelection(g2, defaultFm, lineHeight);
         }
@@ -4064,17 +4230,72 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected void paintSelectionRange(Graphics2D g2, FontMetrics fm, int lineHeight, int startOff, int endOff) {
+        paintSelectionRange(g2, fm, lineHeight, startOff, endOff, selectionColor);
+    }
+
+    protected void paintSelectedTextOccurrences(Graphics2D g2, FontMetrics fm, int lineHeight) {
+        int[] offsets = selectedTextOccurrenceOffsets;
+        if (!highlightSelectedTextOccurrences || offsets.length == 0) return;
+
+        Rectangle clip = g2.getClipBounds();
+        int firstVisibleLine = clip != null ? bufferLineAtY(clip.y) : 0;
+        int lastVisibleLine = clip != null
+                ? bufferLineAtY(clip.y + clip.height)
+                : buffer.lineCount() - 1;
+        firstVisibleLine = Math.max(0, firstVisibleLine);
+        lastVisibleLine = Math.min(buffer.lineCount() - 1, lastVisibleLine);
+        int visibleStartOffset = buffer.offsetOfLine(firstVisibleLine);
+        int visibleEndOffset = lastVisibleLine + 1 < buffer.lineCount()
+                ? buffer.offsetOfLine(lastVisibleLine + 1)
+                : buffer.length();
+
+        int low = 0;
+        int high = offsets.length / 2;
+        while (low < high) {
+            int middle = (low + high) >>> 1;
+            if (offsets[middle * 2 + 1] <= visibleStartOffset) {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
+        }
+        Color color = selectedTextOccurrencesColor != null
+                ? selectedTextOccurrencesColor
+                : selectionColor;
+        for (int i = low * 2; i < offsets.length; i += 2) {
+            int start = offsets[i];
+            if (start >= visibleEndOffset) break;
+            paintSelectionRange(
+                    g2,
+                    fm,
+                    lineHeight,
+                    start,
+                    offsets[i + 1],
+                    color);
+        }
+    }
+
+    protected void paintSelectionRange(
+            Graphics2D g2,
+            FontMetrics fm,
+            int lineHeight,
+            int startOff,
+            int endOff,
+            Color color) {
         int startLine = buffer.lineOfOffset(startOff);
         int endLine = buffer.lineOfOffset(endOff);
 
-        if (selectionColor != null) {
-            g2.setColor(selectionColor);
+        if (color != null) {
+            g2.setColor(color);
         } else {
             Color uiColor = UIManager.getColor("TextArea.selectionBackground");
             g2.setColor(uiColor != null ? uiColor : new Color(51, 153, 255, 80));
         }
 
-        for (int i = startLine; i <= endLine; i++) {
+        Rectangle clip = g2.getClipBounds();
+        int firstLine = clip != null ? Math.max(startLine, bufferLineAtY(clip.y)) : startLine;
+        int lastLine = clip != null ? Math.min(endLine, bufferLineAtY(clip.y + clip.height)) : endLine;
+        for (int i = firstLine; i <= lastLine; i++) {
             if (isLineHidden(i)) continue;
             String lineText = buffer.lineAt(i);
             int lineOffset = buffer.offsetOfLine(i);
