@@ -2236,7 +2236,7 @@ public class CodeEditorTextArea extends JComponent {
         int selectionStart = getSelectionStart();
         int selectionEnd = getSelectionEnd();
         String selectedText = buffer.substring(selectionStart, selectionEnd);
-        if (selectedText.isEmpty()) return;
+        if (selectedText.isBlank()) return;
         String textSnapshot = buffer.getText();
         currentSelectedTextOccurrencesTask = getSelectedTextOccurrencesExecutor().submit(() -> {
             int[] matches = findSelectedTextOccurrences(
@@ -2264,7 +2264,7 @@ public class CodeEditorTextArea extends JComponent {
             String selectedText,
             int selectionStart,
             int selectionEnd) {
-        if (text == null || selectedText == null || selectedText.isEmpty()) {
+        if (text == null || selectedText == null || selectedText.isBlank()) {
             return new int[0];
         }
         boolean identifier = isIdentifierText(selectedText);

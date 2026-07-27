@@ -9,6 +9,7 @@ public class SelectedTextOccurrencesRepro {
 
     public static void main(String[] args) throws Exception {
         verifiesIdentifierOccurrences();
+        verifiesBlankSelectionDoesNotMatchOccurrences();
         verifiesMultilineOccurrences();
         verifiesConfiguration();
         verifiesSelectionLifecycle();
@@ -20,6 +21,12 @@ public class SelectedTextOccurrencesRepro {
         String text = "item otherItem item item2 item";
         int[] matches = CodeEditorTextArea.findSelectedTextOccurrences(text, "item", 0, 4);
         require(Arrays.equals(matches, new int[]{15, 19, 26, 30}));
+    }
+
+    static void verifiesBlankSelectionDoesNotMatchOccurrences() {
+        String text = "one  two\tthree\nfour";
+        require(CodeEditorTextArea.findSelectedTextOccurrences(text, " ", 3, 4).length == 0);
+        require(CodeEditorTextArea.findSelectedTextOccurrences(text, "  \t\n", 3, 7).length == 0);
     }
 
     static void verifiesMultilineOccurrences() {
