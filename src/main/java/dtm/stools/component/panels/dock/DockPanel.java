@@ -929,10 +929,10 @@ public class DockPanel extends PanelEventListener {
 
         DockRegion target = resolveDockDropRegion(location);
         DockDropContext context = new DockDropContext(this, dragSession.entry, dragSession.sourceRegion, target, location);
-        previewRegion = target;
         previewAllowed = target != null
                 && target != dragSession.sourceRegion
                 && canDropDock(context);
+        previewRegion = previewAllowed ? target : null;
 
         dispatchDockEvent(EventDockPanel.DOCK_DRAG_OVER, dragSession.entry, new HashMap<>() {{
             put("sourceRegion", dragSession.sourceRegion);
@@ -991,16 +991,16 @@ public class DockPanel extends PanelEventListener {
     @Override
     protected void paintChildren(Graphics g) {
         super.paintChildren(g);
-        if (previewRegion == null || dragSession == null || !dragSession.active) return;
+        if (!previewAllowed || previewRegion == null || dragSession == null || !dragSession.active) return;
 
         Rectangle bounds = getDockDropPreviewBounds(previewRegion);
         if (bounds == null || bounds.width <= 0 || bounds.height <= 0) return;
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        float alpha = previewAllowed ? dockDropPreviewAlpha : Math.min(0.14f, dockDropPreviewAlpha);
+        float alpha = dockDropPreviewAlpha;
         g2.setComposite(AlphaComposite.SrcOver.derive(alpha));
-        g2.setColor(previewAllowed ? dockDropPreviewColor : Color.GRAY);
+        g2.setColor(dockDropPreviewColor);
         g2.fillRoundRect(bounds.x + 4, bounds.y + 4, Math.max(0, bounds.width - 8), Math.max(0, bounds.height - 8), 10, 10);
         g2.setComposite(AlphaComposite.SrcOver.derive(Math.min(1f, alpha + 0.2f)));
         g2.setStroke(new BasicStroke(2f));
