@@ -103,6 +103,8 @@ tabs.setScrollableTabsEnabled(true)
 
 APIs relacionadas: `dockTab`, `splitTab`, `transferTabTo`, `reattachTabTo`, `reattachAllTabs`, `dockAllTabs`, `mergeDockGroups`, `getDockGroups`.
 
+Ao arrastar uma aba para fora da janela, o componente exibe uma miniatura flutuante do conteúdo antes de criar a nova janela. O preview pode ser configurado com `setDetachedTabPreviewEnabled`, `setDetachedTabPreviewSize` e `setDetachedTabPreviewAlpha`.
+
 ## Exemplo completo
 
 ```java

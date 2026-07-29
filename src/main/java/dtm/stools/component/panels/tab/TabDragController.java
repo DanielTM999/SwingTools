@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 
 public class TabDragController {
@@ -20,6 +21,9 @@ public class TabDragController {
     private Color splitPreviewColor = new Color(0x2563EB);
     private float ghostAlpha = 0.9f;
     private float splitPreviewAlpha = 0.18f;
+    private boolean detachedPreviewEnabled = true;
+    private Dimension detachedPreviewSize = new Dimension(360, 220);
+    private float detachedPreviewAlpha = 0.88f;
     private ComponentAnimator<JComponent> animator;
     private AWTEventListener releaseListener;
 
@@ -65,7 +69,13 @@ public class TabDragController {
                 }
 
                 if (session.isStarted()) {
-                    updateGhostLocation(e);
+                    Point screenPoint = e.getLocationOnScreen();
+                    boolean detachedPreview = shouldShowDetachedPreview(screenPoint);
+                    updateDragPreview(e, screenPoint, detachedPreview);
+                    if (detachedPreview) {
+                        return;
+                    }
+
                     Point point = SwingUtilities.convertPoint(e.getComponent(), e.getPoint(), tabs.getTabbedPane());
                     boolean transferTarget = tabs.hasTransferTarget(point);
                     TabSplitPlacement placement = transferTarget ? null : tabs.resolveSplitPlacement(point);
@@ -181,6 +191,39 @@ public class TabDragController {
         this.splitPreviewAlpha = Math.max(0.05f, Math.min(0.7f, splitPreviewAlpha));
     }
 
+    public boolean isDetachedPreviewEnabled() {
+        return detachedPreviewEnabled;
+    }
+
+    public void setDetachedPreviewEnabled(boolean detachedPreviewEnabled) {
+        this.detachedPreviewEnabled = detachedPreviewEnabled;
+        if (!detachedPreviewEnabled) {
+            hideDetachedPreview();
+        }
+    }
+
+    public Dimension getDetachedPreviewSize() {
+        return new Dimension(detachedPreviewSize);
+    }
+
+    public void setDetachedPreviewSize(Dimension detachedPreviewSize) {
+        if (detachedPreviewSize == null) {
+            return;
+        }
+        this.detachedPreviewSize = new Dimension(
+                Math.max(160, detachedPreviewSize.width),
+                Math.max(100, detachedPreviewSize.height)
+        );
+    }
+
+    public float getDetachedPreviewAlpha() {
+        return detachedPreviewAlpha;
+    }
+
+    public void setDetachedPreviewAlpha(float detachedPreviewAlpha) {
+        this.detachedPreviewAlpha = Math.max(0.2f, Math.min(1f, detachedPreviewAlpha));
+    }
+
     private void installMouseHandler(Component component, MouseAdapter adapter) {
         if (!(component instanceof AbstractButton)) {
             component.addMouseListener(adapter);
@@ -243,7 +286,10 @@ public class TabDragController {
 
     private void finishDrag(Point point) {
         if (session == null || !session.isStarted()) return;
+        hideDetachedPreview();
+        hideSplitPreview();
         if (tabs.transferTabFromDrag(session.getEntry().getKey(), point)) return;
+        if (tabs.detachTabToWindowFromDrag(session.getEntry().getKey(), point)) return;
         if (tabs.splitTabFromDrag(session.getEntry().getKey(), point)) return;
         liveReorder(point);
     }
@@ -326,6 +372,236 @@ public class TabDragController {
         session.getDragLayer().repaint();
     }
 
+    private void updateDragPreview(MouseEvent event, Point screenPoint, boolean detached) {
+        JComponent ghost = session.getGhostComponent();
+        if (detached) {
+            if (ghost != null) {
+                ghost.setVisible(false);
+            }
+            hideSplitPreview();
+            showDetachedPreview(screenPoint);
+            return;
+        }
+
+        hideDetachedPreview();
+        if (ghost != null) {
+            ghost.setVisible(true);
+        }
+        updateGhostLocation(event);
+    }
+
+    private boolean shouldShowDetachedPreview(Point screenPoint) {
+        if (!detachedPreviewEnabled || !tabs.isTabWindowEnabled() || screenPoint == null) {
+            return false;
+        }
+        Window owner = SwingUtilities.getWindowAncestor(tabs);
+        return owner != null && !owner.getBounds().contains(screenPoint);
+    }
+
+    private void showDetachedPreview(Point screenPoint) {
+        if (session == null || screenPoint == null || GraphicsEnvironment.isHeadless()) {
+            return;
+        }
+
+        JWindow previewWindow = session.getDetachedPreviewWindow();
+        if (previewWindow == null) {
+            BufferedImage image = createDetachedPreviewImage(session.getEntry());
+            Window owner = SwingUtilities.getWindowAncestor(tabs);
+            previewWindow = owner == null ? new JWindow() : new JWindow(owner);
+            previewWindow.setFocusableWindowState(false);
+            previewWindow.setAutoRequestFocus(false);
+            previewWindow.setType(Window.Type.POPUP);
+            try {
+                previewWindow.setBackground(new Color(0, 0, 0, 0));
+                previewWindow.setAlwaysOnTop(true);
+            } catch (RuntimeException ignored) {
+                // Some window managers do not support per-pixel transparency or always-on-top.
+            }
+            previewWindow.setContentPane(createDetachedPreviewComponent(image));
+            previewWindow.pack();
+            session.setDetachedPreviewWindow(previewWindow);
+        }
+
+        Point location = resolveDetachedPreviewLocation(screenPoint, previewWindow.getSize());
+        previewWindow.setLocation(location);
+        if (!previewWindow.isVisible()) {
+            previewWindow.setVisible(true);
+        }
+        previewWindow.repaint();
+    }
+
+    BufferedImage createDetachedPreviewImage(TabEntry entry) {
+        Component content = entry == null ? null : entry.getComponent();
+        Dimension sourceSize = content == null ? new Dimension(640, 400) : content.getSize();
+        if (sourceSize.width <= 0 || sourceSize.height <= 0) {
+            Dimension preferred = content == null ? null : content.getPreferredSize();
+            sourceSize = preferred == null ? new Dimension(640, 400) : preferred;
+        }
+        sourceSize = new Dimension(Math.max(1, sourceSize.width), Math.max(1, sourceSize.height));
+
+        int maxWidth = Math.max(160, detachedPreviewSize.width);
+        int maxHeight = Math.max(100, detachedPreviewSize.height);
+        int headerHeight = Math.min(30, Math.max(24, maxHeight / 6));
+        double scale = Math.min(
+                1d,
+                Math.min(
+                        (double) maxWidth / sourceSize.width,
+                        (double) (maxHeight - headerHeight) / sourceSize.height
+                )
+        );
+        int contentWidth = Math.max(1, (int) Math.round(sourceSize.width * scale));
+        int contentHeight = Math.max(1, (int) Math.round(sourceSize.height * scale));
+        int width = Math.max(160, contentWidth);
+        int height = headerHeight + contentHeight;
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        Color background = uiColor("Panel.background", new Color(43, 45, 48));
+        Color headerBackground = uiColor("TabbedPane.background", background.darker());
+        Color foreground = uiColor("Label.foreground", new Color(220, 221, 222));
+        g2.setColor(background);
+        g2.fillRect(0, 0, width, height);
+        g2.setColor(headerBackground);
+        g2.fillRect(0, 0, width, headerHeight);
+
+        int titleX = 10;
+        Icon icon = entry == null ? null : entry.getIcon();
+        if (icon != null) {
+            int iconY = Math.max(0, (headerHeight - icon.getIconHeight()) / 2);
+            icon.paintIcon(null, g2, titleX, iconY);
+            titleX += icon.getIconWidth() + 7;
+        }
+
+        Font font = UIManager.getFont("Label.font");
+        if (font == null) {
+            font = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+        }
+        g2.setFont(font.deriveFont(Math.min(12f, font.getSize2D())));
+        g2.setColor(foreground);
+        FontMetrics metrics = g2.getFontMetrics();
+        String title = entry == null || entry.getTitle() == null ? "" : entry.getTitle();
+        title = clipText(title, metrics, Math.max(1, width - titleX - 10));
+        g2.drawString(title, titleX, (headerHeight - metrics.getHeight()) / 2 + metrics.getAscent());
+
+        if (content != null) {
+            Dimension oldSize = content.getSize();
+            boolean needsLayout = oldSize.width <= 0 || oldSize.height <= 0;
+            if (needsLayout) {
+                content.setSize(sourceSize);
+                if (content instanceof Container container) {
+                    container.doLayout();
+                }
+            }
+
+            Graphics2D contentGraphics = (Graphics2D) g2.create();
+            contentGraphics.translate((width - contentWidth) / 2d, headerHeight);
+            contentGraphics.clipRect(0, 0, contentWidth, contentHeight);
+            contentGraphics.scale(scale, scale);
+            content.printAll(contentGraphics);
+            contentGraphics.dispose();
+
+            if (needsLayout) {
+                content.setSize(oldSize);
+            }
+        }
+        g2.dispose();
+        return image;
+    }
+
+    private JComponent createDetachedPreviewComponent(BufferedImage image) {
+        int margin = 8;
+        return new JComponent() {
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(image.getWidth() + margin * 2, image.getHeight() + margin * 2);
+            }
+
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g2 = (Graphics2D) graphics.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int width = image.getWidth();
+                int height = image.getHeight();
+                g2.setComposite(AlphaComposite.SrcOver.derive(0.28f));
+                g2.setColor(Color.BLACK);
+                g2.fillRoundRect(margin + 2, margin + 3, width, height, 12, 12);
+
+                Shape clip = new RoundRectangle2D.Float(margin, margin, width, height, 10, 10);
+                g2.setClip(clip);
+                g2.setComposite(AlphaComposite.SrcOver.derive(detachedPreviewAlpha));
+                g2.drawImage(image, margin, margin, null);
+                g2.setClip(null);
+                g2.setComposite(AlphaComposite.SrcOver);
+                g2.setColor(ghostBorderColor == null ? new Color(0x6B7280) : ghostBorderColor);
+                g2.drawRoundRect(margin, margin, width - 1, height - 1, 10, 10);
+                g2.dispose();
+            }
+        };
+    }
+
+    private Point resolveDetachedPreviewLocation(Point cursor, Dimension previewSize) {
+        Rectangle screen = screenBoundsAt(cursor);
+        int gap = 18;
+        int x = cursor.x + gap;
+        int y = cursor.y + gap;
+        if (x + previewSize.width > screen.x + screen.width) {
+            x = cursor.x - previewSize.width - gap;
+        }
+        if (y + previewSize.height > screen.y + screen.height) {
+            y = cursor.y - previewSize.height - gap;
+        }
+        return new Point(Math.max(screen.x, x), Math.max(screen.y, y));
+    }
+
+    private Rectangle screenBoundsAt(Point point) {
+        for (GraphicsDevice device : GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()) {
+            GraphicsConfiguration configuration = device.getDefaultConfiguration();
+            if (configuration.getBounds().contains(point)) {
+                return configuration.getBounds();
+            }
+        }
+        return GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getDefaultScreenDevice()
+                .getDefaultConfiguration()
+                .getBounds();
+    }
+
+    private String clipText(String text, FontMetrics metrics, int maxWidth) {
+        if (metrics.stringWidth(text) <= maxWidth) {
+            return text;
+        }
+        String suffix = "…";
+        int suffixWidth = metrics.stringWidth(suffix);
+        int end = text.length();
+        while (end > 0 && metrics.stringWidth(text.substring(0, end)) + suffixWidth > maxWidth) {
+            end--;
+        }
+        return text.substring(0, end) + suffix;
+    }
+
+    private Color uiColor(String key, Color fallback) {
+        Color color = UIManager.getColor(key);
+        return color == null ? fallback : color;
+    }
+
+    private void hideDetachedPreview() {
+        if (session == null) {
+            return;
+        }
+        JWindow previewWindow = session.getDetachedPreviewWindow();
+        if (previewWindow == null) {
+            return;
+        }
+        session.setDetachedPreviewWindow(null);
+        previewWindow.setVisible(false);
+        previewWindow.dispose();
+    }
+
     private void updateSplitPreview(TabSplitPlacement placement) {
         if (!splitPreviewEnabled || placement == null || session.getDragLayer() == null) {
             hideSplitPreview();
@@ -384,6 +660,7 @@ public class TabDragController {
     private void stopDrag() {
         if (session == null) return;
 
+        hideDetachedPreview();
         hideSplitPreview();
         if (session.getGhostComponent() != null && session.getDragLayer() != null) {
             session.getDragLayer().remove(session.getGhostComponent());

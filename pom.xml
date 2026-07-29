@@ -16,6 +16,7 @@
         <flatlaf.version>3.7.1</flatlaf.version>
         <flatlaf.extra.version>3.7.1</flatlaf.extra.version>
         <commonmark.version>0.28.0</commonmark.version>
+        <junit.jupiter.version>5.11.4</junit.jupiter.version>
         <license-maven-plugin.version>2.7.1</license-maven-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <native.build.skip>false</native.build.skip>
@@ -46,6 +47,12 @@
             <groupId>org.commonmark</groupId>
             <artifactId>commonmark</artifactId>
             <version>${commonmark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

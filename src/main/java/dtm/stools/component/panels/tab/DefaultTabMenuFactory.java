@@ -20,6 +20,12 @@ class DefaultTabMenuFactory {
         pin.addActionListener(e -> tabs.setPinned(entry.getKey(), !entry.isPinned()));
         menu.add(pin);
 
+        if (tabs.isTabWindowEnabled()) {
+            JMenuItem window = new JMenuItem("Abrir em janela");
+            window.addActionListener(e -> tabs.openTabInWindow(entry.getKey()));
+            menu.add(window);
+        }
+
         JMenuItem dirty = new JMenuItem(entry.isDirty() ? "Marcar como salvo" : "Marcar como alterado");
         dirty.addActionListener(e -> tabs.setDirty(entry.getKey(), !entry.isDirty()));
         menu.add(dirty);

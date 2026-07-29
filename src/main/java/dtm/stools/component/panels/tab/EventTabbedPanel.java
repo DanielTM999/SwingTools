@@ -22,6 +22,9 @@ public final class EventTabbedPanel {
     public static final String TAB_PINNED_CHANGE = "tabPinnedChange";
     public static final String TAB_DIRTY_CHANGE = "tabDirtyChange";
     public static final String BEFORE_TAB_CLOSE = "beforeTabClose";
+    public static final String BEFORE_TAB_WINDOW = "beforeTabWindow";
+    public static final String TAB_WINDOW_OPEN = "tabWindowOpen";
+    public static final String TAB_WINDOW_CLOSE = "tabWindowClose";
     public static final String TAB_HEADER_HOVER = "tabHeaderHover";
     public static final String TAB_HEADER_HOVER_EXIT = "tabHeaderHoverExit";
 

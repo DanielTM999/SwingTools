@@ -31,6 +31,7 @@ public class TabbedPanel extends PanelEventListener {
     private final JTabbedPane tabbedPane;
     private final Map<String, TabEntry> tabsByKey = new LinkedHashMap<>();
     private final Map<Component, String> keyByComponent = new LinkedHashMap<>();
+    private final Map<String, Window> windowsByKey = new LinkedHashMap<>();
     @Getter
     private final TabStyle tabStyle = new TabStyle();
     private final DefaultTabHeaderRenderer headerRenderer = new DefaultTabHeaderRenderer();
@@ -65,6 +66,9 @@ public class TabbedPanel extends PanelEventListener {
     private boolean tabListButtonVisible;
     private boolean mruSwitchingEnabled = true;
     private boolean pinnedTabsShowTitle = true;
+    private boolean tabWindowEnabled = true;
+    private boolean tabWindowAlwaysOnTop;
+    private Dimension defaultTabWindowSize = new Dimension(720, 480);
     private int splitDropZoneSize = 96;
     private TabHeaderFactory tabHeaderFactory;
     private TabMenuProvider tabMenuProvider;
@@ -73,6 +77,7 @@ public class TabbedPanel extends PanelEventListener {
     private Runnable newTabAction;
     private BiPredicate<TabbedPanel, TabEntry> closeConfirmationProvider;
     private JRootPane dockRootPane;
+    private TabbedPanel dockOwner = this;
 
     public TabbedPanel() {
         this(JTabbedPane.TOP);
@@ -139,7 +144,7 @@ public class TabbedPanel extends PanelEventListener {
         Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getPermanentFocusOwner();
 
         if (focusOwner == null) {
-            return this;
+            return resolveInsertionTarget();
         }
 
         for (TabbedPanel group : resolveGroupsForVisibility()) {
@@ -148,7 +153,7 @@ public class TabbedPanel extends PanelEventListener {
             }
         }
 
-        return this;
+        return resolveInsertionTarget();
     }
 
     public void clearTabTitleForeground(String key) {
@@ -169,8 +174,13 @@ public class TabbedPanel extends PanelEventListener {
 
     public String addTab(TabConfig config) {
         Objects.requireNonNull(config, "config");
+        TabbedPanel target = resolveInsertionTarget();
+        return target.addTabLocal(config);
+    }
+
+    private String addTabLocal(TabConfig config) {
         String key = config.getKey() == null || config.getKey().isBlank() ? createTabKey() : config.getKey();
-        TabEntry entry = addTabEntry(
+        TabEntry entry = addTabEntryLocal(
                 key,
                 config.getTitle(),
                 config.getIcon(),
@@ -243,10 +253,26 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     protected TabEntry addTabEntry(String key, String title, Icon icon, Component component, boolean closable, String tooltip, TabHeaderFactory headerFactory, Icon selectedIcon, Color titleForeground, Color selectedTitleForeground) {
+        TabbedPanel target = resolveInsertionTarget();
+        return target.addTabEntryLocal(
+                key,
+                title,
+                icon,
+                component,
+                closable,
+                tooltip,
+                headerFactory,
+                selectedIcon,
+                titleForeground,
+                selectedTitleForeground
+        );
+    }
+
+    private TabEntry addTabEntryLocal(String key, String title, Icon icon, Component component, boolean closable, String tooltip, TabHeaderFactory headerFactory, Icon selectedIcon, Color titleForeground, Color selectedTitleForeground) {
         requireKey(key);
         Objects.requireNonNull(component, "component");
 
-        if (tabsByKey.containsKey(key)) {
+        if (resolveDockOwner().resolveGroupForKey(key) != null) {
             throw new IllegalArgumentException("Tab key already registered: " + key);
         }
 
@@ -270,12 +296,22 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     public boolean removeTab(String key) {
+        TabbedPanel group = resolveGroupForKey(key);
+        if (group != null && group != this) {
+            return group.removeTab(key);
+        }
+
         TabEntry entry = tabsByKey.get(key);
         if (entry == null) return false;
         return removeTab(entry, EventTabbedPanel.TAB_REMOVE, true);
     }
 
     public boolean closeTab(String key) {
+        TabbedPanel group = resolveGroupForKey(key);
+        if (group != null && group != this) {
+            return group.closeTab(key);
+        }
+
         TabEntry entry = tabsByKey.get(key);
         if (entry == null || !entry.isClosable()) return false;
 
@@ -295,8 +331,10 @@ public class TabbedPanel extends PanelEventListener {
 
     public boolean closeAllTabs() {
         boolean changed = false;
-        for (String key : new ArrayList<>(tabsByKey.keySet())) {
-            TabEntry entry = tabsByKey.get(key);
+        Collection<String> keys = this == resolveDockOwner() ? getKeys() : tabsByKey.keySet();
+        for (String key : new ArrayList<>(keys)) {
+            TabbedPanel group = resolveGroupForKey(key);
+            TabEntry entry = group == null ? null : group.tabsByKey.get(key);
             if (entry != null && !entry.isPinned()) {
                 changed |= closeTab(key);
             }
@@ -306,7 +344,8 @@ public class TabbedPanel extends PanelEventListener {
 
     public boolean closeAllTabsIncludingPinned() {
         boolean changed = false;
-        for (String key : new ArrayList<>(tabsByKey.keySet())) {
+        Collection<String> keys = this == resolveDockOwner() ? getKeys() : tabsByKey.keySet();
+        for (String key : new ArrayList<>(keys)) {
             changed |= closeTab(key);
         }
         return changed;
@@ -314,8 +353,10 @@ public class TabbedPanel extends PanelEventListener {
 
     public boolean closeSavedTabs() {
         boolean changed = false;
-        for (String key : new ArrayList<>(tabsByKey.keySet())) {
-            TabEntry entry = tabsByKey.get(key);
+        Collection<String> keys = this == resolveDockOwner() ? getKeys() : tabsByKey.keySet();
+        for (String key : new ArrayList<>(keys)) {
+            TabbedPanel group = resolveGroupForKey(key);
+            TabEntry entry = group == null ? null : group.tabsByKey.get(key);
             if (entry != null && !entry.isDirty() && !entry.isPinned()) {
                 changed |= closeTab(key);
             }
@@ -324,10 +365,12 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     public boolean closeOtherTabs(String key) {
-        if (!tabsByKey.containsKey(key)) return false;
+        if (resolveGroupForKey(key) == null) return false;
         boolean changed = false;
-        for (String candidate : new ArrayList<>(tabsByKey.keySet())) {
-            TabEntry entry = tabsByKey.get(candidate);
+        Collection<String> keys = this == resolveDockOwner() ? getKeys() : tabsByKey.keySet();
+        for (String candidate : new ArrayList<>(keys)) {
+            TabbedPanel group = resolveGroupForKey(candidate);
+            TabEntry entry = group == null ? null : group.tabsByKey.get(candidate);
             if (!candidate.equals(key) && entry != null && !entry.isPinned()) {
                 changed |= closeTab(candidate);
             }
@@ -336,14 +379,28 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     public void switchTo(String key) {
+        TabbedPanel group = resolveGroupForKey(key);
+        if (group != null && group != this) {
+            group.switchTo(key);
+            return;
+        }
+
         TabEntry entry = tabsByKey.get(key);
         if (entry == null) return;
         tabbedPane.setSelectedComponent(entry.getComponent());
     }
 
     public void switchTo(Component component) {
+        TabbedPanel group = resolveGroupForComponent(component);
+        if (group != null && group != this) {
+            group.switchTo(component);
+            return;
+        }
+
         String key = keyByComponent.get(component);
-        if (key != null) switchTo(key);
+        if (key != null) {
+            switchTo(key);
+        }
     }
 
     public void switchFirst() {
@@ -428,7 +485,7 @@ public class TabbedPanel extends PanelEventListener {
         TabConfig config = createTransferConfig(entry);
 
         if (!detachTabForTransfer(entry)) return false;
-        target.addTab(config);
+        target.addTabLocal(config);
         target.switchTo(entry.getKey());
 
         dispatchTabEvent(EventTabbedPanel.TAB_SPLIT, entry, new HashMap<>() {{
@@ -463,7 +520,7 @@ public class TabbedPanel extends PanelEventListener {
         }
 
         TabEntry entry = tabsByKey.get(key);
-        if (entry == null || target.contains(key) || target.contains(entry.getComponent())) return false;
+        if (entry == null || target.containsLocal(key) || target.containsLocal(entry.getComponent())) return false;
 
         int oldIndex = indexOf(key);
         TabEvent before = dispatchTabEvent(EventTabbedPanel.BEFORE_TAB_TRANSFER, entry, new HashMap<>() {{
@@ -476,7 +533,7 @@ public class TabbedPanel extends PanelEventListener {
         TabConfig config = createTransferConfig(entry);
         if (!detachTabForTransfer(entry)) return false;
 
-        target.addTab(config);
+        target.addTabLocal(config);
         if (targetIndex >= 0) {
             target.moveTab(key, targetIndex);
         }
@@ -493,12 +550,13 @@ public class TabbedPanel extends PanelEventListener {
     public int reattachAllTabs() {
         if (!isDockModeEnabled()) return 0;
 
+        TabbedPanel target = resolveInsertionTarget();
         int moved = 0;
-        for (TabbedPanel group : getDockGroups()) {
-            if (group == this) continue;
+        for (TabbedPanel group : new ArrayList<>(resolveGroupsForVisibility())) {
+            if (group == target) continue;
 
-            for (TabEntry entry : new ArrayList<>(group.getEntries())) {
-                if (group.transferTabTo(entry.getKey(), this)) {
+            for (TabEntry entry : new ArrayList<>(group.tabsByKey.values())) {
+                if (group.transferTabTo(entry.getKey(), target)) {
                     moved++;
                 }
             }
@@ -514,15 +572,212 @@ public class TabbedPanel extends PanelEventListener {
         return reattachAllTabs();
     }
 
+    public boolean openTabInWindow(String key) {
+        return openTabInWindow(key, null, null);
+    }
+
+    public boolean openTabInWindow(String key, Dimension size) {
+        return openTabInWindow(key, size, null);
+    }
+
+    public boolean openTabInWindowAt(String key, Point screenLocation) {
+        return openTabInWindow(key, null, screenLocation);
+    }
+
+    public boolean openTabInWindow(String key, Dimension size, Point screenLocation) {
+        if (!tabWindowEnabled) return false;
+
+        TabEntry entry = tabsByKey.get(key);
+        if (entry == null) return false;
+
+        Window existing = windowsByKey.get(key);
+        if (existing != null) {
+            existing.toFront();
+            existing.requestFocus();
+            return true;
+        }
+
+        int oldIndex = indexOf(key);
+        TabEvent before = dispatchTabEvent(EventTabbedPanel.BEFORE_TAB_WINDOW, entry, new HashMap<>() {{
+            put("oldIndex", oldIndex);
+        }});
+        if (before.isCanceled()) return false;
+
+        TabConfig config = createTransferConfig(entry);
+        Component component = entry.getComponent();
+        String title = entry.getTitle();
+        Icon icon = entry.getIcon();
+
+        if (!detachTabForTransfer(entry)) return false;
+
+        Window window = createTabWindow(key, config, oldIndex, component, title, icon, size, screenLocation);
+        windowsByKey.put(key, window);
+        window.setVisible(true);
+        window.toFront();
+
+        dispatchTabEvent(EventTabbedPanel.TAB_WINDOW_OPEN, entry, new HashMap<>() {{
+            put("oldIndex", oldIndex);
+            put("window", window);
+        }});
+        return true;
+    }
+
+    boolean detachTabToWindowFromDrag(String key, Point pointInTabbedPane) {
+        if (!tabWindowEnabled || pointInTabbedPane == null) return false;
+        if (!tabsByKey.containsKey(key)) return false;
+        if (!tabbedPane.isShowing()) return false;
+
+        Window ancestor = SwingUtilities.getWindowAncestor(this);
+        if (ancestor == null) return false;
+
+        Point screen = new Point(pointInTabbedPane);
+        SwingUtilities.convertPointToScreen(screen, tabbedPane);
+
+        if (ancestor.getBounds().contains(screen)) return false;
+
+        return openTabInWindowAt(key, screen);
+    }
+
+    private Window createTabWindow(String key, TabConfig config, int oldIndex, Component component, String title, Icon icon, Dimension size, Point screenLocation) {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog window = new JDialog(owner);
+        window.setModalityType(Dialog.ModalityType.MODELESS);
+        window.setTitle(title == null ? "" : title);
+        window.setAlwaysOnTop(tabWindowAlwaysOnTop);
+        window.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+
+        if (icon instanceof ImageIcon imageIcon && imageIcon.getImage() != null) {
+            window.setIconImage(imageIcon.getImage());
+        }
+
+        window.getContentPane().setLayout(new BorderLayout());
+        window.getContentPane().add(component, BorderLayout.CENTER);
+
+        Dimension windowSize = size != null ? size : defaultTabWindowSize;
+        if (windowSize != null && windowSize.width > 0 && windowSize.height > 0) {
+            window.setSize(windowSize);
+        } else {
+            window.pack();
+        }
+
+        if (screenLocation != null) {
+            window.setLocation(screenLocation.x - window.getWidth() / 2, Math.max(0, screenLocation.y - 12));
+        } else {
+            window.setLocationRelativeTo(owner);
+        }
+
+        window.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                reattachTabFromWindow(key, config, oldIndex, window);
+            }
+        });
+        return window;
+    }
+
+    public boolean reattachTabFromWindow(String key) {
+        return closeTabWindow(key);
+    }
+
+    private void reattachTabFromWindow(String key, TabConfig config, int oldIndex, JDialog window) {
+        windowsByKey.remove(key);
+        window.getContentPane().removeAll();
+
+        TabbedPanel targetGroup = resolveInsertionTarget();
+        if (!targetGroup.containsLocal(key)) {
+            targetGroup.addTabLocal(config);
+            int targetIndex = Math.max(0, Math.min(oldIndex, Math.max(0, targetGroup.getTabCount() - 1)));
+            targetGroup.moveTab(key, targetIndex);
+            targetGroup.switchTo(key);
+        }
+
+        window.dispose();
+
+        TabEntry entry = targetGroup.tabsByKey.get(key);
+        dispatchTabEvent(EventTabbedPanel.TAB_WINDOW_CLOSE, entry, new HashMap<>() {{
+            put("newIndex", targetGroup.indexOf(key));
+        }});
+    }
+
+    public boolean closeTabWindow(String key) {
+        Window window = windowsByKey.get(key);
+        if (window == null) return false;
+        window.dispatchEvent(new java.awt.event.WindowEvent(window, java.awt.event.WindowEvent.WINDOW_CLOSING));
+        return true;
+    }
+
+    public int reattachAllWindows() {
+        int count = 0;
+        for (String key : new ArrayList<>(windowsByKey.keySet())) {
+            if (closeTabWindow(key)) count++;
+        }
+        return count;
+    }
+
+    public boolean isTabInWindow(String key) {
+        return windowsByKey.containsKey(key);
+    }
+
+    public Set<String> getWindowedTabKeys() {
+        return new java.util.LinkedHashSet<>(windowsByKey.keySet());
+    }
+
+    public boolean hasWindowedTabs() {
+        return !windowsByKey.isEmpty();
+    }
+
+    public TabbedPanel setTabWindowEnabled(boolean enabled) {
+        this.tabWindowEnabled = enabled;
+        return this;
+    }
+
+    public boolean isTabWindowEnabled() {
+        return tabWindowEnabled;
+    }
+
+    public TabbedPanel setTabWindowAlwaysOnTop(boolean alwaysOnTop) {
+        this.tabWindowAlwaysOnTop = alwaysOnTop;
+        for (Window window : windowsByKey.values()) {
+            window.setAlwaysOnTop(alwaysOnTop);
+        }
+        return this;
+    }
+
+    public boolean isTabWindowAlwaysOnTop() {
+        return tabWindowAlwaysOnTop;
+    }
+
+    public TabbedPanel setDefaultTabWindowSize(Dimension size) {
+        this.defaultTabWindowSize = size;
+        return this;
+    }
+
+    public Dimension getDefaultTabWindowSize() {
+        return defaultTabWindowSize;
+    }
+
+    public TabbedPanel onBeforeTabWindow(Consumer<TabEvent> listener) {
+        return onTabEvent(EventTabbedPanel.BEFORE_TAB_WINDOW, listener);
+    }
+
+    public TabbedPanel onTabWindowOpen(Consumer<TabEvent> listener) {
+        return onTabEvent(EventTabbedPanel.TAB_WINDOW_OPEN, listener);
+    }
+
+    public TabbedPanel onTabWindowClose(Consumer<TabEvent> listener) {
+        return onTabEvent(EventTabbedPanel.TAB_WINDOW_CLOSE, listener);
+    }
+
     public List<TabbedPanel> getDockGroups() {
         if (!isDockModeEnabled()) return List.of();
 
         JRootPane rootPane = resolveDockRootPane();
         if (rootPane == null) return List.of(this);
 
+        TabbedPanel owner = resolveDockOwner();
         List<TabbedPanel> groups = new ArrayList<>();
         for (TabbedPanel group : collectTabbedPanels(rootPane.getContentPane())) {
-            if (group.isDockModeEnabled()) {
+            if (group.isDockModeEnabled() && group.resolveDockOwner() == owner) {
                 groups.add(group);
             }
         }
@@ -816,6 +1071,33 @@ public class TabbedPanel extends PanelEventListener {
     public TabbedPanel setDragGhostAlpha(float alpha) {
         dragController.setGhostAlpha(alpha);
         return this;
+    }
+
+    public TabbedPanel setDetachedTabPreviewEnabled(boolean enabled) {
+        dragController.setDetachedPreviewEnabled(enabled);
+        return this;
+    }
+
+    public boolean isDetachedTabPreviewEnabled() {
+        return dragController.isDetachedPreviewEnabled();
+    }
+
+    public TabbedPanel setDetachedTabPreviewSize(Dimension size) {
+        dragController.setDetachedPreviewSize(size);
+        return this;
+    }
+
+    public Dimension getDetachedTabPreviewSize() {
+        return dragController.getDetachedPreviewSize();
+    }
+
+    public TabbedPanel setDetachedTabPreviewAlpha(float alpha) {
+        dragController.setDetachedPreviewAlpha(alpha);
+        return this;
+    }
+
+    public float getDetachedTabPreviewAlpha() {
+        return dragController.getDetachedPreviewAlpha();
     }
 
     public TabbedPanel setReorderTabsWhileDragging(boolean enabled) {
@@ -1306,21 +1588,100 @@ public class TabbedPanel extends PanelEventListener {
         return groups;
     }
 
+    private TabbedPanel resolveInsertionTarget() {
+        if (this != resolveDockOwner() || SwingUtilities.getRootPane(this) != null) {
+            return this;
+        }
+
+        List<TabbedPanel> groups = getDockGroups();
+        if (groups.isEmpty()) {
+            return this;
+        }
+
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getPermanentFocusOwner();
+        if (focusOwner != null) {
+            for (TabbedPanel group : groups) {
+                if (focusOwner == group || SwingUtilities.isDescendingFrom(focusOwner, group)) {
+                    return group;
+                }
+            }
+        }
+
+        for (TabbedPanel group : groups) {
+            if (group != this && group.getParent() != null) {
+                return group;
+            }
+        }
+        return this;
+    }
+
+    private TabbedPanel resolveGroupForKey(String key) {
+        if (key == null) {
+            return null;
+        }
+        if (tabsByKey.containsKey(key)) {
+            return this;
+        }
+        if (this != resolveDockOwner()) {
+            return null;
+        }
+
+        for (TabbedPanel group : getDockGroups()) {
+            if (group != this && group.tabsByKey.containsKey(key)) {
+                return group;
+            }
+        }
+        return null;
+    }
+
+    private TabbedPanel resolveGroupForComponent(Component component) {
+        if (component == null) {
+            return null;
+        }
+        if (keyByComponent.containsKey(component)) {
+            return this;
+        }
+        if (this != resolveDockOwner()) {
+            return null;
+        }
+
+        for (TabbedPanel group : getDockGroups()) {
+            if (group != this && group.keyByComponent.containsKey(component)) {
+                return group;
+            }
+        }
+        return null;
+    }
+
+    private boolean containsLocal(String key) {
+        return key != null && tabsByKey.containsKey(key);
+    }
+
+    private boolean containsLocal(Component component) {
+        return component != null && keyByComponent.containsKey(component);
+    }
+
+    private TabbedPanel resolveDockOwner() {
+        return dockOwner == null ? this : dockOwner;
+    }
+
     public Component find(String key) {
-        TabEntry entry = tabsByKey.get(key);
+        TabbedPanel group = resolveGroupForKey(key);
+        TabEntry entry = group == null ? null : group.tabsByKey.get(key);
         return entry == null ? null : entry.getComponent();
     }
 
     public boolean contains(String key) {
-        return tabsByKey.containsKey(key);
+        return resolveGroupForKey(key) != null;
     }
 
     public boolean contains(Component component) {
-        return keyByComponent.containsKey(component);
+        return resolveGroupForComponent(component) != null;
     }
 
     public TabEntry getEntry(String key) {
-        return tabsByKey.get(key);
+        TabbedPanel group = resolveGroupForKey(key);
+        return group == null ? null : group.tabsByKey.get(key);
     }
 
     public List<TabEntry> getEntries() {
@@ -1328,11 +1689,20 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     public String getKeyOf(Component component) {
-        return keyByComponent.get(component);
+        TabbedPanel group = resolveGroupForComponent(component);
+        return group == null ? null : group.keyByComponent.get(component);
     }
 
     public Set<String> getKeys() {
-        return tabsByKey.keySet();
+        if (this != resolveDockOwner()) {
+            return tabsByKey.keySet();
+        }
+
+        Set<String> keys = new java.util.LinkedHashSet<>();
+        for (TabbedPanel group : resolveGroupsForVisibility()) {
+            keys.addAll(group.tabsByKey.keySet());
+        }
+        return keys;
     }
 
     public Collection<Component> getTabs() {
@@ -1485,6 +1855,7 @@ public class TabbedPanel extends PanelEventListener {
 
     protected void copyConfigurationTo(TabbedPanel target) {
         tabStyle.copyTo(target.tabStyle);
+        target.dockOwner = resolveDockOwner();
         target.closeButtonsVisible = closeButtonsVisible;
         target.tabDragEnabled = tabDragEnabled;
         target.tabMenuEnabled = tabMenuEnabled;
@@ -1497,6 +1868,9 @@ public class TabbedPanel extends PanelEventListener {
         target.tabListButtonVisible = tabListButtonVisible;
         target.mruSwitchingEnabled = mruSwitchingEnabled;
         target.pinnedTabsShowTitle = pinnedTabsShowTitle;
+        target.tabWindowEnabled = tabWindowEnabled;
+        target.tabWindowAlwaysOnTop = tabWindowAlwaysOnTop;
+        target.defaultTabWindowSize = defaultTabWindowSize;
         target.newTabAction = newTabAction;
         target.closeConfirmationProvider = closeConfirmationProvider;
         target.updateTabControlBar();
@@ -1511,6 +1885,9 @@ public class TabbedPanel extends PanelEventListener {
         target.dragController.setAnimationEnabled(dragController.isAnimationEnabled());
         target.dragController.setGhostAlpha(dragController.getGhostAlpha());
         target.dragController.setGhostBorderColor(dragController.getGhostBorderColor());
+        target.dragController.setDetachedPreviewEnabled(dragController.isDetachedPreviewEnabled());
+        target.dragController.setDetachedPreviewSize(dragController.getDetachedPreviewSize());
+        target.dragController.setDetachedPreviewAlpha(dragController.getDetachedPreviewAlpha());
         target.dragController.setAnimator(dragController.getAnimator());
         target.dragController.setReorderWhileDragging(dragController.isReorderWhileDragging());
         target.dragController.setSplitPreviewEnabled(dragController.isSplitPreviewEnabled());
@@ -1854,6 +2231,10 @@ public class TabbedPanel extends PanelEventListener {
 
         TabEvent event = new TabEvent(this, entry, eventType, props);
         dispatchEventObject(eventType, event);
+        TabbedPanel owner = resolveDockOwner();
+        if (owner != this) {
+            owner.dispatchEventObject(eventType, event);
+        }
         return event;
     }
 

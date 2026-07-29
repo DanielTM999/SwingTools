@@ -13,6 +13,7 @@ class TabDragSession {
     private JComponent ghostComponent;
     private JComponent splitPreviewComponent;
     private Point ghostOffset;
+    private JWindow detachedPreviewWindow;
 
     TabDragSession(TabEntry entry, JComponent header, Point startPoint) {
         this.entry = entry;
@@ -79,5 +80,13 @@ class TabDragSession {
 
     void setGhostOffset(Point ghostOffset) {
         this.ghostOffset = ghostOffset;
+    }
+
+    JWindow getDetachedPreviewWindow() {
+        return detachedPreviewWindow;
+    }
+
+    void setDetachedPreviewWindow(JWindow detachedPreviewWindow) {
+        this.detachedPreviewWindow = detachedPreviewWindow;
     }
 }
