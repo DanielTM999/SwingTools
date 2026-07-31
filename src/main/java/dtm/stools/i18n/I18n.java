@@ -157,7 +157,7 @@ public final class I18n {
     public static String key(Class<?> ownerClass, String key) {
         Objects.requireNonNull(ownerClass, "ownerClass");
         Objects.requireNonNull(key, "key");
-        return ownerClass + "." + key;
+        return ownerClass.getSimpleName() + "." + key;
     }
 
     public static Set<I18nElement> getElementsFromLocale(Locale locale) {
