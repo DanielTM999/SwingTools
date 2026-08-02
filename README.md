@@ -442,6 +442,10 @@ Elementos principais:
 | `PanelEventListener` | Base para painéis com eventos |
 | `DelegatedBlockingPanel` | `BlockingPanel` com controller delegado |
 | `DelegatedKeyPanel` | `KeyPanel` com controller delegado |
+| `WindowPanel` | Janela interna movel, redimensionavel e extensivel |
+| `WindowDesktopPanel` | Host para janelas internas, modalidade, snap e layouts |
+| `DelegatedWindowPanel` | `WindowPanel` com controller especializado |
+| `DelegatedWindowDesktopPanel` | `WindowDesktopPanel` com controller especializado |
 | `DelegatedIWindowComponent` | Base delegada para componentes de janela |
 | `ComponentAnimator` | Utilitário de animação de componentes |
 

@@ -26,6 +26,8 @@ IWindowComponent
         KeyPanel
         TabbedPanel
         DockPanel
+        WindowPanel
+        WindowDesktopPanel
         SwitchField
 
 EventListenerComponent
@@ -80,6 +82,7 @@ EventListenerComponent
 | `TreeView` | [TreeView.md](TreeView.md) | Arvore com nodes de dominio, busca, check e lazy load |
 | `TabbedPanel` | [TabbedPanel.md](TabbedPanel.md) | Abas com chave, pin, dirty, badge, menu, drag e split |
 | `DockPanel` | [DockPanel.md](DockPanel.md) | Layout de docking por regioes |
+| `WindowPanel` / `WindowDesktopPanel` | [WindowPanel.md](WindowPanel.md) | Janelas internas, modalidade, snap, layout e extensao por heranca |
 | `CodeEditor` | [CodeEditor.md](CodeEditor.md) | Editor de codigo extensivel |
 | Contratos do `CodeEditor` | [CodeEditor_Contratos.md](CodeEditor_Contratos.md) | Providers, diagnostics, autocomplete, CodeLens e modelos semanticos |
 | Graficos | [Graphics.md](Graphics.md) | Visao geral do pacote `graphics`, ciclo de vida, threading, input e nativos |

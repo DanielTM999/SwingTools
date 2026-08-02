@@ -99,6 +99,7 @@ Nem todo evento `BEFORE_*` e cancelavel; confira a doc do componente.
 | `GridViewTable` | `EventGridViewTable` | `SELECTION_ROW`, `SELECTION_COLUMN`, `CELL_EDIT` |
 | `TabbedPanel` | `EventTabbedPanel` | add, close, remove, move, split, drag, dirty, badge |
 | `DockPanel` | `EventDockPanel` | add, close, remove, select, move |
+| `WindowPanel` / `WindowDesktopPanel` | `EventWindowPanel`, `WindowEvent`, `WindowAnimationEvent` | abertura, fechamento, estado, drag, resize, propriedades, snap, preview e assistente de Snap Layouts, animacao, modalidade, barra minimizada, menu contextual e layout |
 | `TreeView` | `EventTreeView` / `EventTree` | selecao, check, expand, edit, drop |
 | `SwitchField` | `SwitchField.SWITCH_ON`, `SwitchField.SWITCH_OFF` | liga/desliga |
 

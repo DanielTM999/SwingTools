@@ -1,0 +1,71 @@
+package dtm.stools.component.panels.window;
+
+public final class EventWindowPanel {
+    public static final String BEFORE_WINDOW_OPEN = "beforeWindowOpen";
+    public static final String WINDOW_OPEN = "windowOpen";
+    public static final String BEFORE_WINDOW_ADD = "beforeWindowAdd";
+    public static final String BEFORE_WINDOW_CLOSE = "beforeWindowClose";
+    public static final String WINDOW_CLOSE = "windowClose";
+    public static final String BEFORE_WINDOW_REMOVE = "beforeWindowRemove";
+    public static final String WINDOW_REMOVE = "windowRemove";
+    public static final String WINDOW_ADD = "windowAdd";
+    public static final String WINDOW_ACTIVATE = "windowActivate";
+    public static final String WINDOW_DEACTIVATE = "windowDeactivate";
+    public static final String BEFORE_WINDOW_ACTIVATE = "beforeWindowActivate";
+    public static final String BEFORE_WINDOW_MOVE = "beforeWindowMove";
+    public static final String WINDOW_MOVE_START = "windowMoveStart";
+    public static final String WINDOW_MOVE = "windowMove";
+    public static final String WINDOW_MOVE_END = "windowMoveEnd";
+    public static final String BEFORE_WINDOW_RESIZE = "beforeWindowResize";
+    public static final String WINDOW_RESIZE_START = "windowResizeStart";
+    public static final String WINDOW_RESIZE = "windowResize";
+    public static final String WINDOW_RESIZE_END = "windowResizeEnd";
+    public static final String WINDOW_BOUNDS_CHANGE = "windowBoundsChange";
+    public static final String BEFORE_WINDOW_STATE_CHANGE = "beforeWindowStateChange";
+    public static final String WINDOW_STATE_CHANGE = "windowStateChange";
+    public static final String WINDOW_SNAP = "windowSnap";
+    public static final String BEFORE_WINDOW_SNAP = "beforeWindowSnap";
+    public static final String SNAP_LAYOUTS_CHANGE = "snapLayoutsChange";
+    public static final String SNAP_LAYOUT_TRIGGER_CHANGE = "snapLayoutTriggerChange";
+    public static final String SNAP_LAYOUT_DRAG_OPEN = "snapLayoutDragOpen";
+    public static final String SNAP_LAYOUT_DRAG_CLOSE = "snapLayoutDragClose";
+    public static final String SNAP_LAYOUT_MENU_OPEN = "snapLayoutMenuOpen";
+    public static final String SNAP_LAYOUT_MENU_CLOSE = "snapLayoutMenuClose";
+    public static final String BEFORE_SNAP_LAYOUT_SELECT = "beforeSnapLayoutSelect";
+    public static final String SNAP_LAYOUT_SELECT = "snapLayoutSelect";
+    public static final String SNAP_LAYOUT_PREVIEW_CHANGE = "snapLayoutPreviewChange";
+    public static final String SNAP_ASSIST_CHANGE = "snapAssistChange";
+    public static final String SNAP_ASSIST_OPEN = "snapAssistOpen";
+    public static final String SNAP_ASSIST_CLOSE = "snapAssistClose";
+    public static final String BEFORE_SNAP_ASSIST_SELECT = "beforeSnapAssistSelect";
+    public static final String SNAP_ASSIST_SELECT = "snapAssistSelect";
+    public static final String WINDOW_TITLE_CHANGE = "windowTitleChange";
+    public static final String WINDOW_ICON_CHANGE = "windowIconChange";
+    public static final String WINDOW_CONTENT_CHANGE = "windowContentChange";
+    public static final String WINDOW_CAPABILITY_CHANGE = "windowCapabilityChange";
+    public static final String WINDOW_MODAL_CHANGE = "windowModalChange";
+    public static final String WINDOW_ORDER_CHANGE = "windowOrderChange";
+    public static final String MINIMIZED_BAR_CHANGE = "minimizedBarChange";
+    public static final String MINIMIZED_BAR_EXPAND = "minimizedBarExpand";
+    public static final String MINIMIZED_BAR_COLLAPSE = "minimizedBarCollapse";
+    public static final String MINIMIZED_BAR_AUTO_HIDE_CHANGE = "minimizedBarAutoHideChange";
+    public static final String MINIMIZED_BAR_MENU_CHANGE = "minimizedBarMenuChange";
+    public static final String MINIMIZED_BAR_MENU_OPEN = "minimizedBarMenuOpen";
+    public static final String MINIMIZED_BAR_MENU_CLOSE = "minimizedBarMenuClose";
+    public static final String MINIMIZED_BAR_MENU_ACTION = "minimizedBarMenuAction";
+    public static final String BEFORE_MINIMIZED_BAR_MENU_ACTION = "beforeMinimizedBarMenuAction";
+    public static final String BEFORE_LAYOUT_RESTORE = "beforeWindowLayoutRestore";
+    public static final String LAYOUT_RESTORE = "windowLayoutRestore";
+    public static final String WINDOW_ANIMATION_START = "windowAnimationStart";
+    public static final String WINDOW_ANIMATION_PROGRESS = "windowAnimationProgress";
+    public static final String WINDOW_ANIMATION_END = "windowAnimationEnd";
+    public static final String WINDOW_ANIMATION_CANCEL = "windowAnimationCancel";
+    public static final String MODAL_OPEN = "modalOpen";
+    public static final String MODAL_CLOSE = "modalClose";
+    public static final String ACTIVE_WINDOW_CHANGE = "activeWindowChange";
+    public static final String LAYOUT_CHANGE = "windowLayoutChange";
+
+    private EventWindowPanel() {
+        throw new IllegalArgumentException("EventWindowPanel cannot be instantiated");
+    }
+}
