@@ -521,6 +521,8 @@ tabs.setCloseOnMiddleClickEnabled(true);
 tabs.setRenameOnDoubleClickEnabled(true);
 ```
 
+Quando as abas não cabem, o padrão é um menu de três pontos com as abas ocultas. Use `setTabOverflowMode(TabOverflowMode.SCROLL_BUTTONS)` para optar pelos chevrons de navegação.
+
 Também é possível criar abas por `TabConfig`:
 
 ```java
@@ -1377,6 +1379,7 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `TabbedPanelDockModeExample` | Abas em modo dock/split |
 | `TabbedPanelExample` | Operações básicas de abas |
 | `TabbedPanelNestedInTabbedPaneExample` | `TabbedPanel` dentro de `JTabbedPane` |
+| `TabbedPanelOverflowExample` | Overflow moderno com muitas abas em uma linha |
 | `TreeViewPredicateUpdateExample` | Atualização/filtro de árvore |
 
 Como são demos Swing, a forma mais simples é executar a classe desejada pela IDE.

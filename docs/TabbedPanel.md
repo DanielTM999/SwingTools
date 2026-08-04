@@ -105,6 +105,40 @@ APIs relacionadas: `dockTab`, `splitTab`, `transferTabTo`, `reattachTabTo`, `rea
 
 Ao arrastar uma aba para fora da janela, o componente exibe uma miniatura flutuante do conteúdo antes de criar a nova janela. O preview pode ser configurado com `setDetachedTabPreviewEnabled`, `setDetachedTabPreviewSize` e `setDetachedTabPreviewAlpha`.
 
+## Overflow de abas
+
+O padrão é uma única linha com um botão de três pontos, semelhante aos editores de IDEs modernas. O botão aparece somente quando há abas ocultas e abre uma lista que permite selecionar ou fechar cada uma:
+
+```java
+TabbedPanel tabs = new TabbedPanel();
+// TabOverflowMode.MENU já é o padrão.
+```
+
+O comportamento pode ser trocado por enum. Para manter os dois chevrons de navegação:
+
+```java
+tabs.setTabOverflowMode(TabOverflowMode.SCROLL_BUTTONS);
+```
+
+Para voltar ao menu estilo IDE:
+
+```java
+tabs.setTabOverflowMode(TabOverflowMode.MENU);
+```
+
+As cores e dimensões do botão de overflow ou dos chevrons podem ser ajustadas sem trocar a UI:
+
+```java
+tabs.setTabScrollButtonSize(28)
+    .setTabScrollButtonArc(8)
+    .setTabScrollButtonStrokeWidth(1.8f)
+    .setTabScrollButtonForeground(new Color(0xCBD5E1))
+    .setTabScrollButtonHoverBackground(new Color(255, 255, 255, 24))
+    .setTabScrollButtonPressedBackground(new Color(255, 255, 255, 42));
+```
+
+Veja `TabbedPanelOverflowExample` para uma janela com abas suficientes para acionar o overflow.
+
 ## Exemplo completo
 
 ```java
@@ -126,7 +160,7 @@ tabs.setPinned("log", true);
 
 ## Tipos auxiliares
 
-`TabConfig`, `TabEntry`, `TabEvent`, `EventTabbedPanel`, `TabStyle`, `TabSplitPlacement`, `TabHeaderFactory`, `DefaultTabHeaderRenderer`, `TabMenuProvider`, `DefaultTabMenuFactory`, `TabGroupFactory`, `TabSeparatorFactory`, `StyledTabbedPaneUI`, `TabDragController`, `TabDragSession`.
+`TabConfig`, `TabEntry`, `TabEvent`, `EventTabbedPanel`, `TabStyle`, `TabOverflowMode`, `TabSplitPlacement`, `TabHeaderFactory`, `DefaultTabHeaderRenderer`, `TabMenuProvider`, `DefaultTabMenuFactory`, `TabGroupFactory`, `TabSeparatorFactory`, `StyledTabbedPaneUI`, `TabDragController`, `TabDragSession`.
 
 ## Cuidados
 

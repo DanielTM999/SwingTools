@@ -13,6 +13,7 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,6 +27,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 public class TabbedPanel extends PanelEventListener {
+
+    static final String TAB_OVERFLOW_LIST_PROPERTY = "TabbedPanel.overflowList";
 
     @Getter
     private final JTabbedPane tabbedPane;
@@ -68,6 +71,8 @@ public class TabbedPanel extends PanelEventListener {
     private boolean pinnedTabsShowTitle = true;
     private boolean tabWindowEnabled = true;
     private boolean tabWindowAlwaysOnTop;
+    @Getter
+    private TabOverflowMode tabOverflowMode = TabOverflowMode.MENU;
     private Dimension defaultTabWindowSize = new Dimension(720, 480);
     private int splitDropZoneSize = 96;
     private TabHeaderFactory tabHeaderFactory;
@@ -86,6 +91,7 @@ public class TabbedPanel extends PanelEventListener {
     public TabbedPanel(int tabPlacement) {
         super(new BorderLayout(), true);
         this.tabbedPane = new JTabbedPane(tabPlacement);
+        this.tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         installTabbedPaneStyle();
         installTabControlBar();
         add(tabbedPane, BorderLayout.CENTER);
@@ -975,6 +981,21 @@ public class TabbedPanel extends PanelEventListener {
         return setTabLayoutPolicy(enabled ? JTabbedPane.SCROLL_TAB_LAYOUT : JTabbedPane.WRAP_TAB_LAYOUT);
     }
 
+    public TabbedPanel setTabOverflowMode(TabOverflowMode mode) {
+        TabOverflowMode next = Objects.requireNonNull(mode, "mode");
+        if (tabOverflowMode == next && tabbedPane.getTabLayoutPolicy() == JTabbedPane.SCROLL_TAB_LAYOUT) {
+            return this;
+        }
+
+        tabOverflowMode = next;
+        tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        installTabbedPaneStyle();
+        updateAllTabHeaders();
+        revalidate();
+        repaint();
+        return this;
+    }
+
     public TabbedPanel setMultiRowTabsEnabled(boolean enabled) {
         return setTabLayoutPolicy(enabled ? JTabbedPane.WRAP_TAB_LAYOUT : JTabbedPane.SCROLL_TAB_LAYOUT);
     }
@@ -1269,6 +1290,58 @@ public class TabbedPanel extends PanelEventListener {
         return this;
     }
 
+    public TabbedPanel setTabScrollButtonForeground(Color color) {
+        tabStyle.setTabScrollButtonForeground(color);
+        tabbedPane.repaint();
+        return this;
+    }
+
+    public TabbedPanel setTabScrollButtonDisabledForeground(Color color) {
+        tabStyle.setTabScrollButtonDisabledForeground(color);
+        tabbedPane.repaint();
+        return this;
+    }
+
+    public TabbedPanel setTabScrollButtonHoverBackground(Color color) {
+        tabStyle.setTabScrollButtonHoverBackground(color);
+        tabbedPane.repaint();
+        return this;
+    }
+
+    public TabbedPanel setTabScrollButtonPressedBackground(Color color) {
+        tabStyle.setTabScrollButtonPressedBackground(color);
+        tabbedPane.repaint();
+        return this;
+    }
+
+    public TabbedPanel setTabScrollButtonSize(int size) {
+        if (size < 18) {
+            throw new IllegalArgumentException("Tab scroll button size must be at least 18.");
+        }
+        tabStyle.setTabScrollButtonSize(size);
+        tabbedPane.revalidate();
+        tabbedPane.repaint();
+        return this;
+    }
+
+    public TabbedPanel setTabScrollButtonArc(int arc) {
+        if (arc < 0) {
+            throw new IllegalArgumentException("Tab scroll button arc cannot be negative.");
+        }
+        tabStyle.setTabScrollButtonArc(arc);
+        tabbedPane.repaint();
+        return this;
+    }
+
+    public TabbedPanel setTabScrollButtonStrokeWidth(float strokeWidth) {
+        if (!Float.isFinite(strokeWidth) || strokeWidth < 1f) {
+            throw new IllegalArgumentException("Tab scroll button stroke width must be at least 1.");
+        }
+        tabStyle.setTabScrollButtonStrokeWidth(strokeWidth);
+        tabbedPane.repaint();
+        return this;
+    }
+
     public TabbedPanel setTabTitleForeground(Color color) {
         tabStyle.setTabTitleForeground(color);
         updateAllTabHeaders();
@@ -1517,6 +1590,255 @@ public class TabbedPanel extends PanelEventListener {
             menu.add(empty);
         }
         menu.show(tabListButton, 0, tabListButton.getHeight());
+    }
+
+    void showTabOverflowMenu(Component invoker) {
+        JPopupMenu menu = createTabOverflowMenu(invoker);
+        if (menu.getComponentCount() == 0) {
+            return;
+        }
+
+        Dimension popupSize = menu.getPreferredSize();
+        int placement = tabbedPane.getTabPlacement();
+        int x;
+        int y;
+
+        if (placement == JTabbedPane.BOTTOM) {
+            x = invoker.getWidth() - popupSize.width;
+            y = -popupSize.height;
+        } else if (placement == JTabbedPane.LEFT) {
+            x = invoker.getWidth();
+            y = invoker.getHeight() - popupSize.height;
+        } else if (placement == JTabbedPane.RIGHT) {
+            x = -popupSize.width;
+            y = invoker.getHeight() - popupSize.height;
+        } else {
+            x = invoker.getWidth() - popupSize.width;
+            y = invoker.getHeight();
+        }
+
+        menu.show(invoker, x, y);
+        JList<?> list = findOverflowList(menu);
+        if (list != null) {
+            SwingUtilities.invokeLater(list::requestFocusInWindow);
+        }
+    }
+
+    JPopupMenu createTabOverflowMenu(Component invoker) {
+        List<TabEntry> overflowEntries = resolveOverflowEntries(invoker);
+        if (overflowEntries.isEmpty()) {
+            return new JPopupMenu();
+        }
+
+        JPopupMenu menu = new JPopupMenu();
+        DefaultListModel<TabEntry> model = new DefaultListModel<>();
+        overflowEntries.forEach(model::addElement);
+
+        JList<TabEntry> list = new JList<>(model);
+        list.putClientProperty(TAB_OVERFLOW_LIST_PROPERTY, Boolean.TRUE);
+        list.setCellRenderer(createOverflowCellRenderer());
+        list.setFixedCellHeight(34);
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.setSelectedIndex(0);
+        list.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+
+        list.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent event) {
+                int index = list.locationToIndex(event.getPoint());
+                Rectangle bounds = index < 0 ? null : list.getCellBounds(index, index);
+                list.setSelectedIndex(bounds != null && bounds.contains(event.getPoint()) ? index : -1);
+            }
+        });
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                int index = list.locationToIndex(event.getPoint());
+                Rectangle bounds = index < 0 ? null : list.getCellBounds(index, index);
+                if (bounds == null || !bounds.contains(event.getPoint())) {
+                    return;
+                }
+
+                TabEntry entry = model.getElementAt(index);
+                if (entry.isClosable() && event.getX() >= bounds.x + bounds.width - 32) {
+                    closeOverflowEntry(invoker, menu, list, model, entry, index);
+                    return;
+                }
+
+                menu.setVisible(false);
+                switchTo(entry.getKey());
+            }
+        });
+
+        list.getInputMap().put(KeyStroke.getKeyStroke("ENTER"), "openOverflowTab");
+        list.getActionMap().put("openOverflowTab", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                TabEntry entry = list.getSelectedValue();
+                if (entry != null) {
+                    menu.setVisible(false);
+                    switchTo(entry.getKey());
+                }
+            }
+        });
+        list.getInputMap().put(KeyStroke.getKeyStroke("DELETE"), "closeOverflowTab");
+        list.getActionMap().put("closeOverflowTab", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                TabEntry entry = list.getSelectedValue();
+                if (entry != null && entry.isClosable()) {
+                    closeOverflowEntry(
+                            invoker,
+                            menu,
+                            list,
+                            model,
+                            entry,
+                            Math.max(0, list.getSelectedIndex())
+                    );
+                }
+            }
+        });
+        list.getInputMap().put(KeyStroke.getKeyStroke("ESCAPE"), "hideOverflowTabs");
+        list.getActionMap().put("hideOverflowTabs", new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent event) {
+                menu.setVisible(false);
+            }
+        });
+
+        int visibleRows = Math.min(9, overflowEntries.size());
+        int popupHeight = visibleRows * list.getFixedCellHeight() + 8;
+        JScrollPane scrollPane = new JScrollPane(
+                list,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setPreferredSize(new Dimension(320, popupHeight));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(list.getFixedCellHeight());
+        menu.add(scrollPane);
+        return menu;
+    }
+
+    private void closeOverflowEntry(
+            Component invoker,
+            JPopupMenu menu,
+            JList<TabEntry> list,
+            DefaultListModel<TabEntry> model,
+            TabEntry entry,
+            int previousIndex
+    ) {
+        if (!closeTab(entry.getKey())) {
+            return;
+        }
+
+        tabbedPane.doLayout();
+        List<TabEntry> remaining = resolveOverflowEntries(invoker);
+        if (remaining.isEmpty()) {
+            menu.setVisible(false);
+            return;
+        }
+
+        model.clear();
+        remaining.forEach(model::addElement);
+        list.setSelectedIndex(Math.min(previousIndex, model.getSize() - 1));
+        list.ensureIndexIsVisible(list.getSelectedIndex());
+        menu.revalidate();
+        menu.repaint();
+    }
+
+    private ListCellRenderer<? super TabEntry> createOverflowCellRenderer() {
+        return (list, entry, index, selected, cellHasFocus) -> {
+            Color background = selected
+                    ? color("List.selectionBackground", new Color(0x3574F0))
+                    : color("PopupMenu.background", list.getBackground());
+            Color foreground = selected
+                    ? color("List.selectionForeground", Color.WHITE)
+                    : color("List.foreground", list.getForeground());
+
+            JPanel row = new JPanel(new BorderLayout(8, 0)) {
+                @Override
+                protected void paintComponent(Graphics graphics) {
+                    Graphics2D g2 = (Graphics2D) graphics.create();
+                    try {
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(background);
+                        g2.fillRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 7, 7);
+                    } finally {
+                        g2.dispose();
+                    }
+                }
+            };
+            row.setOpaque(false);
+            row.setBorder(BorderFactory.createEmptyBorder(0, 9, 0, 6));
+
+            String title = entry.isDirty() ? "• " + entry.getTitle() : entry.getTitle();
+            JLabel label = new JLabel(title, entry.getIcon(), SwingConstants.LEADING);
+            label.setForeground(foreground);
+            row.add(label, BorderLayout.CENTER);
+
+            JLabel close = new JLabel(entry.isClosable() ? "×" : "");
+            close.setForeground(foreground);
+            close.setFont(close.getFont().deriveFont(Font.PLAIN, 16f));
+            close.setHorizontalAlignment(SwingConstants.CENTER);
+            close.setPreferredSize(new Dimension(24, 24));
+            row.add(close, BorderLayout.EAST);
+            return row;
+        };
+    }
+
+    private List<TabEntry> resolveOverflowEntries(Component invoker) {
+        List<TabEntry> result = new ArrayList<>();
+        if (invoker == null || !SwingUtilities.isDescendingFrom(invoker, tabbedPane)) {
+            result.addAll(tabsByKey.values());
+            return result;
+        }
+
+        Rectangle control = SwingUtilities.convertRectangle(
+                invoker.getParent(),
+                invoker.getBounds(),
+                tabbedPane
+        );
+        boolean horizontal = tabbedPane.getTabPlacement() == JTabbedPane.TOP
+                || tabbedPane.getTabPlacement() == JTabbedPane.BOTTOM;
+
+        for (int index = 0; index < tabbedPane.getTabCount(); index++) {
+            Rectangle bounds = tabbedPane.getBoundsAt(index);
+            boolean fullyVisible = horizontal
+                    ? bounds.x >= 0 && bounds.x + bounds.width <= control.x
+                    : bounds.y >= 0 && bounds.y + bounds.height <= control.y;
+            if (!fullyVisible) {
+                Component component = tabbedPane.getComponentAt(index);
+                String key = keyByComponent.get(component);
+                TabEntry entry = key == null ? null : tabsByKey.get(key);
+                if (entry != null) {
+                    result.add(entry);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private JList<?> findOverflowList(Container root) {
+        for (Component component : root.getComponents()) {
+            if (component instanceof JList<?> list
+                    && Boolean.TRUE.equals(list.getClientProperty(TAB_OVERFLOW_LIST_PROPERTY))) {
+                return list;
+            }
+            if (component instanceof Container container) {
+                JList<?> nested = findOverflowList(container);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Color color(String key, Color fallback) {
+        Color value = UIManager.getColor(key);
+        return value == null ? fallback : value;
     }
 
     private String formatMenuTitle(TabEntry entry) {
@@ -1870,6 +2192,7 @@ public class TabbedPanel extends PanelEventListener {
         target.pinnedTabsShowTitle = pinnedTabsShowTitle;
         target.tabWindowEnabled = tabWindowEnabled;
         target.tabWindowAlwaysOnTop = tabWindowAlwaysOnTop;
+        target.tabOverflowMode = tabOverflowMode;
         target.defaultTabWindowSize = defaultTabWindowSize;
         target.newTabAction = newTabAction;
         target.closeConfirmationProvider = closeConfirmationProvider;
@@ -1881,6 +2204,7 @@ public class TabbedPanel extends PanelEventListener {
         target.tabSeparatorFactory = tabSeparatorFactory;
         target.dockRootPane = dockRootPane;
         target.tabbedPane.setTabLayoutPolicy(tabbedPane.getTabLayoutPolicy());
+        target.installTabbedPaneStyle();
         target.dragController.setStartThreshold(dragController.getStartThreshold());
         target.dragController.setAnimationEnabled(dragController.isAnimationEnabled());
         target.dragController.setGhostAlpha(dragController.getGhostAlpha());

@@ -81,6 +81,15 @@ public class TabStyle {
     private Color closeButtonIconColor;
     private Color pinnedButtonIconColor;
 
+    private Color tabScrollButtonForeground;
+    private Color tabScrollButtonDisabledForeground;
+    private Color tabScrollButtonHoverBackground;
+    private Color tabScrollButtonPressedBackground;
+
+    private int tabScrollButtonSize;
+    private int tabScrollButtonArc;
+    private float tabScrollButtonStrokeWidth;
+
     public TabStyle() {
         Color panel = color("Panel.background", new Color(43, 45, 48));
         Color foreground = color("Label.foreground", new Color(220, 221, 222));
@@ -159,11 +168,35 @@ public class TabStyle {
 
         this.closeButtonIconColor = foreground.darker();
         this.pinnedButtonIconColor = foreground.darker();
+
+        this.tabScrollButtonForeground = color("Button.foreground", foreground);
+        this.tabScrollButtonDisabledForeground = color("Label.disabledForeground", foreground.darker());
+        this.tabScrollButtonHoverBackground = color(
+                "Button.hoverBackground",
+                translucentContrast(panel, 28)
+        );
+        this.tabScrollButtonPressedBackground = color(
+                "Button.pressedBackground",
+                translucentContrast(panel, 48)
+        );
+
+        this.tabScrollButtonSize = 28;
+        this.tabScrollButtonArc = 8;
+        this.tabScrollButtonStrokeWidth = 1.8f;
     }
 
     private static Color color(String key, Color fallback) {
         Color color = UIManager.getColor(key);
         return color == null ? fallback : color;
+    }
+
+    private static Color translucentContrast(Color background, int alpha) {
+        double luminance = 0.2126 * background.getRed()
+                + 0.7152 * background.getGreen()
+                + 0.0722 * background.getBlue();
+        return luminance < 140
+                ? new Color(255, 255, 255, alpha)
+                : new Color(0, 0, 0, alpha);
     }
 
     public void copyTo(TabStyle target) {
@@ -234,5 +267,14 @@ public class TabStyle {
 
         target.closeButtonIconColor = closeButtonIconColor;
         target.pinnedButtonIconColor = pinnedButtonIconColor;
+
+        target.tabScrollButtonForeground = tabScrollButtonForeground;
+        target.tabScrollButtonDisabledForeground = tabScrollButtonDisabledForeground;
+        target.tabScrollButtonHoverBackground = tabScrollButtonHoverBackground;
+        target.tabScrollButtonPressedBackground = tabScrollButtonPressedBackground;
+
+        target.tabScrollButtonSize = tabScrollButtonSize;
+        target.tabScrollButtonArc = tabScrollButtonArc;
+        target.tabScrollButtonStrokeWidth = tabScrollButtonStrokeWidth;
     }
 }

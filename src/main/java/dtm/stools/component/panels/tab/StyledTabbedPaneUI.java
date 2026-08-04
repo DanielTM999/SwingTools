@@ -1,12 +1,23 @@
 package dtm.stools.component.panels.tab;
 
 import javax.swing.*;
+import javax.swing.event.ChangeListener;
+import javax.swing.plaf.UIResource;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 
 public class StyledTabbedPaneUI extends BasicTabbedPaneUI {
 
+    static final String SCROLL_BUTTON_PROPERTY = "TabbedPanel.scrollButton";
+    static final String OVERFLOW_MENU_BUTTON_PROPERTY = "TabbedPanel.overflowMenuButton";
+
     private final TabbedPanel tabs;
+    private JViewport overflowViewport;
+    private ChangeListener overflowViewportListener;
+    private boolean adjustingOverflowViewport;
 
     public StyledTabbedPaneUI(TabbedPanel tabs) {
         this.tabs = tabs;
@@ -22,7 +33,7 @@ public class StyledTabbedPaneUI extends BasicTabbedPaneUI {
 
         tabInsets = safeInsets(style.getTabInsets());
         selectedTabPadInsets = safeInsets(style.getSelectedTabPadInsets());
-        tabAreaInsets = safeInsets(style.getTabAreaInsets());
+        tabAreaInsets = resolveTabAreaInsets(style);
         contentBorderInsets = safeInsets(style.getContentBorderInsets());
 
         highlight = null;
@@ -30,6 +41,193 @@ public class StyledTabbedPaneUI extends BasicTabbedPaneUI {
         shadow = null;
         darkShadow = null;
         focus = null;
+    }
+
+    private Insets resolveTabAreaInsets(TabStyle style) {
+        Insets configured = safeInsets(style.getTabAreaInsets());
+        if (tabs.getTabOverflowMode() != TabOverflowMode.MENU) {
+            return configured;
+        }
+
+        int placement = tabPane.getTabPlacement();
+        if (placement == JTabbedPane.LEFT || placement == JTabbedPane.RIGHT) {
+            return new Insets(configured.top, configured.left, 0, configured.right);
+        }
+        return new Insets(configured.top, configured.left, configured.bottom, 0);
+    }
+
+    @Override
+    protected JButton createScrollButton(int direction) {
+        if (direction != SwingConstants.NORTH
+                && direction != SwingConstants.SOUTH
+                && direction != SwingConstants.EAST
+                && direction != SwingConstants.WEST) {
+            throw new IllegalArgumentException("Invalid tab scroll direction: " + direction);
+        }
+
+        if (tabs.getTabOverflowMode() == TabOverflowMode.MENU) {
+            return isForwardDirection(direction)
+                    ? new TabOverflowMenuButton(direction)
+                    : new HiddenTabScrollButton(direction);
+        }
+
+        return new TabScrollButton(direction);
+    }
+
+    private boolean isForwardDirection(int direction) {
+        int placement = tabPane.getTabPlacement();
+        boolean vertical = placement == JTabbedPane.LEFT || placement == JTabbedPane.RIGHT;
+        return direction == (vertical ? SwingConstants.SOUTH : SwingConstants.EAST);
+    }
+
+    @Override
+    protected void installListeners() {
+        super.installListeners();
+        overflowViewport = findOverflowViewport();
+        if (overflowViewport != null) {
+            overflowViewportListener = event -> normalizeMenuOverflowViewport();
+            overflowViewport.addChangeListener(overflowViewportListener);
+        }
+    }
+
+    @Override
+    protected void uninstallListeners() {
+        if (overflowViewport != null && overflowViewportListener != null) {
+            overflowViewport.removeChangeListener(overflowViewportListener);
+        }
+        overflowViewport = null;
+        overflowViewportListener = null;
+        super.uninstallListeners();
+    }
+
+    private JViewport findOverflowViewport() {
+        for (Component component : tabPane.getComponents()) {
+            if (component instanceof JViewport candidate) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private void normalizeMenuOverflowViewport() {
+        if (adjustingOverflowViewport
+                || tabs.getTabOverflowMode() != TabOverflowMode.MENU
+                || overflowViewport == null) {
+            return;
+        }
+
+        JButton menuButton = null;
+        for (Component component : tabPane.getComponents()) {
+            if (component instanceof JButton button
+                    && Boolean.TRUE.equals(button.getClientProperty(OVERFLOW_MENU_BUTTON_PROPERTY))) {
+                menuButton = button;
+                break;
+            }
+        }
+        if (menuButton == null || !menuButton.isVisible()) {
+            return;
+        }
+
+        adjustingOverflowViewport = true;
+        try {
+            int placement = tabPane.getTabPlacement();
+            boolean vertical = placement == JTabbedPane.LEFT || placement == JTabbedPane.RIGHT;
+            Rectangle viewportBounds = overflowViewport.getBounds();
+            alignOverflowMenuButton(menuButton, viewportBounds, vertical);
+            Rectangle menuBounds = menuButton.getBounds();
+            Dimension viewSize = overflowViewport.getViewSize();
+            Point viewPosition = overflowViewport.getViewPosition();
+
+            if (vertical) {
+                int targetHeight = menuBounds.y - viewportBounds.y;
+                if (targetHeight <= 0) {
+                    return;
+                }
+                overflowViewport.setBounds(
+                        viewportBounds.x,
+                        viewportBounds.y,
+                        viewportBounds.width,
+                        targetHeight
+                );
+                int maxY = Math.max(0, viewSize.height - targetHeight);
+                overflowViewport.setViewPosition(new Point(viewPosition.x, Math.min(viewPosition.y, maxY)));
+                return;
+            }
+
+            int targetWidth = menuBounds.x - viewportBounds.x;
+            if (targetWidth <= 0) {
+                return;
+            }
+            overflowViewport.setBounds(
+                    viewportBounds.x,
+                    viewportBounds.y,
+                    targetWidth,
+                    viewportBounds.height
+            );
+            int maxX = Math.max(0, viewSize.width - targetWidth);
+            overflowViewport.setViewPosition(new Point(Math.min(viewPosition.x, maxX), viewPosition.y));
+        } finally {
+            adjustingOverflowViewport = false;
+        }
+    }
+
+    private void alignOverflowMenuButton(
+            JButton menuButton,
+            Rectangle viewportBounds,
+            boolean vertical
+    ) {
+        Rectangle tabBounds = findVisibleTabBounds(viewportBounds);
+
+        if (vertical) {
+            int tabX = tabBounds == null ? viewportBounds.x : tabBounds.x;
+            int tabWidth = tabBounds == null
+                    ? (maxTabWidth > 0 ? maxTabWidth : viewportBounds.width)
+                    : tabBounds.width;
+            int x = tabX + Math.max(0, (tabWidth - menuButton.getWidth()) / 2);
+            if (menuButton.getX() != x) {
+                menuButton.setLocation(x, menuButton.getY());
+            }
+            return;
+        }
+
+        int tabY = tabBounds == null ? viewportBounds.y : tabBounds.y;
+        int tabHeight = tabBounds == null
+                ? (maxTabHeight > 0 ? maxTabHeight : viewportBounds.height)
+                : tabBounds.height;
+        int y = tabY + Math.max(0, (tabHeight - menuButton.getHeight()) / 2);
+        if (menuButton.getY() != y) {
+            menuButton.setLocation(menuButton.getX(), y);
+        }
+    }
+
+    private Rectangle findVisibleTabBounds(Rectangle viewportBounds) {
+        int selectedIndex = tabPane.getSelectedIndex();
+        Rectangle selectedBounds = getVisibleTabBounds(selectedIndex, viewportBounds);
+        if (selectedBounds != null) {
+            return selectedBounds;
+        }
+
+        for (int index = 0; index < tabPane.getTabCount(); index++) {
+            Rectangle bounds = getVisibleTabBounds(index, viewportBounds);
+            if (bounds != null) {
+                return bounds;
+            }
+        }
+        return null;
+    }
+
+    private Rectangle getVisibleTabBounds(int index, Rectangle viewportBounds) {
+        if (index < 0 || index >= tabPane.getTabCount()) {
+            return null;
+        }
+
+        Rectangle bounds = tabPane.getBoundsAt(index);
+        return bounds != null
+                && bounds.width > 0
+                && bounds.height > 0
+                && bounds.intersects(viewportBounds)
+                ? bounds
+                : null;
     }
 
     @Override
@@ -471,6 +669,265 @@ public class StyledTabbedPaneUI extends BasicTabbedPaneUI {
         int max = (int) Math.ceil(Math.max(normal, selected));
 
         return Math.max(0, max - 1);
+    }
+
+    private class TabScrollButton extends JButton implements UIResource {
+
+        private final int direction;
+
+        private TabScrollButton(int direction) {
+            this.direction = direction;
+
+            setBorder(BorderFactory.createEmptyBorder());
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setFocusable(false);
+            setOpaque(false);
+            setRolloverEnabled(true);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            putClientProperty(SCROLL_BUTTON_PROPERTY, direction);
+
+            String description = switch (direction) {
+                case SwingConstants.WEST -> "Mostrar abas anteriores";
+                case SwingConstants.EAST -> "Mostrar próximas abas";
+                case SwingConstants.NORTH -> "Mostrar abas acima";
+                case SwingConstants.SOUTH -> "Mostrar abas abaixo";
+                default -> "Navegar pelas abas";
+            };
+            setToolTipText(description);
+            getAccessibleContext().setAccessibleName(description);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            int size = Math.max(18, tabs.getTabStyle().getTabScrollButtonSize());
+            return new Dimension(size, size);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                paintButtonBackground(g2);
+                paintChevron(g2);
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        protected void paintButtonBackground(Graphics2D g2) {
+            ButtonModel model = getModel();
+            TabStyle style = tabs.getTabStyle();
+            Color background = null;
+
+            if (model.isPressed() && model.isArmed()) {
+                background = style.getTabScrollButtonPressedBackground();
+            } else if (model.isRollover()) {
+                background = style.getTabScrollButtonHoverBackground();
+            }
+
+            if (background == null) {
+                return;
+            }
+
+            int margin = 3;
+            int width = getWidth() - margin * 2;
+            int height = getHeight() - margin * 2;
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            int arc = Math.max(0, style.getTabScrollButtonArc());
+            g2.setColor(background);
+            g2.fillRoundRect(margin, margin, width, height, arc, arc);
+        }
+
+        private void paintChevron(Graphics2D g2) {
+            TabStyle style = tabs.getTabStyle();
+            Color foreground = isEnabled()
+                    ? style.getTabScrollButtonForeground()
+                    : style.getTabScrollButtonDisabledForeground();
+            if (foreground == null) {
+                return;
+            }
+
+            float centerX = getWidth() / 2f;
+            float centerY = getHeight() / 2f;
+            float radius = Math.max(3f, Math.min(getWidth(), getHeight()) * 0.16f);
+            Path2D.Float chevron = new Path2D.Float();
+
+            switch (direction) {
+                case SwingConstants.WEST -> {
+                    chevron.moveTo(centerX + radius * 0.45f, centerY - radius);
+                    chevron.lineTo(centerX - radius * 0.45f, centerY);
+                    chevron.lineTo(centerX + radius * 0.45f, centerY + radius);
+                }
+                case SwingConstants.EAST -> {
+                    chevron.moveTo(centerX - radius * 0.45f, centerY - radius);
+                    chevron.lineTo(centerX + radius * 0.45f, centerY);
+                    chevron.lineTo(centerX - radius * 0.45f, centerY + radius);
+                }
+                case SwingConstants.NORTH -> {
+                    chevron.moveTo(centerX - radius, centerY + radius * 0.45f);
+                    chevron.lineTo(centerX, centerY - radius * 0.45f);
+                    chevron.lineTo(centerX + radius, centerY + radius * 0.45f);
+                }
+                case SwingConstants.SOUTH -> {
+                    chevron.moveTo(centerX - radius, centerY - radius * 0.45f);
+                    chevron.lineTo(centerX, centerY + radius * 0.45f);
+                    chevron.lineTo(centerX + radius, centerY - radius * 0.45f);
+                }
+                default -> {
+                    return;
+                }
+            }
+
+            float strokeWidth = Math.max(1f, style.getTabScrollButtonStrokeWidth());
+            g2.setColor(foreground);
+            g2.setStroke(new BasicStroke(strokeWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.draw(chevron);
+        }
+    }
+
+    private final class TabOverflowMenuButton extends TabScrollButton {
+
+        private TabOverflowMenuButton(int direction) {
+            super(direction);
+            putClientProperty(OVERFLOW_MENU_BUTTON_PROPERTY, Boolean.TRUE);
+            setToolTipText("Mostrar abas ocultas");
+            getAccessibleContext().setAccessibleName("Mostrar abas ocultas");
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension preferred = super.getPreferredSize();
+            int placement = tabPane.getTabPlacement();
+            if (placement == JTabbedPane.TOP || placement == JTabbedPane.BOTTOM) {
+                preferred.height = Math.max(preferred.height, tabs.getTabStyle().getMinTabHeight());
+            }
+            return preferred;
+        }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            super.setEnabled(tabPane == null || tabPane.isEnabled());
+        }
+
+        @Override
+        protected void paintButtonBackground(Graphics2D g2) {
+            ButtonModel model = getModel();
+            TabStyle style = tabs.getTabStyle();
+            Color background = null;
+            if (model.isPressed() && model.isArmed()) {
+                background = style.getTabScrollButtonPressedBackground();
+            } else if (model.isRollover()) {
+                background = style.getTabScrollButtonHoverBackground();
+            }
+            if (background == null) {
+                return;
+            }
+
+            Insets insets = safeInsets(style.getTabHeaderBackgroundInsets());
+            float borderWidth = Math.max(1f, style.getSelectedTabHeaderBorderWidth());
+            float half = borderWidth / 2f;
+            float x = insets.left + half;
+            float y = insets.top + half;
+            float width = getWidth() - insets.left - insets.right - borderWidth;
+            float height = getHeight() - insets.top - insets.bottom - borderWidth;
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+
+            int arc = Math.max(0, style.getTabHeaderArc());
+            g2.setColor(background);
+            if (arc == 0) {
+                g2.fill(new Rectangle.Float(x, y, width, height));
+            } else {
+                g2.fill(new java.awt.geom.RoundRectangle2D.Float(
+                        x,
+                        y,
+                        width,
+                        height,
+                        arc,
+                        arc
+                ));
+            }
+        }
+
+        @Override
+        protected void fireActionPerformed(ActionEvent event) {
+            tabs.showTabOverflowMenu(this);
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                paintButtonBackground(g2);
+                paintDots(g2);
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        private void paintDots(Graphics2D g2) {
+            TabStyle style = tabs.getTabStyle();
+            Color foreground = isEnabled()
+                    ? style.getTabScrollButtonForeground()
+                    : style.getTabScrollButtonDisabledForeground();
+            if (foreground == null) {
+                return;
+            }
+
+            float diameter = Math.max(2.2f, Math.min(getWidth(), getHeight()) * 0.09f);
+            float gap = diameter * 1.8f;
+            float x = (getWidth() - diameter) / 2f;
+            float centerY = getHeight() / 2f;
+            g2.setColor(foreground);
+            for (int offset = -1; offset <= 1; offset++) {
+                float y = centerY + offset * gap - diameter / 2f;
+                g2.fill(new Ellipse2D.Float(x, y, diameter, diameter));
+            }
+        }
+    }
+
+    private static final class HiddenTabScrollButton extends JButton implements UIResource {
+
+        private HiddenTabScrollButton(int direction) {
+            setFocusable(false);
+            setOpaque(false);
+            setBorder(BorderFactory.createEmptyBorder());
+            putClientProperty(SCROLL_BUTTON_PROPERTY, direction);
+            super.setVisible(false);
+        }
+
+        @Override
+        public void setVisible(boolean visible) {
+            super.setVisible(false);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return new Dimension(0, 0);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(0, 0);
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return new Dimension(0, 0);
+        }
     }
 
 }
