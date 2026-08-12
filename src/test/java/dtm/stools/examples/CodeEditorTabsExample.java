@@ -30,6 +30,8 @@ public class CodeEditorTabsExample {
         frame.setLocationRelativeTo(null);
 
         TabbedPanel tabs = buildTabbedPanel();
+        tabs.addTab(new TabConfig("LongNavigation.java", "LongNavigation.java",
+                buildEditor(buildLongNavigationSample(), "java")));
         tabs.addTab(new TabConfig("project.assets", "project.assets",
                 buildEditor(SAMPLE_JSON, "json")));
         tabs.addTab(new TabConfig("Program.cs", "Program.cs",
@@ -67,7 +69,7 @@ public class CodeEditorTabsExample {
 
         editor.setFoldingEnabled(true);
         editor.getTextArea().setFoldPlaceholderWithSeparators(true);
-        if ("json".equals(kind) || "cs".equals(kind)) {
+        if ("json".equals(kind) || "cs".equals(kind) || "java".equals(kind)) {
             editor.addFoldRule(FoldRule.pair('{', '}'));
             editor.addFoldRule(FoldRule.pair('[', ']'));
         }
@@ -77,6 +79,35 @@ public class CodeEditorTabsExample {
 
         editor.setPreferredSize(new Dimension(900, 600));
         return editor;
+    }
+
+    private static String buildLongNavigationSample() {
+        StringBuilder code = new StringBuilder("""
+                package example.navigation;
+
+                /**
+                 * Use as setas para percorrer este arquivo.
+                 * O scroll deve permanecer parado enquanto o caret estiver dentro da area visivel
+                 * e deve acompanhar o caret somente quando ele alcancar uma das margens.
+                 */
+                public class LongNavigation {
+                    public static void main(String[] args) {
+                """);
+
+        for (int i = 1; i <= 180; i++) {
+            code.append("        System.out.println(\"Linha de teste ")
+                    .append(String.format("%03d", i))
+                    .append(": navegue verticalmente e horizontalmente para validar o comportamento do caret")
+                    .append(i % 12 == 0
+                            ? "; esta linha foi deixada propositalmente muito mais longa para tambem exercitar a margem horizontal do editor"
+                            : "")
+                    .append("\");\n");
+        }
+
+        return code.append("""
+                    }
+                }
+                """).toString();
     }
 
     private static final String SAMPLE_JSON = """

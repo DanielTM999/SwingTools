@@ -2540,18 +2540,64 @@ public class CodeEditorTextArea extends JComponent {
 
         int cy = yOfBufferLine(caretLine);
         int extra = hasCodeLens(caretLine) ? lineHeight : 0;
+        Rectangle caretBounds = new Rectangle(cx, cy - extra, 2, lineHeight + extra);
 
-        int x = Math.max(0, cx - caretScrollLeftMargin);
-        int width = caretScrollLeftMargin
-                + 2
-                + caretScrollRightMargin;
+        JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
+        if (viewport == null) {
+            scrollRectToVisible(caretBounds);
+            return;
+        }
 
-        scrollRectToVisible(new Rectangle(
-                x,
-                cy - extra,
-                width,
-                lineHeight + extra
-        ));
+        Point currentPosition = viewport.getViewPosition();
+        Point targetPosition = calculateCaretScrollPosition(
+                currentPosition,
+                viewport.getExtentSize(),
+                caretBounds
+        );
+        if (!targetPosition.equals(currentPosition)) {
+            viewport.setViewPosition(targetPosition);
+        }
+    }
+
+    /**
+     * Keeps the viewport still while the caret remains inside its navigation margins.
+     * This prevents ordinary arrow-key movement from also behaving like a scroll command.
+     */
+    protected Point calculateCaretScrollPosition(Point viewPosition,
+                                                 Dimension extentSize,
+                                                 Rectangle caretBounds) {
+        int extentWidth = Math.max(0, extentSize.width);
+        int extentHeight = Math.max(0, extentSize.height);
+        if (extentWidth == 0 || extentHeight == 0) {
+            return new Point(viewPosition);
+        }
+
+        int horizontalMarginSpace = Math.max(0, extentWidth - caretBounds.width);
+        int leftMargin = Math.min(Math.max(0, caretScrollLeftMargin), horizontalMarginSpace / 2);
+        int rightMargin = Math.min(Math.max(0, caretScrollRightMargin), horizontalMarginSpace - leftMargin);
+
+        int x = viewPosition.x;
+        int leftBoundary = viewPosition.x + leftMargin;
+        int rightBoundary = viewPosition.x + extentWidth - rightMargin;
+        if (caretBounds.x < leftBoundary) {
+            x = caretBounds.x - leftMargin;
+        } else if (caretBounds.x + caretBounds.width > rightBoundary) {
+            x = caretBounds.x + caretBounds.width + rightMargin - extentWidth;
+        }
+
+        int y = viewPosition.y;
+        if (caretBounds.y < viewPosition.y) {
+            y = caretBounds.y;
+        } else if (caretBounds.y + caretBounds.height > viewPosition.y + extentHeight) {
+            y = caretBounds.y + caretBounds.height - extentHeight;
+        }
+
+        int maxX = Math.max(0, getWidth() - extentWidth);
+        int maxY = Math.max(0, getHeight() - extentHeight);
+        return new Point(
+                Math.max(0, Math.min(x, maxX)),
+                Math.max(0, Math.min(y, maxY))
+        );
     }
 
     protected int caretOffset() {
@@ -5004,6 +5050,9 @@ public class CodeEditorTextArea extends JComponent {
                 }
             }
 
+            // The editor handled this key. Do not let an ancestor JScrollPane handle
+            // the same arrow key again as a unit-scroll command.
+            e.consume();
             scrollToCaret();
             resetCaretBlink();
             revalidate();

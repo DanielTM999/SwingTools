@@ -37,6 +37,7 @@ public class DockPanel extends PanelEventListener {
     private final EnumSet<DockRegion> collapsedRegions = EnumSet.noneOf(DockRegion.class);
     private final Map<String, Dimension> rememberedDockSizes = new HashMap<>();
     private final Map<String, DockRegion> rememberedDockRegions = new HashMap<>();
+    private final Map<String, Integer> rememberedDockIndexes = new HashMap<>();
     private boolean preserveDockSizeOnReopen = true;
     private boolean adjustingDividers;
     private boolean suppressTabEvents;
@@ -122,6 +123,7 @@ public class DockPanel extends PanelEventListener {
         group.addEventListener(EventTabbedPanel.TAB_CLOSE, event -> {
             if (suppressTabEvents) return;
             TabEvent tabEvent = (TabEvent) event;
+            rememberDockPlacement(docksByKey.get(tabEvent.getKey()));
             DockEntry entry = removeEntry(tabEvent.getKey());
             dispatchDockEvent(EventDockPanel.DOCK_CLOSE, entry, Map.of("region", region));
             afterRegionContentChange(region);
@@ -138,7 +140,7 @@ public class DockPanel extends PanelEventListener {
         group.addEventListener(EventTabbedPanel.TAB_REMOVE, event -> {
             if (suppressTabEvents) return;
             TabEvent tabEvent = (TabEvent) event;
-            forgetRememberedDockSize(tabEvent.getKey());
+            rememberDockPlacement(docksByKey.get(tabEvent.getKey()));
             DockEntry entry = removeEntry(tabEvent.getKey());
             dispatchDockEvent(EventDockPanel.DOCK_REMOVE, entry, Map.of("region", region));
             afterRegionContentChange(region);
@@ -200,6 +202,7 @@ public class DockPanel extends PanelEventListener {
         keyByComponent.put(config.getComponent(), key);
 
         addEntryToGroup(entry, config);
+        restoreRememberedDockOrder(entry);
         rebuildLayout();
         dispatchDockEvent(EventDockPanel.DOCK_ADD, entry, Map.of("region", entry.getRegion()));
         return key;
@@ -258,6 +261,7 @@ public class DockPanel extends PanelEventListener {
             entry.setRegion(newRegion);
             forgetRememberedDockSize(key);
             entry.setPreferredSize(null);
+            rememberDockPlacement(entry);
             addEntryToGroup(entry, null);
         } finally {
             suppressTabEvents = false;
@@ -1293,14 +1297,59 @@ public class DockPanel extends PanelEventListener {
         if (!preserveDockSizeOnReopen || entry == null) return;
         Dimension remembered = rememberedDockSizes.get(entry.getKey());
         DockRegion region = rememberedDockRegions.get(entry.getKey());
-        if (remembered != null && region == entry.getRegion()) {
+        if (region != null) {
+            entry.setRegion(region);
+        }
+        if (remembered != null) {
             entry.setPreferredSize(new Dimension(remembered));
+        }
+    }
+
+    private void rememberDockPlacement(DockEntry entry) {
+        if (!preserveDockSizeOnReopen || entry == null) return;
+        rememberedDockRegions.put(entry.getKey(), entry.getRegion());
+        int index = getDockIndex(entry);
+        if (index >= 0) {
+            rememberedDockIndexes.put(entry.getKey(), index);
+        }
+
+        Dimension preferred = entry.getPreferredSize();
+        if (preferred != null) {
+            rememberedDockSizes.put(entry.getKey(), new Dimension(preferred));
+        }
+    }
+
+    private int getDockIndex(DockEntry entry) {
+        if (entry == null) return -1;
+        if (isSplitDocksInSameRegionEnabled()) {
+            return splitDockKeys.getOrDefault(entry.getRegion(), List.of()).indexOf(entry.getKey());
+        }
+        TabbedPanel group = groups.get(entry.getRegion());
+        return group == null ? -1 : group.indexOf(entry.getKey());
+    }
+
+    private void restoreRememberedDockOrder(DockEntry entry) {
+        if (!preserveDockSizeOnReopen || entry == null) return;
+        Integer rememberedIndex = rememberedDockIndexes.get(entry.getKey());
+        if (rememberedIndex == null) return;
+
+        if (isSplitDocksInSameRegionEnabled()) {
+            List<String> keys = splitDockKeys.get(entry.getRegion());
+            if (keys == null || !keys.remove(entry.getKey())) return;
+            keys.add(Math.min(rememberedIndex, keys.size()), entry.getKey());
+            return;
+        }
+
+        TabbedPanel group = groups.get(entry.getRegion());
+        if (group != null && group.contains(entry.getKey())) {
+            group.moveTab(entry.getKey(), Math.min(rememberedIndex, Math.max(0, group.getTabCount() - 1)));
         }
     }
 
     private void forgetRememberedDockSize(String key) {
         rememberedDockSizes.remove(key);
         rememberedDockRegions.remove(key);
+        rememberedDockIndexes.remove(key);
     }
 
     private void captureVisibleRegionSizes() {

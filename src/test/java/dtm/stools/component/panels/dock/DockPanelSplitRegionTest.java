@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -38,6 +39,39 @@ class DockPanelSplitRegionTest {
             assertTrue(SwingUtilities.getAncestorOfClass(JSplitPane.class, terminal) != null);
             assertSame(build, dock.findDock("build"));
             assertSame(terminal, dock.findDock("terminal"));
+            return null;
+        });
+    }
+
+    @Test
+    void reopensDockInItsLastMovedRegion() throws Exception {
+        onEdt(() -> {
+            DockPanel dock = new DockPanel();
+            dock.addDock(new DockConfig("tool", "Tool", new JLabel("Tool")).right());
+
+            assertTrue(dock.moveDock("tool", DockRegion.BOTTOM));
+            assertTrue(dock.removeDock("tool"));
+
+            dock.addDock(new DockConfig("tool", "Tool", new JLabel("Tool")).right());
+
+            assertEquals(DockRegion.BOTTOM, dock.getDock("tool").getRegion());
+            return null;
+        });
+    }
+
+    @Test
+    void reopensSplitDockInItsPreviousPosition() throws Exception {
+        onEdt(() -> {
+            DockPanel dock = new DockPanel();
+            dock.addDock(new DockConfig("terminal", "Terminal", new JLabel("Terminal")).bottom());
+            dock.addDock(new DockConfig("git", "Git", new JLabel("Git")).bottom());
+
+            assertTrue(dock.removeDock("terminal"));
+            dock.addDock(new DockConfig("terminal", "Terminal", new JLabel("Terminal")).bottom());
+
+            assertEquals(List.of("terminal", "git"), dock.getDocks(DockRegion.BOTTOM).stream()
+                    .map(DockEntry::getKey)
+                    .toList());
             return null;
         });
     }

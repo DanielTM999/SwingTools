@@ -80,6 +80,14 @@ public final class ImageUtils {
         }
     }
 
+    public static ImageIcon getColoredImageIconByResourceOrThrow(Class<?> aClass, String path, Color targetColor) {
+        return getColoredImageIconByResource(aClass, path, targetColor).orElseThrow(() -> new ResourceNotFoundException("Erro ao achar Recurso: "+path, path));
+    }
+
+    public static ImageIcon getColoredImageIconByResourceOrThrow(Class<?> aClass, String path, Color targetColor, boolean external) {
+        return getColoredImageIconByResource(aClass, path, targetColor, external).orElseThrow(() -> new ResourceNotFoundException("Erro ao achar Recurso: "+path, path));
+    }
+
     public static Optional<ImageIcon> getColoredImageIconByResource(Class<?> aClass, String path, Color targetColor) {
         return getColoredImageIconByResource(aClass, path, targetColor, false);
     }
