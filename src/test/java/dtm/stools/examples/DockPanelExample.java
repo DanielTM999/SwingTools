@@ -3,6 +3,7 @@ package dtm.stools.examples;
 import com.formdev.flatlaf.FlatDarkLaf;
 import dtm.stools.component.panels.dock.DockConfig;
 import dtm.stools.component.panels.dock.DockPanel;
+import dtm.stools.component.panels.dock.DockRegionLayout;
 import dtm.stools.component.panels.dock.DockRegion;
 import dtm.stools.component.panels.tab.TabbedPanel;
 import javax.swing.*;
@@ -26,7 +27,7 @@ public class DockPanelExample {
     private static void showDockPanelExample() {
         FlatDarkLaf.setup();
 
-        JFrame frame = new JFrame("DockPanel - bottom full width");
+        JFrame frame = new JFrame("DockPanel - IntelliJ-like bottom tool windows");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setMinimumSize(new Dimension(980, 620));
         frame.setSize(1280, 760);
@@ -58,6 +59,7 @@ public class DockPanelExample {
             return group;
         });
 
+        dock.setDockRegionLayout(DockRegionLayout.SPLIT);
         dock.setDockHorizontalDropEnabled(true);
         dock.setSplitOneTouchExpandableEnabled(false);
         dock.setDockDragLockedRegions(DockRegion.CENTER);
@@ -102,6 +104,11 @@ public class DockPanelExample {
                 .bottom()
                 .closable(false)
                 .allowedDropRegions(DockRegion.BOTTOM, DockRegion.BOTTOM_RIGHT));
+
+        dock.addDock(new DockConfig("build", "Build", buildOutput())
+                .bottom()
+                .closable(false)
+                .allowedDropRegions(DockRegion.BOTTOM, DockRegion.BOTTOM_LEFT));
     }
 
     private static JTree projectTree() {
@@ -166,8 +173,25 @@ public class DockPanelExample {
                 PS C:\\Users\\danie\\Documents\\development\\java\\SwingTools> mvn -q -DskipTests -Dnative.build.skip=true compile
 
                 [DockPanel]
-                BOTTOM_LEFT fica no trilho lateral.
-                BOTTOM fica por ultimo e ocupa a largura inteira da janela.
+                Dois docks na regiao BOTTOM ficam visiveis ao mesmo tempo.
+                Arraste o divisor entre Build e Terminal para redimensiona-los.
+                """);
+        area.setEditable(false);
+        area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+        area.setBackground(new Color(0x181B21));
+        area.setForeground(new Color(0xB8C0CC));
+        area.setBorder(new EmptyBorder(12, 14, 12, 14));
+        return scroll(area);
+    }
+
+    private static JComponent buildOutput() {
+        JTextArea area = new JTextArea();
+        area.setText("""
+                Build Output
+
+                > mvn -q -DskipTests compile
+                [INFO] Compiling 142 source files
+                [INFO] BUILD SUCCESS
                 """);
         area.setEditable(false);
         area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));

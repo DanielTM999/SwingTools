@@ -26,6 +26,9 @@ import java.util.function.Consumer;
 public class DockPanel extends PanelEventListener {
     private final JPanel content = new JPanel(new BorderLayout());
     private final Map<DockRegion, TabbedPanel> groups = new EnumMap<>(DockRegion.class);
+    private final Map<DockRegion, List<String>> splitDockKeys = new EnumMap<>(DockRegion.class);
+    private final Map<String, TabbedPanel> splitGroupsByKey = new LinkedHashMap<>();
+    private final Map<DockRegion, Component> displayedRegionComponents = new EnumMap<>(DockRegion.class);
     private final Map<DockRegion, Dimension> preferredRegionSizes = new EnumMap<>(DockRegion.class);
     private final EnumSet<DockRegion> explicitRegionPreferredSizes = EnumSet.noneOf(DockRegion.class);
     private final Map<String, DockEntry> docksByKey = new LinkedHashMap<>();
@@ -47,7 +50,7 @@ public class DockPanel extends PanelEventListener {
     private float dockDropPreviewAlpha = 0.22f;
     private boolean splitOneTouchExpandableEnabled = true;
     @Getter
-    private boolean singleDockPerRegionEnabled = true;
+    private DockRegionLayout dockRegionLayout = DockRegionLayout.SPLIT;
     @Getter
     private DockDragPolicy dragPolicy = new DockDragPolicy() {};
     @Getter
@@ -83,6 +86,7 @@ public class DockPanel extends PanelEventListener {
         for (DockRegion region : DockRegion.values()) {
             TabbedPanel group = resolveDockGroup(region);
             groups.put(region, group);
+            splitDockKeys.put(region, new ArrayList<>());
             installGroupListeners(region, group);
         }
     }
@@ -204,13 +208,13 @@ public class DockPanel extends PanelEventListener {
     public boolean removeDock(String key) {
         DockEntry entry = docksByKey.get(key);
         if (entry == null) return false;
-        return groups.get(entry.getRegion()).removeTab(key);
+        return getGroupForDock(entry).removeTab(key);
     }
 
     public boolean closeDock(String key) {
         DockEntry entry = docksByKey.get(key);
         if (entry == null) return false;
-        return groups.get(entry.getRegion()).closeTab(key);
+        return getGroupForDock(entry).closeTab(key);
     }
 
     public boolean moveDock(String key, DockRegion targetRegion) {
@@ -242,7 +246,7 @@ public class DockPanel extends PanelEventListener {
         }});
         if (before.isCanceled()) return false;
 
-        TabbedPanel oldGroup = groups.get(oldRegion);
+        TabbedPanel oldGroup = getGroupForDock(entry);
         TabEntry tab = oldGroup.getEntry(key);
         entry.updateFrom(tab, oldRegion);
         replaceDocksInRegionIfNeeded(newRegion, key);
@@ -250,6 +254,7 @@ public class DockPanel extends PanelEventListener {
         suppressTabEvents = true;
         try {
             if (!oldGroup.removeTab(key)) return false;
+            removeSplitGroup(key, oldRegion);
             entry.setRegion(newRegion);
             forgetRememberedDockSize(key);
             entry.setPreferredSize(null);
@@ -270,7 +275,7 @@ public class DockPanel extends PanelEventListener {
     public void switchTo(String key) {
         DockEntry entry = docksByKey.get(key);
         if (entry == null) return;
-        groups.get(entry.getRegion()).switchTo(key);
+        getGroupForDock(entry).switchTo(key);
     }
 
     public boolean containsDock(String key) {
@@ -300,6 +305,13 @@ public class DockPanel extends PanelEventListener {
 
     public List<DockEntry> getDocks(DockRegion region) {
         List<DockEntry> result = new ArrayList<>();
+        if (isSplitDocksInSameRegionEnabled()) {
+            for (String key : splitDockKeys.getOrDefault(region, List.of())) {
+                DockEntry entry = docksByKey.get(key);
+                if (entry != null) result.add(entry);
+            }
+            return result;
+        }
         TabbedPanel group = groups.get(region);
         if (group == null) return result;
         for (TabEntry tab : group.getEntries()) {
@@ -318,11 +330,15 @@ public class DockPanel extends PanelEventListener {
     }
 
     public TabbedPanel getGroup(DockRegion region) {
+        if (isSplitDocksInSameRegionEnabled()) {
+            List<String> keys = splitDockKeys.getOrDefault(region, List.of());
+            if (!keys.isEmpty()) return splitGroupsByKey.get(keys.getFirst());
+        }
         return groups.get(region);
     }
 
     public TabbedPanel getCenterGroup() {
-        return groups.get(DockRegion.CENTER);
+        return getGroup(DockRegion.CENTER);
     }
 
     public int getDockCount() {
@@ -330,6 +346,9 @@ public class DockPanel extends PanelEventListener {
     }
 
     public boolean isRegionVisible(DockRegion region) {
+        if (isSplitDocksInSameRegionEnabled()) {
+            return !splitDockKeys.getOrDefault(region, List.of()).isEmpty();
+        }
         TabbedPanel group = groups.get(region);
         return group != null && !group.isEmpty();
     }
@@ -518,13 +537,35 @@ public class DockPanel extends PanelEventListener {
         return this;
     }
 
-    public DockPanel setSingleDockPerRegionEnabled(boolean enabled) {
-        this.singleDockPerRegionEnabled = enabled;
+    public DockPanel setDockRegionLayout(DockRegionLayout layout) {
+        DockRegionLayout next = layout == null ? DockRegionLayout.SPLIT : layout;
+        if (dockRegionLayout == next) return this;
+        if (!docksByKey.isEmpty()) {
+            throw new IllegalStateException("DockRegionLayout must be configured before adding docks.");
+        }
+        dockRegionLayout = next;
+        rebuildLayout();
         return this;
     }
 
+    public boolean isSingleDockPerRegionEnabled() {
+        return dockRegionLayout == DockRegionLayout.SINGLE;
+    }
+
+    public DockPanel setSingleDockPerRegionEnabled(boolean enabled) {
+        return setDockRegionLayout(enabled ? DockRegionLayout.SINGLE : DockRegionLayout.TABS);
+    }
+
     public DockPanel setTabsPerRegionEnabled(boolean enabled) {
-        return setSingleDockPerRegionEnabled(!enabled);
+        return setDockRegionLayout(enabled ? DockRegionLayout.TABS : DockRegionLayout.SINGLE);
+    }
+
+    public boolean isSplitDocksInSameRegionEnabled() {
+        return dockRegionLayout == DockRegionLayout.SPLIT;
+    }
+
+    public DockPanel setSplitDocksInSameRegionEnabled(boolean enabled) {
+        return setDockRegionLayout(enabled ? DockRegionLayout.SPLIT : DockRegionLayout.TABS);
     }
 
     public DockPanel setPreserveDockSizeOnReopen(boolean enabled) {
@@ -562,13 +603,11 @@ public class DockPanel extends PanelEventListener {
     public DockLayoutSnapshot createLayoutSnapshot() {
         DockLayoutSnapshot snapshot = new DockLayoutSnapshot();
         for (DockRegion region : DockRegion.values()) {
-            TabbedPanel group = groups.get(region);
             List<String> keys = new ArrayList<>();
-            for (TabEntry entry : group.getEntries()) {
-                keys.add(entry.getKey());
-            }
+            for (DockEntry entry : getDocks(region)) keys.add(entry.getKey());
             snapshot.putRegionKeys(region, keys);
-            snapshot.putSelectedKey(region, group.getCurrentKey());
+            TabbedPanel group = getGroup(region);
+            snapshot.putSelectedKey(region, group == null ? null : group.getCurrentKey());
             snapshot.putPreferredSize(region, getRegionPreferredSize(region));
         }
         return snapshot;
@@ -594,16 +633,23 @@ public class DockPanel extends PanelEventListener {
                         moveDockSilently(dock, region);
                     }
                 }
-                TabbedPanel group = groups.get(region);
-                for (int i = 0; i < keys.size(); i++) {
-                    group.moveTab(keys.get(i), i);
+                if (isSplitDocksInSameRegionEnabled()) {
+                    List<String> order = splitDockKeys.get(region);
+                    order.removeIf(keys::contains);
+                    order.addAll(keys.stream().filter(splitGroupsByKey::containsKey).toList());
+                } else {
+                    TabbedPanel group = groups.get(region);
+                    for (int i = 0; i < keys.size(); i++) {
+                        group.moveTab(keys.get(i), i);
+                    }
                 }
             }
 
             for (DockRegion region : DockRegion.values()) {
                 String selectedKey = snapshot.getSelectedKey(region);
-                if (selectedKey != null && groups.get(region).contains(selectedKey)) {
-                    groups.get(region).switchTo(selectedKey);
+                TabbedPanel group = getGroupForKey(selectedKey);
+                if (selectedKey != null && group != null && group.contains(selectedKey)) {
+                    group.switchTo(selectedKey);
                 }
             }
         } finally {
@@ -691,8 +737,47 @@ public class DockPanel extends PanelEventListener {
         if (sourceConfig != null && sourceConfig.getBadge() != null) {
             tabConfig.badge(sourceConfig.getBadge());
         }
-        groups.get(entry.getRegion()).addTab(tabConfig);
+        TabbedPanel group = getOrCreateGroupForDock(entry);
+        group.addTab(tabConfig);
         installContentDragHandle(entry);
+    }
+
+    private TabbedPanel getOrCreateGroupForDock(DockEntry entry) {
+        if (!isSplitDocksInSameRegionEnabled()) return groups.get(entry.getRegion());
+
+        TabbedPanel group = resolveDockGroup(entry.getRegion());
+        installGroupListeners(entry.getRegion(), group);
+        splitGroupsByKey.put(entry.getKey(), group);
+        splitDockKeys.get(entry.getRegion()).add(entry.getKey());
+        return group;
+    }
+
+    private TabbedPanel getGroupForDock(DockEntry entry) {
+        return entry == null ? null : getGroupForKey(entry.getKey());
+    }
+
+    private TabbedPanel getGroupForKey(String key) {
+        if (key == null) return null;
+        DockEntry entry = docksByKey.get(key);
+        if (entry == null) return splitGroupsByKey.get(key);
+        if (!isSplitDocksInSameRegionEnabled()) return groups.get(entry.getRegion());
+        return splitGroupsByKey.get(key);
+    }
+
+    private void removeSplitGroup(String key, DockRegion region) {
+        if (!isSplitDocksInSameRegionEnabled() || key == null) return;
+        splitGroupsByKey.remove(key);
+        splitDockKeys.getOrDefault(region, List.of()).remove(key);
+    }
+
+    private List<TabbedPanel> getRegionGroups(DockRegion region) {
+        if (!isSplitDocksInSameRegionEnabled()) return List.of(groups.get(region));
+        List<TabbedPanel> result = new ArrayList<>();
+        for (String key : splitDockKeys.getOrDefault(region, List.of())) {
+            TabbedPanel group = splitGroupsByKey.get(key);
+            if (group != null) result.add(group);
+        }
+        return result;
     }
 
     protected JComponent createDockTabHeader(TabbedPanel tabs, TabEntry tabEntry, DockEntry dockEntry, boolean selected) {
@@ -711,7 +796,7 @@ public class DockPanel extends PanelEventListener {
     }
 
     private void replaceDocksInRegionIfNeeded(DockRegion region, String incomingKey) {
-        if (!singleDockPerRegionEnabled || region == null) return;
+        if (!isSingleDockPerRegionEnabled() || region == null) return;
         TabbedPanel group = groups.get(region);
         if (group == null || group.isEmpty()) return;
 
@@ -735,6 +820,7 @@ public class DockPanel extends PanelEventListener {
         suppressTabEvents = true;
         try {
             if (group != null) group.removeTab(key);
+            removeSplitGroup(key, region);
             forgetRememberedDockSize(key);
             removeEntry(key);
         } finally {
@@ -899,9 +985,9 @@ public class DockPanel extends PanelEventListener {
     }
 
     private Rectangle getRegionBounds(DockRegion region) {
-        TabbedPanel group = groups.get(region);
-        if (group == null || !group.isShowing()) return null;
-        return SwingUtilities.convertRectangle(group.getParent(), group.getBounds(), this);
+        Component component = displayedRegionComponents.get(region);
+        if (component == null || !component.isShowing()) return null;
+        return SwingUtilities.convertRectangle(component.getParent(), component.getBounds(), this);
     }
 
     private void beginPossibleDockDrag(String key, MouseEvent event) {
@@ -1010,9 +1096,11 @@ public class DockPanel extends PanelEventListener {
 
     private void moveDockSilently(DockEntry entry, DockRegion targetRegion) {
         DockRegion oldRegion = entry.getRegion();
-        TabEntry tab = groups.get(oldRegion).getEntry(entry.getKey());
+        TabbedPanel oldGroup = getGroupForDock(entry);
+        TabEntry tab = oldGroup.getEntry(entry.getKey());
         entry.updateFrom(tab, oldRegion);
-        if (!groups.get(oldRegion).removeTab(entry.getKey())) return;
+        if (!oldGroup.removeTab(entry.getKey())) return;
+        removeSplitGroup(entry.getKey(), oldRegion);
         entry.setRegion(targetRegion);
         addEntryToGroup(entry, null);
     }
@@ -1021,6 +1109,7 @@ public class DockPanel extends PanelEventListener {
         DockEntry entry = docksByKey.remove(key);
         if (entry != null) {
             keyByComponent.remove(entry.getComponent());
+            removeSplitGroup(key, entry.getRegion());
         }
         return entry;
     }
@@ -1036,13 +1125,13 @@ public class DockPanel extends PanelEventListener {
     private void rebuildLayout() {
         adjustingDividers = true;
         applyPreferredRegionSizes();
-        updateDockGroupHeaderVisibility();
 
         content.removeAll();
-        Component layout = groups.get(DockRegion.CENTER);
+        displayedRegionComponents.clear();
+        Component layout = createRegionLayout(DockRegion.CENTER);
 
         if (isRegionDisplayed(DockRegion.TOP)) {
-            layout = createSplit(DockRegion.TOP, groups.get(DockRegion.TOP), layout);
+            layout = createSplit(DockRegion.TOP, createRegionLayout(DockRegion.TOP), layout);
         }
 
         Component leftRail = createSideRail(DockRegion.TOP_LEFT, DockRegion.LEFT, DockRegion.BOTTOM_LEFT);
@@ -1056,12 +1145,14 @@ public class DockPanel extends PanelEventListener {
         }
 
         if (isRegionDisplayed(DockRegion.BOTTOM)) {
-            layout = createSplit(DockRegion.BOTTOM, layout, groups.get(DockRegion.BOTTOM));
+            layout = createSplit(DockRegion.BOTTOM, layout, createRegionLayout(DockRegion.BOTTOM));
         }
 
         content.add(layout, BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
+        // A tab selection event can trigger this rebuild while JTabbedPane is inserting a tab.
+        // Changing its UI synchronously would uninstall BasicTabbedPaneUI mid-event.
         SwingUtilities.invokeLater(this::updateDockGroupHeaderVisibility);
         dispatchDockEvent(EventDockPanel.LAYOUT_CHANGE, null, Map.of("layout", layout));
         SwingUtilities.invokeLater(() -> adjustingDividers = false);
@@ -1073,13 +1164,13 @@ public class DockPanel extends PanelEventListener {
         boolean bottomVisible = isRegionDisplayed(bottomRegion);
         if (!topVisible && !middleVisible && !bottomVisible) return null;
 
-        Component layout = middleVisible ? groups.get(middleRegion) : null;
+        Component layout = middleVisible ? createRegionLayout(middleRegion) : null;
         if (topVisible) {
-            Component top = groups.get(topRegion);
+            Component top = createRegionLayout(topRegion);
             layout = layout == null ? top : createVerticalSplit(topRegion, top, layout);
         }
         if (bottomVisible) {
-            Component bottom = groups.get(bottomRegion);
+            Component bottom = createRegionLayout(bottomRegion);
             layout = layout == null ? bottom : createVerticalSplit(bottomRegion, layout, bottom);
         }
         if (layout instanceof JComponent component) {
@@ -1087,6 +1178,31 @@ public class DockPanel extends PanelEventListener {
             if (size != null) component.setPreferredSize(size);
         }
         return layout;
+    }
+
+    private Component createRegionLayout(DockRegion region) {
+        List<TabbedPanel> regionGroups = getRegionGroups(region);
+        if (regionGroups.isEmpty()) return groups.get(region);
+
+        Component layout = regionGroups.getFirst();
+        for (int index = 1; index < regionGroups.size(); index++) {
+            JSplitPane split = createSameRegionSplit(region, layout, regionGroups.get(index));
+            int leftCount = index;
+            int totalCount = index + 1;
+            SwingUtilities.invokeLater(() -> split.setDividerLocation((double) leftCount / totalCount));
+            layout = split;
+        }
+        displayedRegionComponents.put(region, layout);
+        return layout;
+    }
+
+    private JSplitPane createSameRegionSplit(DockRegion region, Component first, Component second) {
+        int orientation = region == DockRegion.TOP || region == DockRegion.BOTTOM || region == DockRegion.CENTER
+                ? JSplitPane.HORIZONTAL_SPLIT
+                : JSplitPane.VERTICAL_SPLIT;
+        JSplitPane split = createSeparator(region, first, second, orientation, false);
+        split.setResizeWeight(0.5);
+        return split;
     }
 
     private Dimension resolveSideRailPreferredSize(DockRegion topRegion, DockRegion middleRegion, DockRegion bottomRegion) {
@@ -1116,6 +1232,10 @@ public class DockPanel extends PanelEventListener {
     }
 
     private JSplitPane createSeparator(DockRegion region, Component first, Component second, int orientation) {
+        return createSeparator(region, first, second, orientation, true);
+    }
+
+    private JSplitPane createSeparator(DockRegion region, Component first, Component second, int orientation, boolean captureResize) {
         JSplitPane split = dockSeparatorFactory == null
                 ? null
                 : dockSeparatorFactory.createSeparator(this, region, first, second, orientation);
@@ -1135,7 +1255,7 @@ public class DockPanel extends PanelEventListener {
             split.setTopComponent(first);
             split.setBottomComponent(second);
         }
-        installDividerResizeCapture(region, split);
+        if (captureResize) installDividerResizeCapture(region, split);
         return split;
     }
 
@@ -1150,21 +1270,19 @@ public class DockPanel extends PanelEventListener {
         if (!preserveDockSizeOnReopen || region == null || region == DockRegion.CENTER) return;
         if (!isRegionVisible(region)) return;
 
-        TabbedPanel group = groups.get(region);
-        if (group == null || group.getWidth() <= 0 || group.getHeight() <= 0) return;
+        Component component = displayedRegionComponents.get(region);
+        if (component == null || component.getWidth() <= 0 || component.getHeight() <= 0) return;
 
         Dimension size;
         if (region == DockRegion.LEFT || region == DockRegion.RIGHT) {
-            size = new Dimension(group.getWidth(), 1);
+            size = new Dimension(component.getWidth(), 1);
         } else if (region == DockRegion.TOP || region == DockRegion.BOTTOM) {
-            size = new Dimension(1, group.getHeight());
+            size = new Dimension(1, component.getHeight());
         } else {
-            size = new Dimension(group.getWidth(), group.getHeight());
+            size = new Dimension(component.getWidth(), component.getHeight());
         }
 
-        for (TabEntry tab : group.getEntries()) {
-            DockEntry dock = docksByKey.get(tab.getKey());
-            if (dock == null) continue;
+        for (DockEntry dock : getDocks(region)) {
             dock.setPreferredSize(new Dimension(size));
             rememberedDockSizes.put(dock.getKey(), new Dimension(size));
             rememberedDockRegions.put(dock.getKey(), region);
@@ -1189,15 +1307,15 @@ public class DockPanel extends PanelEventListener {
         for (DockRegion region : DockRegion.values()) {
             if (region == DockRegion.CENTER || !isRegionVisible(region)) continue;
 
-            TabbedPanel group = groups.get(region);
-            if (group == null || group.getWidth() <= 0 || group.getHeight() <= 0) continue;
+            Component component = displayedRegionComponents.get(region);
+            if (component == null || component.getWidth() <= 0 || component.getHeight() <= 0) continue;
 
             if (region == DockRegion.LEFT || region == DockRegion.RIGHT) {
-                preferredRegionSizes.put(region, new Dimension(group.getWidth(), 1));
+                preferredRegionSizes.put(region, new Dimension(component.getWidth(), 1));
             } else if (region == DockRegion.TOP || region == DockRegion.BOTTOM) {
-                preferredRegionSizes.put(region, new Dimension(1, group.getHeight()));
+                preferredRegionSizes.put(region, new Dimension(1, component.getHeight()));
             } else {
-                preferredRegionSizes.put(region, new Dimension(group.getWidth(), group.getHeight()));
+                preferredRegionSizes.put(region, new Dimension(component.getWidth(), component.getHeight()));
             }
             explicitRegionPreferredSizes.add(region);
         }
@@ -1226,7 +1344,7 @@ public class DockPanel extends PanelEventListener {
     }
 
     private DockEntry getSelectedDock(DockRegion region) {
-        TabbedPanel group = groups.get(region);
+        TabbedPanel group = getGroup(region);
         if (group == null || group.isEmpty()) return null;
 
         String key = group.getCurrentKey();
@@ -1260,22 +1378,28 @@ public class DockPanel extends PanelEventListener {
 
     private void applyPreferredRegionSizes() {
         for (DockRegion region : DockRegion.values()) {
-            TabbedPanel group = groups.get(region);
-            if (group == null) continue;
-
             Dimension preferred = resolveRegionPreferredSize(region);
-            group.setPreferredSize(preferred == null ? null : new Dimension(preferred));
+            for (TabbedPanel group : getRegionGroups(region)) {
+                group.setPreferredSize(preferred == null ? null : new Dimension(preferred));
+            }
         }
     }
 
     private void updateDockGroupHeaderVisibility() {
         for (DockRegion region : groups.keySet()) {
-            updateDockGroupHeaderVisibility(region);
+            for (TabbedPanel group : getRegionGroups(region)) {
+                updateDockGroupHeaderVisibility(group);
+            }
         }
     }
 
     private void updateDockGroupHeaderVisibility(DockRegion region) {
-        TabbedPanel group = groups.get(region);
+        for (TabbedPanel group : getRegionGroups(region)) {
+            updateDockGroupHeaderVisibility(group);
+        }
+    }
+
+    private void updateDockGroupHeaderVisibility(TabbedPanel group) {
         if (group == null) return;
 
         boolean hideHeader = shouldHideGroupHeader(group);

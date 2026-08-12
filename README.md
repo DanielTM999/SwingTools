@@ -572,6 +572,8 @@ dock.addDock("Editor", new CodeEditor(), DockRegion.CENTER);
 dock.addDock("Console", new JTextArea(), DockRegion.BOTTOM);
 ```
 
+Por padrão, vários docks na mesma região são mostrados simultaneamente em divisores redimensionáveis. Por exemplo, `Build` e `Terminal` em `BOTTOM` ficam lado a lado. Use `setDockRegionLayout(DockRegionLayout.TABS)` para agrupá-los em abas ou `DockRegionLayout.SINGLE` para manter apenas um dock por região.
+
 Regiões:
 
 | Região | Uso típico |
@@ -588,6 +590,7 @@ Recursos:
 | `DockConfig` | Configuração declarativa de dock |
 | `DockEntry` | Entrada registrada |
 | `DockRegion` | Região alvo |
+| `DockRegionLayout` | Exibição de docks na mesma região: `SPLIT`, `TABS` ou `SINGLE` |
 | `DockDragPolicy` | Política de arraste |
 | `DockDropContext` | Contexto de drop |
 | `DockLayoutSnapshot` | Snapshot de layout |
