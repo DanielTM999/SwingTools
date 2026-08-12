@@ -11,17 +11,66 @@ import java.awt.event.*;
 public class GraphicsGlPanel extends AbstractGraphicsPanel<GraphicsGlContext> {
 
     private static final GraphicsGlUiSchedule uiSchedule = GraphicsGlUiSchedule.INSTANCE;
-    private final GraphicsGlHost graphicsGlHost = new GraphicsGlHost();
+    private final GraphicsGlHost graphicsGlHost;
+    private final GraphicsGlPresentationMode presentationMode;
 
     public GraphicsGlPanel() {
-        setLayout(new BorderLayout());
-        add(graphicsGlHost.getComponent(), BorderLayout.CENTER);
+        this(GraphicsGlPresentationMode.BUFFERED);
+    }
+
+    public GraphicsGlPanel(GraphicsGlPresentationMode presentationMode) {
+        if (presentationMode == null) throw new IllegalArgumentException("presentationMode cannot be null");
+        this.presentationMode = presentationMode;
+        this.graphicsGlHost = new GraphicsGlHost(presentationMode);
+        setLayout(null);
+        if (graphicsGlHost.isBufferedPresentation()) {
+            add(graphicsGlHost.getContextCanvas());
+        }
+        add(graphicsGlHost.getComponent());
         installEventForwarding(graphicsGlHost.getComponent());
     }
 
     public GraphicsGlPanel(GraphicsGlRender renderer) {
         this();
         setRenderer(renderer);
+    }
+
+    public GraphicsGlPanel(GraphicsGlRender renderer, GraphicsGlPresentationMode presentationMode) {
+        this(presentationMode);
+        setRenderer(renderer);
+    }
+
+    public GraphicsGlPresentationMode getPresentationMode() {
+        return presentationMode;
+    }
+
+    /**
+     * When enabled, rendering stops after the next requested frame. Use
+     * {@link #requestRender()} whenever application state changes.
+     */
+    public void setRenderOnDemand(boolean renderOnDemand) {
+        graphicsGlHost.setRenderOnDemand(renderOnDemand);
+    }
+
+    public boolean isRenderOnDemand() {
+        return graphicsGlHost.isRenderOnDemand();
+    }
+
+    /** Requests one frame when {@linkplain #isRenderOnDemand() on-demand rendering} is enabled. */
+    public void requestRender() {
+        graphicsGlHost.requestRender();
+    }
+
+    /**
+     * Controls whether unchanged buffered frames skip Swing repaint requests.
+     * This optimization is enabled by default.
+     */
+    public void setSkipUnchangedFrames(boolean skipUnchangedFrames) {
+        graphicsGlHost.setSkipUnchangedFrames(skipUnchangedFrames);
+    }
+
+    public boolean isSkipUnchangedFrames() {
+        return graphicsGlHost.isSkipUnchangedFrames();
     }
 
     @Override
@@ -110,6 +159,9 @@ public class GraphicsGlPanel extends AbstractGraphicsPanel<GraphicsGlContext> {
         super.addNotify();
         if (!graphicsGlHost.isDisposed()) {
             uiSchedule.register(graphicsGlHost, getRenderMode());
+            if (graphicsGlHost.isRenderOnDemand()) {
+                graphicsGlHost.requestRender();
+            }
         }
     }
 
@@ -126,6 +178,19 @@ public class GraphicsGlPanel extends AbstractGraphicsPanel<GraphicsGlContext> {
     @Override
     public void requestFocus() {
         graphicsGlHost.getComponent().requestFocus();
+    }
+
+    @Override
+    public void doLayout() {
+        int width = getWidth();
+        int height = getHeight();
+        graphicsGlHost.getContextCanvas().setBounds(0, 0, width, height);
+        if (graphicsGlHost.getComponent() != graphicsGlHost.getContextCanvas()) {
+            graphicsGlHost.getComponent().setBounds(0, 0, width, height);
+        }
+        if (graphicsGlHost.isRenderOnDemand()) {
+            graphicsGlHost.requestRender();
+        }
     }
 
     private void installEventForwarding(Component surface) {

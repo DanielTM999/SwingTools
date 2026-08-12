@@ -1,10 +1,7 @@
 package dtm.stools.examples;
 
 import dtm.stools.component.panels.graphics.GraphicsInput;
-import dtm.stools.component.panels.graphics.gl.GL;
-import dtm.stools.component.panels.graphics.gl.GraphicsGlContext;
-import dtm.stools.component.panels.graphics.gl.GraphicsGlPanel;
-import dtm.stools.component.panels.graphics.gl.GraphicsGlRender;
+import dtm.stools.component.panels.graphics.gl.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,7 +14,7 @@ public class GraphicsGlCubeExample {
     }
 
     private static void createAndShow() {
-        GraphicsGlPanel panel = new GraphicsGlPanel(new CubeRender());
+        GraphicsGlPanel panel = new GraphicsGlPanel(new CubeRender(), GraphicsGlPresentationMode.BUFFERED);
         panel.setFPS(60);
 
         JFrame frame = new JFrame("SwingTools - Cubo 3D com câmera orbital");

@@ -974,7 +974,7 @@ Esta secao resume o pacote `dtm.stools.component.panels.graphics`. A documentaca
 
 A base gráfica fica em `dtm.stools.component.panels.graphics`. O contrato principal é `AbstractGraphicsPanel<C extends GraphicsContext>`, que padroniza renderer, loop de render, FPS, VSync, input e ciclo de vida.
 
-`GraphicsGlPanel` é a implementação OpenGL em `dtm.stools.component.panels.graphics.gl`.
+`GraphicsGlPanel` é a implementação OpenGL em `dtm.stools.component.panels.graphics.gl`. Por padrão, apresenta os frames por buffer em um componente Swing leve; use `GraphicsGlPresentationMode.HEAVYWEIGHT` no construtor quando precisar da superfície AWT direta.
 
 ```java
 import dtm.stools.component.panels.graphics.gl.GL;

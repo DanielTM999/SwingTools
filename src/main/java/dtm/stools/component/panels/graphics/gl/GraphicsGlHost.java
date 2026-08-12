@@ -5,7 +5,10 @@ import dtm.stools.component.panels.graphics.GraphicsInputState;
 import dtm.stools.component.panels.graphics.GraphicsRender;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.util.Queue;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -17,9 +20,13 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
     private static final int MAX_INITIALIZE_ATTEMPTS = 5;
 
     private final GraphicsGlCanvas canvas;
+    private final Component component;
+    private final GraphicsGlPresentationMode presentationMode;
+    private final GraphicsGlBufferedSurface bufferedSurface;
     private final GraphicsGlContext context;
     private final GraphicsInputState inputState = new GraphicsInputState();
     private final Queue<Runnable> uiTasks = new ConcurrentLinkedQueue<>();
+    private final Object frameLock = new Object();
 
     private volatile GraphicsRender<GraphicsGlContext> renderer;
     private volatile Thread renderThread;
@@ -30,28 +37,53 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
     private volatile boolean disposed;
     private volatile boolean vsync;
     private volatile boolean vsyncDirty;
+    private volatile boolean renderOnDemand;
+    private volatile boolean renderRequested = true;
+    private volatile boolean skipUnchangedFrames = true;
+    private volatile long renderRequestVersion;
     private volatile int fps = 60;
     private CountDownLatch disposeLatch;
 
     private long contextHandle;
     private GraphicsRender<GraphicsGlContext> initializedRenderer;
     private int initializeFailures;
-    private long nextFrameNanos;
+    private volatile long nextFrameNanos;
+    private BufferedImage[] frameBuffers;
+    private int nextFrameBuffer;
+    private boolean hasPresentedFrame;
 
-    GraphicsGlHost() {
+    GraphicsGlHost(GraphicsGlPresentationMode presentationMode) {
+        this.presentationMode = presentationMode;
         this.canvas = new GraphicsGlCanvas(this);
+        if (presentationMode == GraphicsGlPresentationMode.BUFFERED) {
+            this.bufferedSurface = new GraphicsGlBufferedSurface(frameLock);
+            this.component = bufferedSurface;
+            canvas.setVisible(false);
+        } else {
+            this.bufferedSurface = null;
+            this.component = canvas;
+        }
         this.context = new GraphicsGlContext(this);
-        this.inputState.attach(canvas);
+        this.inputState.attach(component);
     }
 
     @Override
     public Component getComponent() {
+        return component;
+    }
+
+    GraphicsGlCanvas getContextCanvas() {
         return canvas;
+    }
+
+    boolean isBufferedPresentation() {
+        return presentationMode == GraphicsGlPresentationMode.BUFFERED;
     }
 
     @Override
     public void setRenderer(GraphicsRender<GraphicsGlContext> renderer) {
         this.renderer = renderer;
+        requestRender();
     }
 
     @Override
@@ -111,6 +143,33 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         return fps;
     }
 
+    void setRenderOnDemand(boolean renderOnDemand) {
+        this.renderOnDemand = renderOnDemand;
+        if (!renderOnDemand) {
+            nextFrameNanos = 0;
+            wakeRenderThread();
+        }
+    }
+
+    boolean isRenderOnDemand() {
+        return renderOnDemand;
+    }
+
+    void setSkipUnchangedFrames(boolean skipUnchangedFrames) {
+        this.skipUnchangedFrames = skipUnchangedFrames;
+    }
+
+    boolean isSkipUnchangedFrames() {
+        return skipUnchangedFrames;
+    }
+
+    void requestRender() {
+        renderRequestVersion++;
+        renderRequested = true;
+        nextFrameNanos = 0;
+        wakeRenderThread();
+    }
+
     void runOnUiThread(Runnable task) {
         if (task == null) return;
         Thread rt = renderThread;
@@ -119,6 +178,7 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
             return;
         }
         uiTasks.add(task);
+        requestRender();
         wakeRenderThread();
     }
 
@@ -157,9 +217,14 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
     void renderFrame(long frameStartNanos) {
         renderThread = Thread.currentThread();
         if (disposeRequested || disposed) return;
+        if (renderOnDemand && !renderRequested) {
+            scheduleNext(frameStartNanos);
+            return;
+        }
+        long frameRequestVersion = renderRequestVersion;
 
         if (contextHandle == 0) {
-            if (!canvas.isDisplayable() || !canvas.isShowing()
+            if (!canvas.isDisplayable()
                     || canvas.getWidth() <= 0 || canvas.getHeight() <= 0) {
                 scheduleNext(frameStartNanos);
                 return;
@@ -235,7 +300,13 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
                 t.printStackTrace();
             }
         }
+        if (bufferedSurface != null) {
+            presentBufferedFrame(w, h);
+        }
         GlNative.nSwapBuffers(contextHandle);
+        if (frameRequestVersion == renderRequestVersion) {
+            renderRequested = false;
+        }
         scheduleNext(frameStartNanos);
     }
 
@@ -252,6 +323,11 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         rendererReady = false;
         nextFrameNanos = 0;
         uiTasks.clear();
+        synchronized (frameLock) {
+            frameBuffers = null;
+            nextFrameBuffer = 0;
+            hasPresentedFrame = false;
+        }
         context.resetTiming();
         renderThread = null;
         synchronized (this) {
@@ -268,6 +344,10 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
     }
 
     private void scheduleNext(long frameStartNanos) {
+        if (renderOnDemand) {
+            nextFrameNanos = Long.MAX_VALUE;
+            return;
+        }
         int f = fps;
         if (f <= 0 || vsync) {
             nextFrameNanos = frameStartNanos;
@@ -326,5 +406,47 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
             initializedRenderer = null;
         }
         rendererReady = false;
+    }
+
+    private void presentBufferedFrame(int width, int height) {
+        synchronized (frameLock) {
+            ensureFrameBuffers(width, height);
+            BufferedImage image = frameBuffers[nextFrameBuffer];
+            int[] pixels = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+            GlNative.nReadPixels(width, height, pixels);
+            flipRows(pixels, width, height);
+            BufferedImage previousImage = frameBuffers[(nextFrameBuffer + 1) % frameBuffers.length];
+            int[] previousPixels = ((DataBufferInt) previousImage.getRaster().getDataBuffer()).getData();
+            if (!skipUnchangedFrames || !hasPresentedFrame || !Arrays.equals(pixels, previousPixels)) {
+                bufferedSurface.present(image);
+                hasPresentedFrame = true;
+            }
+            nextFrameBuffer = (nextFrameBuffer + 1) % frameBuffers.length;
+        }
+    }
+
+    private void ensureFrameBuffers(int width, int height) {
+        if (frameBuffers != null && frameBuffers[0].getWidth() == width && frameBuffers[0].getHeight() == height) {
+            return;
+        }
+        frameBuffers = new BufferedImage[]{
+                new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB),
+                new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+        };
+        nextFrameBuffer = 0;
+        hasPresentedFrame = false;
+    }
+
+    private static void flipRows(int[] pixels, int width, int height) {
+        if (pixels == null) return;
+        for (int top = 0, bottom = height - 1; top < bottom; top++, bottom--) {
+            int topOffset = top * width;
+            int bottomOffset = bottom * width;
+            for (int x = 0; x < width; x++) {
+                int pixel = pixels[topOffset + x];
+                pixels[topOffset + x] = pixels[bottomOffset + x];
+                pixels[bottomOffset + x] = pixel;
+            }
+        }
     }
 }

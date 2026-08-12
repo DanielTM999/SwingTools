@@ -71,6 +71,7 @@ typedef void (STGL_APIENTRY *PFN_glTexParameteri)(GLenum, GLenum, GLint);
 typedef void (STGL_APIENTRY *PFN_glActiveTexture)(GLenum);
 typedef void (STGL_APIENTRY *PFN_glBlendFunc)(GLenum, GLenum);
 typedef void (STGL_APIENTRY *PFN_glPixelStorei)(GLenum, GLint);
+typedef void (STGL_APIENTRY *PFN_glReadPixels)(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void*);
 
 static PFN_glGetError p_glGetError = nullptr;
 static PFN_glGetString p_glGetString = nullptr;
@@ -120,6 +121,7 @@ static PFN_glTexParameteri p_glTexParameteri = nullptr;
 static PFN_glActiveTexture p_glActiveTexture = nullptr;
 static PFN_glBlendFunc p_glBlendFunc = nullptr;
 static PFN_glPixelStorei p_glPixelStorei = nullptr;
+static PFN_glReadPixels p_glReadPixels = nullptr;
 
 static const GLenum STGL_INFO_LOG_LENGTH = 0x8B84;
 
@@ -182,8 +184,15 @@ bool stgl_load_functions() {
     ok &= stgl_load(p_glActiveTexture, "glActiveTexture");
     ok &= stgl_load(p_glBlendFunc, "glBlendFunc");
     ok &= stgl_load(p_glPixelStorei, "glPixelStorei");
+    ok &= stgl_load(p_glReadPixels, "glReadPixels");
     g_loaded = ok;
     return ok;
+}
+
+void stgl_read_pixels(int width, int height, void* pixels) {
+    if (!p_glReadPixels || !pixels || width <= 0 || height <= 0) return;
+    // BGRA bytes map directly to TYPE_INT_ARGB pixels on the supported little-endian platforms.
+    p_glReadPixels(0, 0, width, height, 0x80E1, 0x1401, pixels);
 }
 
 #define STGL_CLASS(name) Java_dtm_stools_component_panels_graphics_gl_GL_##name

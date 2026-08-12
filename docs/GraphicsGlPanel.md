@@ -1,6 +1,6 @@
 # GraphicsGlPanel
 
-`GraphicsGlPanel` e um painel Swing para renderizacao OpenGL usando o contexto nativo do SwingTools. Ele estende `AbstractGraphicsPanel<GraphicsGlContext>`, coloca um `Canvas` AWT dentro de um `JPanel` e usa `GraphicsGlRender` para organizar inicializacao, desenho, resize e descarte de recursos GL.
+`GraphicsGlPanel` e um painel Swing para renderizacao OpenGL usando o contexto nativo do SwingTools. Ele estende `AbstractGraphicsPanel<GraphicsGlContext>` e usa `GraphicsGlRender` para organizar inicializacao, desenho, resize e descarte de recursos GL. Por padrao, os frames sao copiados para um `BufferedImage` e exibidos por um componente Swing leve.
 
 | Item | Valor |
 |---|---|
@@ -9,14 +9,16 @@
 | Renderer | `GraphicsGlRender` ou `GraphicsRender<GraphicsGlContext>` |
 | Contexto | `GraphicsGlContext` |
 | Helper GL | `GL` |
-| Superficie nativa | `GraphicsGlCanvas extends Canvas` |
+| Apresentacao padrao | `BUFFERED`, com `BufferedImage` em componente Swing leve |
+| Alternativa | `HEAVYWEIGHT`, com `GraphicsGlCanvas extends Canvas` visivel |
 
 ## Arquitetura interna
 
 ```text
 GraphicsGlPanel
   GraphicsGlHost
-    GraphicsGlCanvas
+    GraphicsGlCanvas (contexto nativo, oculto no modo BUFFERED)
+    GraphicsGlBufferedSurface (apresentacao no modo BUFFERED)
     GraphicsGlContext
     GraphicsInputState
     Queue<Runnable> uiTasks
@@ -25,7 +27,7 @@ GraphicsGlPanel
   GlNative / GL
 ```
 
-O `GraphicsGlPanel` e a parte Swing publica. O `GraphicsGlHost` e o dono real do contexto nativo, da fila de tarefas GL, do renderer inicializado e dos flags de estado. O `GraphicsGlCanvas` e a superficie AWT que o nativo usa para criar o contexto.
+O `GraphicsGlPanel` e a parte Swing publica. O `GraphicsGlHost` e o dono real do contexto nativo, da fila de tarefas GL, do renderer inicializado e dos flags de estado. O `GraphicsGlCanvas` continua sendo usado internamente para criar o contexto nativo. No modo padrao `BUFFERED`, ele fica oculto e o frame e lido para um `BufferedImage`, que o `GraphicsGlBufferedSurface` pinta como um componente Swing leve. Isso evita os problemas de composicao, clipping e sobreposicao comuns a componentes heavyweight.
 
 ## Criacao
 
@@ -42,6 +44,29 @@ frame.setLocationRelativeTo(null);
 frame.setVisible(true);
 panel.requestFocusInWindow();
 ```
+
+Para telas que so mudam em resposta a uma acao, habilite renderizacao sob demanda. O primeiro frame e criado normalmente; depois, chame `requestRender()` ao alterar o estado que o renderer usa:
+
+```java
+panel.setRenderOnDemand(true);
+saveButton.addActionListener(event -> {
+    model.setSaved(true);
+    panel.requestRender();
+});
+```
+
+Uma mudanca de tamanho tambem solicita automaticamente um frame. No modo `BUFFERED`, frames consecutivos com os mesmos pixels nao geram um novo `repaint()` no Swing por padrao. Controle essa otimizacao com `setSkipUnchangedFrames(boolean)` (padrao: `true`); usando `false`, cada frame volta a entrar na fila de repaint. A comparacao evita repintura, mas ainda exige renderizacao e leitura do frame para descobrir que ele nao mudou; para economizar tambem GPU/CPU quando a tela esta parada, prefira `setRenderOnDemand(true)`.
+
+Para usar a apresentacao direta antiga, escolha `HEAVYWEIGHT` na construcao:
+
+```java
+GraphicsGlPanel panel = new GraphicsGlPanel(
+        new TriangleRender(),
+        GraphicsGlPresentationMode.HEAVYWEIGHT
+);
+```
+
+O modo e definido na construcao e pode ser consultado com `getPresentationMode()`. `BUFFERED` tem o custo de leitura da GPU para a memoria a cada frame; prefira `HEAVYWEIGHT` apenas quando essa latencia/custo for mais importante que a integracao com Swing.
 
 Tambem e possivel criar vazio e definir o renderer depois:
 
@@ -64,6 +89,10 @@ panel.setRenderer(new TriangleRender());
 | `setFPS(int)` / `getFPS()` | Define e le FPS alvo |
 | `getCurrentFPS()` | FPS medido pelo contexto |
 | `setVsync(boolean)` / `isVsync()` | Controla VSync |
+| `getPresentationMode()` | Retorna `BUFFERED` (padrao) ou `HEAVYWEIGHT` |
+| `setRenderOnDemand(boolean)` / `isRenderOnDemand()` | Pausa o loop apos um frame e so renderiza novamente sob solicitacao |
+| `requestRender()` | Solicita um unico frame no modo sob demanda |
+| `setSkipUnchangedFrames(boolean)` / `isSkipUnchangedFrames()` | Habilita/desabilita a supressao de repaint para frames buffered identicos; padrao: habilitada |
 | `setRenderMode(RenderThreadingMode)` | Escolhe scheduler compartilhado ou individual antes de renderizar |
 | `init()` | Registra o painel no scheduler se ele estiver displayable |
 | `dispose()` | Encerra renderizacao e libera contexto/renderer |
@@ -82,8 +111,9 @@ O host executa o seguinte fluxo:
 8. Chama `resize(...)` quando o tamanho muda.
 9. Atualiza timing (`deltaTime`, `fps`, `frameCount`).
 10. Chama `render(context)`.
-11. Chama `GlNative.nSwapBuffers(handle)`.
-12. Agenda o proximo frame conforme FPS/VSync.
+11. No modo `BUFFERED`, le o frame para um `BufferedImage` e solicita a repintura Swing.
+12. Chama `GlNative.nSwapBuffers(handle)`.
+13. Agenda o proximo frame conforme FPS/VSync.
 
 Se `setRenderer(...)` for chamado com outro renderer, o renderer antigo recebe `dispose(context)` antes de o novo receber `initialize(context)`. `getRenderer()` retorna a instancia configurada no host, mas ela pode ainda nao estar inicializada se o contexto GL nao tiver sido criado.
 

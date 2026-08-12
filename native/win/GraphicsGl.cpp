@@ -160,6 +160,17 @@ Java_dtm_stools_component_panels_graphics_gl_GlNative_nSwapBuffers(JNIEnv*, jcla
 }
 
 JNIEXPORT void JNICALL
+Java_dtm_stools_component_panels_graphics_gl_GlNative_nReadPixels(JNIEnv* env, jclass, jint width, jint height, jintArray pixels) {
+    if (!pixels || width <= 0 || height <= 0) return;
+    jsize required = width * height;
+    if (required <= 0 || env->GetArrayLength(pixels) < required) return;
+    void* data = env->GetPrimitiveArrayCritical(pixels, nullptr);
+    if (!data) return;
+    stgl_read_pixels(width, height, data);
+    env->ReleasePrimitiveArrayCritical(pixels, data, 0);
+}
+
+JNIEXPORT void JNICALL
 Java_dtm_stools_component_panels_graphics_gl_GlNative_nSetVsync(JNIEnv*, jclass, jlong handle, jboolean vsync) {
     if (!handle) return;
     auto swapInterval = reinterpret_cast<PFNWGLSWAPINTERVALEXT>(
