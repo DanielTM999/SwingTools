@@ -20,6 +20,7 @@ public class SwitchField extends PanelEventListener {
     private boolean selected;
     private boolean animated = true;
     private boolean showText;
+    private boolean focusPainted;
     private float animationProgress;
     private float animationStartProgress;
     private float animationTargetProgress;
@@ -150,6 +151,21 @@ public class SwitchField extends PanelEventListener {
         }
         repaint();
         return this;
+    }
+
+    /**
+     * Defines whether a focus indicator is painted around the switch.
+     * It is disabled by default; the component remains focusable and keeps its
+     * keyboard behavior when the indicator is hidden.
+     */
+    public SwitchField setFocusPainted(boolean focusPainted) {
+        this.focusPainted = focusPainted;
+        repaint();
+        return this;
+    }
+
+    public boolean isFocusPainted() {
+        return focusPainted;
     }
 
     /**
@@ -339,7 +355,7 @@ public class SwitchField extends PanelEventListener {
                 paintText(g2, bounds);
             }
             paintThumb(g2, bounds);
-            if (isFocusOwner()) {
+            if (focusPainted && isFocusOwner()) {
                 paintFocus(g2, bounds);
             }
         } finally {
@@ -348,7 +364,7 @@ public class SwitchField extends PanelEventListener {
     }
 
     protected Rectangle getSwitchBounds() {
-        int focusExtent = focusGap + (int) Math.ceil(focusStrokeWidth / 2f);
+        int focusExtent = focusPainted ? focusGap + (int) Math.ceil(focusStrokeWidth / 2f) : 0;
         int availableWidth = Math.max(0, getWidth() - trackInsets.left - trackInsets.right - focusExtent * 2);
         int availableHeight = Math.max(0, getHeight() - trackInsets.top - trackInsets.bottom - focusExtent * 2);
         int width = availableWidth;

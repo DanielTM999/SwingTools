@@ -668,6 +668,9 @@ SwitchField ativo = new SwitchField(true)
         .setThumbPadding(3);
 ```
 
+O contorno visual de foco é desativado por padrão. Para exibi-lo quando o
+componente receber foco, use `setFocusPainted(true)`.
+
 ### TagInputField
 
 `TagInputField` gerencia múltiplas tags.

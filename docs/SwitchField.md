@@ -51,6 +51,7 @@ active.addEventListner(EventType.CHANGE, event -> {
 | `setTexts(String on, String off)` | Textos |
 | `setColors(Color on, Color off, Color thumb)` | Cores principais |
 | `setDisabledColor(Color)` | Cor disabled |
+| `setFocusPainted(boolean)` | Mostra/oculta o contorno de foco; desativado por padrao |
 | `setFocusColor(Color)` | Cor do foco |
 | `setTextColor(Color)` | Cor do texto |
 
@@ -62,6 +63,7 @@ SwitchField compact = new SwitchField()
         .setThumbPadding(2)
         .setThumbSize(16)
         .setTrackArc(12)
+        .setFocusPainted(true)
         .setFocusStrokeWidth(2f)
         .setFocusGap(1);
 ```
@@ -73,6 +75,7 @@ SwitchField compact = new SwitchField()
 | `setThumbSize(int)` | Define o diametro do thumb; zero usa tamanho automatico |
 | `setThumbPadding(int)` | Define o espaco interno entre thumb e trilha |
 | `setTrackArc(int)` | Define o arco da trilha; zero acompanha a altura |
+| `setFocusPainted(boolean)` | Habilita o contorno visual quando o componente recebe foco |
 | `setFocusStrokeWidth(float)` | Espessura do contorno de foco |
 | `setFocusGap(int)` | Distancia entre trilha e foco |
 
@@ -86,7 +89,9 @@ padding em tempo real.
 
 ## Acessibilidade basica
 
-O componente e focavel. Espaco e Enter alternam o estado quando habilitado.
+O componente e focavel. Espaco e Enter alternam o estado quando habilitado. O
+contorno visual de foco fica oculto por padrao e pode ser habilitado com
+`setFocusPainted(true)`.
 
 ## Cuidados
 

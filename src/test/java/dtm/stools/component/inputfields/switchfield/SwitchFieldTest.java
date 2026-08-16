@@ -22,6 +22,10 @@ class SwitchFieldTest {
         onEdt(() -> {
             TestSwitchField field = new TestSwitchField();
             assertEquals(new Dimension(56, 30), field.getPreferredSize());
+            assertFalse(field.isFocusPainted());
+
+            field.setSize(56, 30);
+            assertEquals(new Rectangle(0, 0, 56, 30), field.switchBounds());
 
             field.setShowText(true);
             assertEquals(new Dimension(72, 30), field.getPreferredSize());
@@ -32,7 +36,8 @@ class SwitchFieldTest {
                     .setThumbPadding(4)
                     .setTrackArc(12)
                     .setFocusStrokeWidth(3f)
-                    .setFocusGap(2);
+                    .setFocusGap(2)
+                    .setFocusPainted(true);
 
             assertEquals(new Dimension(92, 42), field.getPreferredSize());
             assertEquals(new Insets(1, 2, 3, 4), field.getTrackInsets());
@@ -41,6 +46,7 @@ class SwitchFieldTest {
             assertEquals(12, field.getTrackArc());
             assertEquals(3f, field.getFocusStrokeWidth());
             assertEquals(2, field.getFocusGap());
+            assertTrue(field.isFocusPainted());
 
             field.setSize(18, 10);
             Rectangle bounds = field.switchBounds();
