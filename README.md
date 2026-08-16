@@ -608,6 +608,7 @@ Recursos:
 | `JTextFieldListener` | `JTextField` com suporte a eventos |
 | `MaskedTextField` | Campo com máscara, placeholder, readonly e texto limpo |
 | `CurrencyField` | Campo monetário baseado em locale |
+| `NumberField` | Campo numérico com locale, precisão, limites e passo |
 | `SearchTextField<T>` | Campo com sugestões e busca |
 | `PathTextField` | Campo visual para path dividido em segmentos |
 | `PathSearchTextField<T>` | Combina path visual com busca |
@@ -621,6 +622,17 @@ cpf.setCleanText("12345678901");
 
 String textoFormatado = cpf.getText();
 String apenasDigitos = cpf.getCleanText();
+```
+
+Exemplo numérico:
+
+```java
+NumberField quantidade = new NumberField(Locale.forLanguageTag("pt-BR"))
+        .setDecimalPlaces(2)
+        .setRange(BigDecimal.ZERO, new BigDecimal("100"))
+        .setStep(new BigDecimal("0.25"));
+
+BigDecimal valor = quantidade.getValue();
 ```
 
 Exemplo de busca:
@@ -651,7 +663,9 @@ status.select("Ativo");
 ```java
 SwitchField ativo = new SwitchField(true)
         .setShowText(true)
-        .setTexts("Sim", "Não");
+        .setTexts("Sim", "Não")
+        .setSwitchSize(72, 32)
+        .setThumbPadding(3);
 ```
 
 ### TagInputField

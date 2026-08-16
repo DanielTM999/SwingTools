@@ -65,6 +65,7 @@ EventListenerComponent
 | `JTextFieldListener` | [JTextFieldListener.md](JTextFieldListener.md) | `JTextField` com eventos |
 | `MaskedTextField` | [MaskedTextField.md](MaskedTextField.md) | Texto com mascara, placeholder e read-only |
 | `CurrencyField` | [CurrencyField.md](CurrencyField.md) | Campo monetario com `BigDecimal` |
+| `NumberField` | [NumberField.md](NumberField.md) | Campo numerico com locale, limites e passo |
 | `SearchTextField` | [SearchTextField.md](SearchTextField.md) | Busca/autocomplete assincrono |
 | `PathTextField` | [PathTextField.md](PathTextField.md) | Campo de path com comportamento visual proprio |
 | `PathSearchTextField` | [PathSearchTextField.md](PathSearchTextField.md) | Busca de paths |

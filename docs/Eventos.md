@@ -34,6 +34,7 @@ EventListenerComponent
   JTextFieldListener extends JTextField
     MaskedTextField
       CurrencyField
+    NumberField
     SearchTextField<T>
 
 EventListenerComponent

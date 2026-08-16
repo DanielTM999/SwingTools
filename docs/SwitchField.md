@@ -54,6 +54,36 @@ active.addEventListner(EventType.CHANGE, event -> {
 | `setFocusColor(Color)` | Cor do foco |
 | `setTextColor(Color)` | Cor do texto |
 
+### Tamanho e geometria
+
+```java
+SwitchField compact = new SwitchField()
+        .setSwitchSize(48, 24)
+        .setThumbPadding(2)
+        .setThumbSize(16)
+        .setTrackArc(12)
+        .setFocusStrokeWidth(2f)
+        .setFocusGap(1);
+```
+
+| Metodo | Uso |
+|---|---|
+| `setSwitchSize(width, height)` | Define o tamanho preferencial usado pelo layout |
+| `setTrackInsets(Insets)` | Reserva espaco adicional em volta da trilha |
+| `setThumbSize(int)` | Define o diametro do thumb; zero usa tamanho automatico |
+| `setThumbPadding(int)` | Define o espaco interno entre thumb e trilha |
+| `setTrackArc(int)` | Define o arco da trilha; zero acompanha a altura |
+| `setFocusStrokeWidth(float)` | Espessura do contorno de foco |
+| `setFocusGap(int)` | Distancia entre trilha e foco |
+
+O componente adapta a pintura ao tamanho real atribuido pelo layout, mesmo
+quando ele for menor ou maior que o tamanho preferencial.
+
+Um exemplo visual interativo esta em
+`src/test/java/dtm/stools/examples/SwitchFieldExample.java`. Execute o metodo
+`main` pela IDE para comparar os tamanhos e alterar largura, altura, thumb e
+padding em tempo real.
+
 ## Acessibilidade basica
 
 O componente e focavel. Espaco e Enter alternam o estado quando habilitado.
@@ -62,3 +92,4 @@ O componente e focavel. Espaco e Enter alternam o estado quando habilitado.
 
 - Use `setSelected(value, false)` ao sincronizar estado inicial sem disparar evento.
 - Se desabilitado com `setEnabled(false)`, o cursor e a pintura mudam para modo disabled.
+- Dimensoes, insets e valores de geometria negativos sao rejeitados.
