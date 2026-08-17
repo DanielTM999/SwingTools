@@ -28,6 +28,9 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -45,6 +48,7 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
     public static final String BEFORE_ITEM_CLICK = EventMenuBar.BEFORE_ITEM_CLICK;
     public static final String ITEM_CLICK = EventMenuBar.ITEM_CLICK;
     private static final String ACTION_PROPERTY = MenuBar.class.getName() + ".action";
+    private static final String ACTION_BINDING_PROPERTY = MenuBar.class.getName() + ".actionBinding";
     private static final String CLICK_HANDLER_PROPERTY = MenuBar.class.getName() + ".clickHandler";
     private static final String MOUSE_ENTER_HANDLER_PROPERTY = MenuBar.class.getName() + ".mouseEnterHandler";
     private static final String MOUSE_EXIT_HANDLER_PROPERTY = MenuBar.class.getName() + ".mouseExitHandler";
@@ -394,7 +398,7 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
                     if (child.getMnemonic() != null) item.setMnemonic(child.getMnemonic());
                     item.setToolTipText(child.getTooltip());
                     item.setEnabled(child.isEnabled());
-                    if (child.getAction() != null) item.putClientProperty(ACTION_PROPERTY, child.getAction());
+                    if (child.getAction() != null) bindAction(item, child.getAction());
                     if (child.getClickHandler() != null) item.putClientProperty(CLICK_HANDLER_PROPERTY, child.getClickHandler());
                     installHoverHandlers(item, menu, child);
                 }
@@ -444,6 +448,48 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
         if (menu == null) return null;
         if (parts.length == 1) return menu;
         return menu.findItem(parts, 1);
+    }
+
+    private static void bindAction(JMenuItem item, Action action) {
+        Object previous = item.getClientProperty(ACTION_BINDING_PROPERTY);
+        if (previous instanceof ActionEnabledBinding binding) {
+            binding.detach();
+            item.putClientProperty(ACTION_BINDING_PROPERTY, null);
+        }
+        item.putClientProperty(ACTION_PROPERTY, action);
+        if (action == null) {
+            return;
+        }
+        item.setEnabled(action.isEnabled());
+        item.putClientProperty(ACTION_BINDING_PROPERTY, new ActionEnabledBinding(item, action));
+    }
+
+    private static final class ActionEnabledBinding implements PropertyChangeListener {
+
+        private final WeakReference<JMenuItem> item;
+        private final Action action;
+
+        private ActionEnabledBinding(JMenuItem item, Action action) {
+            this.item = new WeakReference<>(item);
+            this.action = action;
+            action.addPropertyChangeListener(this);
+        }
+
+        @Override
+        public void propertyChange(PropertyChangeEvent event) {
+            JMenuItem target = item.get();
+            if (target == null) {
+                detach();
+                return;
+            }
+            if ("enabled".equals(event.getPropertyName())) {
+                target.setEnabled(action.isEnabled());
+            }
+        }
+
+        private void detach() {
+            action.removePropertyChangeListener(this);
+        }
     }
 
     public MenuBar setItemEnabled(String path, boolean enabled) {
@@ -1329,7 +1375,7 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
             item.setToolTipText(config.getTooltip());
             item.setEnabled(config.isEnabled());
             if (config.getAction() != null) {
-                item.putClientProperty(ACTION_PROPERTY, config.getAction());
+                bindAction(item, config.getAction());
             }
             if (config.getClickHandler() != null) {
                 item.putClientProperty(CLICK_HANDLER_PROPERTY, config.getClickHandler());
@@ -1560,8 +1606,10 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
         }
 
         public Item action(Action action) {
-            putClientProperty(ACTION_PROPERTY, action);
-            setEnabled(action == null || action.isEnabled());
+            bindAction(this, action);
+            if (action == null) {
+                setEnabled(true);
+            }
             return this;
         }
 
