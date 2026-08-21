@@ -37,6 +37,7 @@ public abstract class Activity extends JFrame implements IWindow {
     private final WindowExecutor windowExecutor;
     private final AtomicInteger lastWindowStateRef = new AtomicInteger();
     private final AtomicBoolean inTray = new AtomicBoolean();
+    private final AtomicBoolean trayUsable = new AtomicBoolean(true);
     private final AtomicBoolean closing = new AtomicBoolean(false);
 
     @Getter
@@ -218,6 +219,10 @@ public abstract class Activity extends JFrame implements IWindow {
         return systemTrayConfiguration.isAvaiable();
     }
 
+    public boolean isSystemTrayUsable(){
+        return systemTrayConfiguration.isAvaiable() && trayUsable.get() && tray != null && trayIcon != null;
+    }
+
     protected void onResize() {}
 
     protected void onMove() {}
@@ -233,7 +238,7 @@ public abstract class Activity extends JFrame implements IWindow {
     protected void onLoad(WindowEvent e) throws Exception{}
 
     protected void onClose(WindowEvent e) throws Exception{
-        if(systemTrayConfiguration.isAvaiable()){
+        if(isSystemTrayUsable()){
            callSystemTrayOnClose();
         }
     }
@@ -333,7 +338,12 @@ public abstract class Activity extends JFrame implements IWindow {
     protected void minimizeToTray() {
         int state = getExtendedState() & ~JFrame.ICONIFIED;
         lastWindowStateRef.set(state);
-        safelyAddTrayIcon(!systemTrayConfiguration.isAlwaysVisible());
+        boolean iconVisible = safelyAddTrayIcon(!systemTrayConfiguration.isAlwaysVisible());
+        if (!iconVisible) {
+            setExtendedState(getExtendedState() | JFrame.ICONIFIED);
+            return;
+        }
+
         if (tray != null && trayIcon != null) {
             Set<IWindow> windows = Arrays.stream(Window.getWindows())
                     .filter(w -> w instanceof IWindow iwin)
@@ -471,12 +481,30 @@ public abstract class Activity extends JFrame implements IWindow {
         }
     }
 
-    private void safelyAddTrayIcon(boolean callErrorHandler){
+    private boolean safelyAddTrayIcon(boolean callErrorHandler){
+        if (tray == null || trayIcon == null) {
+            return false;
+        }
+
+        if (inTray.get()) {
+            return true;
+        }
+
+        if (!trayUsable.get()) {
+            return false;
+        }
+
         try {
             tray.add(trayIcon);
             inTray.set(true);
+            return true;
+        } catch (AWTException e) {
+            trayUsable.set(false);
+            inTray.set(false);
+            return false;
         } catch (Exception e) {
             if(callErrorHandler) onError("safelyAddTrayIcon", e);
+            return false;
         }
     }
 
