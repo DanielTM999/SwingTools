@@ -171,7 +171,7 @@ public class AutoCompletePopup {
     }
 
     public void show(List<AutoCompleteItem> items, int x, int y, String prefix, int insertOffset) {
-        if (items == null || items.isEmpty()) {
+        if (items == null || items.isEmpty() || !canShowOnOwner()) {
             hide();
             return;
         }
@@ -192,6 +192,10 @@ public class AutoCompletePopup {
     }
 
     public void showLoading(int x, int y, String prefix, int insertOffset) {
+        if (!canShowOnOwner()) {
+            hide();
+            return;
+        }
         model.clear();
         loading = true;
         this.triggerPrefix = prefix == null ? "" : prefix;
@@ -205,6 +209,10 @@ public class AutoCompletePopup {
         centerPanel.revalidate();
         popup.pack();
         popup.show(owner, x, y);
+    }
+
+    private boolean canShowOnOwner() {
+        return owner != null && owner.isShowing();
     }
 
     public void hide() {

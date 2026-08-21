@@ -5,6 +5,7 @@ import dtm.stools.component.annimation.ComponentAnimator;
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.panels.base.PanelEventListener;
+import dtm.stools.context.IWindow;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -78,6 +79,7 @@ public class TabbedPanel extends PanelEventListener {
     private TabHeaderFactory tabHeaderFactory;
     private TabMenuProvider tabMenuProvider;
     private TabGroupFactory tabGroupFactory;
+    private TabWindowFactory tabWindowFactory;
     private TabSeparatorFactory tabSeparatorFactory;
     private Runnable newTabAction;
     private BiPredicate<TabbedPanel, TabEntry> closeConfirmationProvider;
@@ -646,48 +648,164 @@ public class TabbedPanel extends PanelEventListener {
 
     private Window createTabWindow(String key, TabConfig config, int oldIndex, Component component, String title, Icon icon, Dimension size, Point screenLocation) {
         Window owner = SwingUtilities.getWindowAncestor(this);
-        JDialog window = new JDialog(owner);
-        window.setModalityType(Dialog.ModalityType.MODELESS);
-        window.setTitle(title == null ? "" : title);
-        window.setAlwaysOnTop(tabWindowAlwaysOnTop);
-        window.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        Dimension windowSize = size != null ? size : defaultTabWindowSize;
+        TabWindowRequest request = new TabWindowRequest(key, title, icon, component, owner, windowSize, screenLocation, tabWindowAlwaysOnTop);
 
+        Window window = tabWindowFactory == null ? null : tabWindowFactory.createWindow(this, request);
+        if (window == null) {
+            window = createDefaultTabWindow(request);
+        } else {
+            prepareCustomTabWindow(window, request);
+        }
+
+        installTabWindowBehavior(window, key, config, oldIndex);
+        return window;
+    }
+
+    protected Window createDefaultTabWindow(TabWindowRequest request) {
+        Window owner = request.getOwner();
+        JFrame window = new JFrame(request.getTitle());
+        window.setAlwaysOnTop(request.isAlwaysOnTop());
+
+        Icon icon = request.getIcon();
         if (icon instanceof ImageIcon imageIcon && imageIcon.getImage() != null) {
             window.setIconImage(imageIcon.getImage());
+        } else if (owner != null && !owner.getIconImages().isEmpty()) {
+            window.setIconImages(owner.getIconImages());
         }
 
         window.getContentPane().setLayout(new BorderLayout());
-        window.getContentPane().add(component, BorderLayout.CENTER);
+        window.getContentPane().add(request.getComponent(), BorderLayout.CENTER);
 
-        Dimension windowSize = size != null ? size : defaultTabWindowSize;
+        Dimension windowSize = request.getPreferredWindowSize();
         if (windowSize != null && windowSize.width > 0 && windowSize.height > 0) {
             window.setSize(windowSize);
         } else {
             window.pack();
         }
 
+        applyTabWindowLocation(window, request);
+        bindTabWindowToOwner(window, owner);
+        return window;
+    }
+
+    /**
+     * A janela padrao e um JFrame para ganhar os botoes de minimizar/maximizar/fechar, entao ela
+     * nao tem dono e nao acompanha o estado da janela principal automaticamente. Este bind
+     * reproduz o comportamento de janela filha: minimiza, restaura e fecha junto com o owner.
+     */
+    private void bindTabWindowToOwner(JFrame window, Window owner) {
+        if (!(owner instanceof Frame ownerFrame)) return;
+
+        java.awt.event.WindowStateListener stateListener = e -> {
+            boolean wasIconified = (e.getOldState() & Frame.ICONIFIED) != 0;
+            boolean isIconified = (e.getNewState() & Frame.ICONIFIED) != 0;
+            if (isIconified == wasIconified) return;
+
+            if (isIconified) {
+                window.setExtendedState(window.getExtendedState() | Frame.ICONIFIED);
+            } else {
+                window.setExtendedState(window.getExtendedState() & ~Frame.ICONIFIED);
+                window.toFront();
+            }
+        };
+
+        java.awt.event.WindowListener ownerLifecycle = new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                window.dispose();
+            }
+        };
+
+        ownerFrame.addWindowStateListener(stateListener);
+        ownerFrame.addWindowListener(ownerLifecycle);
+
+        window.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                ownerFrame.removeWindowStateListener(stateListener);
+                ownerFrame.removeWindowListener(ownerLifecycle);
+            }
+        });
+    }
+
+    private void prepareCustomTabWindow(Window window, TabWindowRequest request) {
+        Component component = request.getComponent();
+        if (component != null && component.getParent() == null && window instanceof RootPaneContainer container) {
+            Container content = container.getContentPane();
+            if (content.getLayout() == null) {
+                content.setLayout(new BorderLayout());
+            }
+            content.add(component, BorderLayout.CENTER);
+        }
+
+        if (window.getWidth() <= 0 || window.getHeight() <= 0) {
+            Dimension windowSize = request.getPreferredWindowSize();
+            if (windowSize != null && windowSize.width > 0 && windowSize.height > 0) {
+                window.setSize(windowSize);
+            } else {
+                window.pack();
+            }
+        }
+
+        Point location = window.getLocation();
+        if (location.x == 0 && location.y == 0) {
+            applyTabWindowLocation(window, request);
+        }
+    }
+
+    private void applyTabWindowLocation(Window window, TabWindowRequest request) {
+        Point screenLocation = request.getScreenLocation();
         if (screenLocation != null) {
             window.setLocation(screenLocation.x - window.getWidth() / 2, Math.max(0, screenLocation.y - 12));
         } else {
-            window.setLocationRelativeTo(owner);
+            window.setLocationRelativeTo(request.getOwner());
         }
+    }
+
+    private void installTabWindowBehavior(Window window, String key, TabConfig config, int oldIndex) {
+        boolean managedWindow = window instanceof IWindow;
+
+        if (!managedWindow) {
+            if (window instanceof JDialog dialog) {
+                dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+            } else if (window instanceof JFrame frame) {
+                frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+            }
+        }
+
+        java.util.concurrent.atomic.AtomicBoolean reattached = new java.util.concurrent.atomic.AtomicBoolean();
+        Runnable reattach = () -> {
+            if (reattached.compareAndSet(false, true)) {
+                reattachTabFromWindow(key, config, oldIndex, window);
+            }
+        };
 
         window.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                reattachTabFromWindow(key, config, oldIndex, window);
+                reattach.run();
+            }
+
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e) {
+                if (managedWindow) {
+                    reattach.run();
+                }
             }
         });
-        return window;
     }
 
     public boolean reattachTabFromWindow(String key) {
         return closeTabWindow(key);
     }
 
-    private void reattachTabFromWindow(String key, TabConfig config, int oldIndex, JDialog window) {
+    private void reattachTabFromWindow(String key, TabConfig config, int oldIndex, Window window) {
         windowsByKey.remove(key);
-        window.getContentPane().removeAll();
+        Component component = config.getComponent();
+        if (component != null && component.getParent() != null) {
+            component.getParent().remove(component);
+        }
 
         TabbedPanel targetGroup = resolveInsertionTarget();
         if (!targetGroup.containsLocal(key)) {
@@ -697,7 +815,9 @@ public class TabbedPanel extends PanelEventListener {
             targetGroup.switchTo(key);
         }
 
-        window.dispose();
+        if (window.isDisplayable()) {
+            window.dispose();
+        }
 
         TabEntry entry = targetGroup.tabsByKey.get(key);
         dispatchTabEvent(EventTabbedPanel.TAB_WINDOW_CLOSE, entry, new HashMap<>() {{
@@ -1041,6 +1161,15 @@ public class TabbedPanel extends PanelEventListener {
     public TabbedPanel setTabGroupFactory(TabGroupFactory tabGroupFactory) {
         this.tabGroupFactory = tabGroupFactory;
         return this;
+    }
+
+    public TabbedPanel setTabWindowFactory(TabWindowFactory tabWindowFactory) {
+        this.tabWindowFactory = tabWindowFactory;
+        return this;
+    }
+
+    public TabWindowFactory getTabWindowFactory() {
+        return tabWindowFactory;
     }
 
     public TabbedPanel setTabSeparatorFactory(TabSeparatorFactory tabSeparatorFactory) {
@@ -2201,6 +2330,7 @@ public class TabbedPanel extends PanelEventListener {
         target.tabHeaderFactory = tabHeaderFactory;
         target.tabMenuProvider = tabMenuProvider;
         target.tabGroupFactory = tabGroupFactory;
+        target.tabWindowFactory = tabWindowFactory;
         target.tabSeparatorFactory = tabSeparatorFactory;
         target.dockRootPane = dockRootPane;
         target.tabbedPane.setTabLayoutPolicy(tabbedPane.getTabLayoutPolicy());

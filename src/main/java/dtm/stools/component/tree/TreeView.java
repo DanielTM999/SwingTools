@@ -1566,8 +1566,18 @@ public class TreeView<T> extends TreeViewListener {
         int old = hoveredRow;
         hoveredRow = row;
         putClientProperty("TreeView.hoveredRow", hoveredRow);
-        if (old >= 0) repaint(getRowBounds(old));
-        if (hoveredRow >= 0) repaint(getRowBounds(hoveredRow));
+        repaintHoveredRow(old);
+        repaintHoveredRow(hoveredRow);
+    }
+
+    private void repaintHoveredRow(int row) {
+        if (row < 0) return;
+        Rectangle bounds = getRowBounds(row);
+        if (bounds == null) {
+            repaint();
+            return;
+        }
+        repaint(bounds);
     }
 
     @SuppressWarnings("unchecked")

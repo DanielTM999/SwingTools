@@ -1239,6 +1239,10 @@ public class CodeEditorTextArea extends JComponent {
             currentAutoCompleteTask = task;
             task.whenComplete((items, error) -> SwingUtilities.invokeLater(() -> {
                 if (request != autoCompleteVersion.get() || currentAutoCompleteTask != task) return;
+                if (!isShowing()) {
+                    hideAutoCompletePopup();
+                    return;
+                }
                 if (error != null || task.isCancelled()) {
                     hideAutoCompletePopup();
                     return;
@@ -4538,6 +4542,15 @@ public class CodeEditorTextArea extends JComponent {
             }
 
             if (isAutoCompleteVisible()) {
+                if (hasGhostText() && matchesKeyStroke(e, ghostTextAcceptKeyStroke)) {
+                    if (readOnly) {
+                        clearGhostText();
+                    } else {
+                        acceptGhostText();
+                    }
+                    e.consume();
+                    return;
+                }
                 if (isAutoCompleteAccept(e)) {
                     if (readOnly) {
                         hideAutoCompletePopup();
@@ -8151,6 +8164,7 @@ public class CodeEditorTextArea extends JComponent {
             }
             menu.add(item);
         }
+        if (!isShowing()) return;
         Point p = caretScreenPoint();
         if (p == null) p = new Point(0, 0);
         menu.show(this, p.x, p.y);
