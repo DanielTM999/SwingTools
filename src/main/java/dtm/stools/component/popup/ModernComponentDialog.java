@@ -67,6 +67,7 @@ public final class ModernComponentDialog<T> {
         private boolean disableConfirmWhenInvalid = true;
         private boolean enterConfirms = true;
         private boolean closeOnEsc = true;
+        private boolean requestFocusOnLoad = false;
         private int validationDelayMs = 450;
 
         private JComponent component = null;
@@ -224,6 +225,11 @@ public final class ModernComponentDialog<T> {
 
         public ModernComponentDialogBuilder<T> closeOnEsc(boolean closeOnEsc) {
             this.closeOnEsc = closeOnEsc;
+            return this;
+        }
+
+        public ModernComponentDialogBuilder<T> requestFocusOnLoad(boolean requestFocusOnLoad) {
+            this.requestFocusOnLoad = requestFocusOnLoad;
             return this;
         }
 
@@ -468,6 +474,10 @@ public final class ModernComponentDialog<T> {
             }
 
             ModernPopupSupport.installCloseOnEsc(dialog.getRootPane(), closeOnEsc, dialog::dispose);
+
+            if (requestFocusOnLoad) {
+                installFocusOnLoad(dialog, component);
+            }
 
             dialog.setVisible(true);
             return castResult(result[0]);
@@ -1056,6 +1066,36 @@ public final class ModernComponentDialog<T> {
                 );
             }
         });
+    }
+
+    private static void installFocusOnLoad(JDialog dialog, JComponent content) {
+        dialog.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowOpened(WindowEvent event) {
+                dialog.removeWindowListener(this);
+                SwingUtilities.invokeLater(() -> {
+                    Component target = firstFocusable(content);
+                    if (target != null && !target.requestFocusInWindow()) {
+                        target.requestFocus();
+                    }
+                });
+            }
+        });
+    }
+
+    private static Component firstFocusable(Component component) {
+        if (component.isVisible() && component.isEnabled() && component.isFocusable()) {
+            return component;
+        }
+        if (component instanceof Container container) {
+            for (Component child : container.getComponents()) {
+                Component target = firstFocusable(child);
+                if (target != null) {
+                    return target;
+                }
+            }
+        }
+        return null;
     }
 
     private static JButton buildCloseBtn(JDialog dialog, Color fg, boolean darkTheme) {
