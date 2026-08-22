@@ -28,12 +28,15 @@ int result = ModernDialog.modernDialogBuilder()
 | `title(String)` | Titulo |
 | `message(String)` | Mensagem |
 | `type(Type)` | Tipo visual |
+| `typeLabel(String)` | Personaliza o texto do tipo exibido no topo |
+| `showTypeLabel(boolean)` | Exibe ou oculta o indicador de tipo no topo (padrao: `true`) |
 | `accentColor(Color)` | Cor de destaque |
 | `parent(Component)` / `parentComponent(Component)` | Janela/componente de referencia para centralizacao |
 | `option(String, int)` | Botao e retorno |
 | `option(String, int, Color)` | Botao com background |
 | `option(String, int, Color, Color)` | Botao com background e foreground |
 | `draggable(boolean)` | Permite arrastar |
+| `closeOnEsc(boolean)` | Fecha ao pressionar `Esc` (padrao: `true`) |
 | `show()` / `show(Component)` | Exibe e retorna valor |
 
 ## Cuidados

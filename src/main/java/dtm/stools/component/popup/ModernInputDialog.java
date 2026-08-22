@@ -32,6 +32,7 @@ public final class ModernInputDialog {
         private boolean closeOnSubmitSuccess = true;
         private boolean disableConfirmWhenInvalid = true;
         private boolean enterConfirms = true;
+        private boolean closeOnEsc = true;
 
         private int validationDelayMs = 450;
 
@@ -161,6 +162,11 @@ public final class ModernInputDialog {
 
         public ModernInputDialogBuilder enterConfirms(boolean enterConfirms) {
             this.enterConfirms = enterConfirms;
+            return this;
+        }
+
+        public ModernInputDialogBuilder closeOnEsc(boolean closeOnEsc) {
+            this.closeOnEsc = closeOnEsc;
             return this;
         }
 
@@ -393,6 +399,8 @@ public final class ModernInputDialog {
             if (enterConfirms) {
                 dialog.getRootPane().setDefaultButton(confirmBtn);
             }
+
+            ModernPopupSupport.installCloseOnEsc(dialog.getRootPane(), closeOnEsc, dialog::dispose);
 
             SwingUtilities.invokeLater(inputComponent::requestFocusInWindow);
 

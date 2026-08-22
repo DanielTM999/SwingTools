@@ -38,6 +38,7 @@ String value = ModernInputDialog.modernDialogBuilder()
 | `disableConfirmWhenInvalid(boolean)` | Bloqueia confirmar se invalido |
 | `onSubmit(SubmitHandler)` | Acao de submit |
 | `closeOnSubmitSuccess(boolean)` | Fecha apos submit sem erro |
+| `closeOnEsc(boolean)` | Fecha ao pressionar `Esc` (padrao: `true`) |
 | `show()` / `show(Component)` | Exibe |
 
 ## Contratos

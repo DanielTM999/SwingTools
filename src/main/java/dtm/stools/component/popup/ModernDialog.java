@@ -98,11 +98,14 @@ public final class ModernDialog {
 
         private String title = "";
         private String message = "";
+        private String typeLabel = null;
         private Type type = Type.INFO;
         private Color accentColor = null;
         private Component parent = null;
         private boolean draggable = false;
         private boolean enterConfirms = true;
+        private boolean closeOnEsc = true;
+        private boolean showTypeLabel = true;
         private boolean showIcon = true;
 
         private final List<Btn> buttons = new ArrayList<>();
@@ -122,6 +125,16 @@ public final class ModernDialog {
             return this;
         }
 
+        public ModernDialogBuilder typeLabel(String typeLabel) {
+            this.typeLabel = typeLabel;
+            return this;
+        }
+
+        public ModernDialogBuilder showTypeLabel(boolean showTypeLabel) {
+            this.showTypeLabel = showTypeLabel;
+            return this;
+        }
+
         public ModernDialogBuilder accentColor(Color c) {
             this.accentColor = c;
             return this;
@@ -134,6 +147,11 @@ public final class ModernDialog {
 
         public ModernDialogBuilder enterConfirms(boolean enterConfirms) {
             this.enterConfirms = enterConfirms;
+            return this;
+        }
+
+        public ModernDialogBuilder closeOnEsc(boolean closeOnEsc) {
+            this.closeOnEsc = closeOnEsc;
             return this;
         }
 
@@ -235,14 +253,16 @@ public final class ModernDialog {
                 }
             };
 
-            JLabel typeLabel = new JLabel(typeText(type));
-            typeLabel.setForeground(fgSecondary);
-            typeLabel.setFont(font(11, Font.PLAIN));
+            JLabel typeLabelComponent = new JLabel(typeLabel != null ? typeLabel : typeText(type));
+            typeLabelComponent.setForeground(fgSecondary);
+            typeLabelComponent.setFont(font(11, Font.PLAIN));
 
             typeChip.add(dot);
-            typeChip.add(typeLabel);
+            typeChip.add(typeLabelComponent);
 
-            header.add(typeChip, BorderLayout.WEST);
+            if (showTypeLabel) {
+                header.add(typeChip, BorderLayout.WEST);
+            }
 
             if (draggable) {
                 int[] dragOffset = new int[2];
@@ -329,6 +349,8 @@ public final class ModernDialog {
             if (enterConfirms && primaryButton != null) {
                 dialog.getRootPane().setDefaultButton(primaryButton);
             }
+
+            ModernPopupSupport.installCloseOnEsc(dialog.getRootPane(), closeOnEsc, dialog::dispose);
 
             final JButton focusTarget = primaryButton;
             if (focusTarget != null) {

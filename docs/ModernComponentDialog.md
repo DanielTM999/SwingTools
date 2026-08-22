@@ -59,6 +59,8 @@ Usuario usuario = Dialogs.componentBuilder(Usuario.class)
 |---|---|
 | `title(String)` / `message(String)` | Textos |
 | `type(ModernDialog.Type)` | Tipo visual (`INFO`, `SUCCESS`, `ERROR`, `QUESTION`) |
+| `typeLabel(String)` | Personaliza o texto do tipo exibido no topo |
+| `showTypeLabel(boolean)` | Exibe ou oculta o indicador de tipo no topo (padrao: `true`) |
 | `accentColor(Color)` | Cor de destaque |
 | `component(JComponent)` / `content(JComponent)` | Conteudo customizado |
 | `parent(Component)` / `parentComponent(Component)` | Janela/componente de referencia para centralizacao |
@@ -71,6 +73,7 @@ Usuario usuario = Dialogs.componentBuilder(Usuario.class)
 | `submitOption(String, ResultProvider<T>)` | Botao com retorno dinamico proprio |
 | `cancelOption(String)` | Botao que fecha retornando `null` |
 | `confirmText(String)` / `cancelText(String)` | Labels dos botoes padrao |
+| `closeOnEsc(boolean)` | Fecha ao pressionar `Esc` (padrao: `true`) |
 | `show()` / `show(Component)` | Exibe e retorna `T` |
 
 ## Retorno padrao

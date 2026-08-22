@@ -47,9 +47,11 @@ public final class ModernComponentDialog<T> {
 
         private String title = "";
         private String message = "";
+        private String typeLabel = null;
         private ModernDialog.Type type = ModernDialog.Type.INFO;
         private Color accentColor = null;
         private boolean draggable = true;
+        private boolean showTypeLabel = true;
         private boolean showIcon = true;
 
         private Color confirmButtonColor = null;
@@ -64,6 +66,7 @@ public final class ModernComponentDialog<T> {
         private boolean validateOnChange = false;
         private boolean disableConfirmWhenInvalid = true;
         private boolean enterConfirms = true;
+        private boolean closeOnEsc = true;
         private int validationDelayMs = 450;
 
         private JComponent component = null;
@@ -92,6 +95,16 @@ public final class ModernComponentDialog<T> {
 
         public ModernComponentDialogBuilder<T> type(ModernDialog.Type type) {
             this.type = type == null ? ModernDialog.Type.INFO : type;
+            return this;
+        }
+
+        public ModernComponentDialogBuilder<T> typeLabel(String typeLabel) {
+            this.typeLabel = typeLabel;
+            return this;
+        }
+
+        public ModernComponentDialogBuilder<T> showTypeLabel(boolean showTypeLabel) {
+            this.showTypeLabel = showTypeLabel;
             return this;
         }
 
@@ -206,6 +219,11 @@ public final class ModernComponentDialog<T> {
 
         public ModernComponentDialogBuilder<T> enterConfirms(boolean enterConfirms) {
             this.enterConfirms = enterConfirms;
+            return this;
+        }
+
+        public ModernComponentDialogBuilder<T> closeOnEsc(boolean closeOnEsc) {
+            this.closeOnEsc = closeOnEsc;
             return this;
         }
 
@@ -344,7 +362,9 @@ public final class ModernComponentDialog<T> {
             JPanel header = new JPanel(new BorderLayout());
             header.setOpaque(false);
             header.setBorder(BorderFactory.createEmptyBorder(0, 0, 16, 0));
-            header.add(buildTypeChip(type, accent, fgSecondary), BorderLayout.WEST);
+            if (showTypeLabel) {
+                header.add(buildTypeChip(type, accent, fgSecondary, typeLabel), BorderLayout.WEST);
+            }
 
             if (draggable) {
                 installDragSupport(header, dialog);
@@ -446,6 +466,8 @@ public final class ModernComponentDialog<T> {
             if (enterConfirms && primaryButton != null) {
                 dialog.getRootPane().setDefaultButton(primaryButton);
             }
+
+            ModernPopupSupport.installCloseOnEsc(dialog.getRootPane(), closeOnEsc, dialog::dispose);
 
             dialog.setVisible(true);
             return castResult(result[0]);
@@ -981,7 +1003,12 @@ public final class ModernComponentDialog<T> {
         }
     }
 
-    private static JPanel buildTypeChip(ModernDialog.Type type, Color accent, Color foreground) {
+    private static JPanel buildTypeChip(
+            ModernDialog.Type type,
+            Color accent,
+            Color foreground,
+            String customLabel
+    ) {
         JPanel typeChip = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         typeChip.setOpaque(false);
 
@@ -1001,7 +1028,7 @@ public final class ModernComponentDialog<T> {
             }
         };
 
-        JLabel typeLabel = new JLabel(typeText(type));
+        JLabel typeLabel = new JLabel(customLabel != null ? customLabel : typeText(type));
         typeLabel.setForeground(foreground);
         typeLabel.setFont(font(11, Font.PLAIN));
 
