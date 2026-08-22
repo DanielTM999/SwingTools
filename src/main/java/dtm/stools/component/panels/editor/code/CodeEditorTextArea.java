@@ -4823,6 +4823,10 @@ public class CodeEditorTextArea extends JComponent {
 
             switch (e.getKeyCode()) {
                 case KeyEvent.VK_INSERT -> {
+                    if (e.isAltDown() || e.isAltGraphDown() || e.isControlDown()
+                            || e.isMetaDown() || e.isShiftDown()) {
+                        return;
+                    }
                     if (readOnly) {
                         e.consume();
                         return;
