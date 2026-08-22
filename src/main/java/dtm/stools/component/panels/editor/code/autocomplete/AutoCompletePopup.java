@@ -24,7 +24,12 @@ public class AutoCompletePopup {
     protected final JComponent owner;
     protected final JPopupMenu popup = new JPopupMenu();
     protected final DefaultListModel<AutoCompleteItem> model = new DefaultListModel<>();
-    protected final JList<AutoCompleteItem> list = new JList<>(model);
+    protected final JList<AutoCompleteItem> list = new JList<>(model) {
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+    };
     protected final JScrollPane scroll;
     protected final JPanel centerPanel = new JPanel(new CardLayout());
     protected final JPanel loadingPanel = new JPanel(new GridBagLayout());
