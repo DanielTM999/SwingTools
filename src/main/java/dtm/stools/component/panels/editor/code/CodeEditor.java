@@ -857,6 +857,14 @@ public class CodeEditor extends BlockingPanel {
         textArea.setLineColor(line, background, foreground);
     }
 
+    public void setPriorityLineColor(int line, Color color) {
+        textArea.setPriorityLineColor(line, color);
+    }
+
+    public void setPriorityLineColor(int line, Color background, Color foreground) {
+        textArea.setPriorityLineColor(line, background, foreground);
+    }
+
     public void setLinesColor(int[] lines, Color color) {
         textArea.setLinesColor(lines, color);
     }

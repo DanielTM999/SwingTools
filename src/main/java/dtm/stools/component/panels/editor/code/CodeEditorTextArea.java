@@ -218,7 +218,7 @@ public class CodeEditorTextArea extends JComponent {
     protected KeyStroke duplicateLineDownKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_DOWN,
             InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK);
 
-    protected record LineColorInfoInternal(Color background, Color foreground) {}
+    protected record LineColorInfoInternal(Color background, Color foreground, boolean priority) {}
 
     protected static final String ACTION_MOVE_LINE_UP = "codeEditor.moveLineUp";
     protected static final String ACTION_MOVE_LINE_DOWN = "codeEditor.moveLineDown";
@@ -2039,7 +2039,7 @@ public class CodeEditorTextArea extends JComponent {
     public void setLinesColor(int[] lines, Color background, Color foreground) {
         if(lines == null) return;
         for(int line : lines){
-            lineColors.put(line, new LineColorInfoInternal(background, foreground));
+            lineColors.put(line, new LineColorInfoInternal(background, foreground, false));
             fireLineColorAdded(line, background, foreground);
         }
         repaint();
@@ -2048,14 +2048,24 @@ public class CodeEditorTextArea extends JComponent {
     public void setLinesColor(Collection<Integer> lines, Color color, Color foreground) {
         if(lines == null) return;
         for(int line : lines){
-            lineColors.put(line, new LineColorInfoInternal(color, foreground));
+            lineColors.put(line, new LineColorInfoInternal(color, foreground, false));
             fireLineColorAdded(line, color, foreground);
         }
         repaint();
     }
 
     public void setLineColor(int line, Color background, Color foreground) {
-        lineColors.put(line, new LineColorInfoInternal(background, foreground));
+        lineColors.put(line, new LineColorInfoInternal(background, foreground, false));
+        fireLineColorAdded(line, background, foreground);
+        repaint();
+    }
+
+    public void setPriorityLineColor(int line, Color color) {
+        setPriorityLineColor(line, color, null);
+    }
+
+    public void setPriorityLineColor(int line, Color background, Color foreground) {
+        lineColors.put(line, new LineColorInfoInternal(background, foreground, true));
         fireLineColorAdded(line, background, foreground);
         repaint();
     }
@@ -4086,7 +4096,7 @@ public class CodeEditorTextArea extends JComponent {
             int ly = yOfBufferLine(i);
 
             LineColorInfoInternal lineColor = lineColors.get(i);
-            if (lineColor != null) {
+            if (lineColor != null && !lineColor.priority()) {
                 if (lineColor.background != null) {
                     g2.setColor(lineColor.background);
                 }
@@ -4114,6 +4124,16 @@ public class CodeEditorTextArea extends JComponent {
 
         if (hasSelection() || hasExtraSelections()) {
             paintSelection(g2, defaultFm, lineHeight);
+        }
+
+        for (int i = firstVisibleLine; i <= lastVisibleLine && i < totalLines; i++) {
+            if (isLineHidden(i)) continue;
+            LineColorInfoInternal lineColor = lineColors.get(i);
+            if (lineColor == null || !lineColor.priority() || lineColor.background() == null) {
+                continue;
+            }
+            g2.setColor(lineColor.background());
+            g2.fillRect(0, yOfBufferLine(i), getWidth(), lineHeight);
         }
 
         paintSearchMatches(g2, defaultFm);
