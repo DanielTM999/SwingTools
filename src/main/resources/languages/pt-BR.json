@@ -136,5 +136,19 @@
   "FilePickerInputPanel.validation.expectedFolder": "A seleção deve ser uma pasta, mas um arquivo foi selecionado.",
   "FilePickerInputPanel.validation.fileDoesNotExist": "O arquivo selecionado não existe.",
   "FilePickerInputPanel.validation.fileMustHaveExtension": "O arquivo deve possuir uma extensão.",
-  "FilePickerInputPanel.validation.extensionNotAllowed": "A extensão do arquivo não é permitida. Esperado: {expected}"
+  "FilePickerInputPanel.validation.extensionNotAllowed": "A extensão do arquivo não é permitida. Esperado: {expected}",
+  "DualListField.title.available": "Disponíveis",
+  "DualListField.title.selected": "Selecionados",
+  "DualListField.filter.placeholder": "Filtrar...",
+  "DualListField.action.add": "Adicionar selecionados",
+  "DualListField.action.addAll": "Adicionar todos",
+  "DualListField.action.remove": "Remover selecionados",
+  "DualListField.action.removeAll": "Remover todos",
+  "DualListField.action.moveUp": "Mover para cima",
+  "DualListField.action.moveDown": "Mover para baixo",
+  "Validators.required": "Campo obrigatório",
+  "Validators.email": "E-mail inválido",
+  "Validators.range": "Valor fora do intervalo permitido",
+  "Validators.cpf": "CPF inválido",
+  "Validators.cnpj": "CNPJ inválido"
 }

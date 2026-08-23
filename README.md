@@ -451,6 +451,37 @@ Elementos principais:
 
 Esses componentes servem como base para os módulos maiores, como tabs, dock, file picker e inputs customizados.
 
+### Painéis de layout e superfície
+
+| Classe | Descrição |
+|---|---|
+| `CardPanel` | Superfície arredondada com cabeçalho, corpo e rodapé; variantes elevada, contornada e preenchida |
+| `StatCard` | Cartão de indicador com valor, variação e minigráfico |
+| `SectionPanel` | Seção colapsável com seta animada |
+| `AccordionPanel` | Agrupa seções, opcionalmente com apenas uma expandida |
+| `DividerPanel` | Separador horizontal ou vertical com rótulo |
+| `EmptyStatePanel` | Estado vazio com ícone, texto e ação |
+| `SkeletonPanel` | Placeholder de carregamento com brilho deslizante |
+| `ScrollPanel` | `JScrollPane` com barras finas e sem botões de seta |
+| `SplitPanel` | Divisor com alça no hover e colapso por duplo clique |
+| `BreadcrumbBar` | Trilha de navegação que colapsa o meio quando falta espaço |
+| `ToolBarPanel` | Barra de ações com grupos, espaçador e menu de excedente |
+
+### Feedback e status
+
+| Classe | Descrição |
+|---|---|
+| `BadgeLabel` | Etiqueta de status em pílula, com tons semânticos |
+| `ProgressBar` | Barra linear determinada ou indeterminada |
+| `CircularProgress` | Anel de progresso com texto central |
+| `AlertPanel` | Aviso em linha com severidade, ações e botão de fechar |
+| `StepsPanel` | Indicador de etapas de um fluxo |
+| `PaginationPanel` | Paginação com elipse e navegação |
+| `AvatarLabel` | Avatar com imagem, ícone ou iniciais e indicador de presença |
+| `ModernTooltip` | Balão de dica instalável em qualquer `JComponent` |
+
+Detalhes de API em [docs/CardPanel.md](docs/CardPanel.md), [docs/AccordionPanel.md](docs/AccordionPanel.md), [docs/LayoutPanels.md](docs/LayoutPanels.md) e [docs/Feedback.md](docs/Feedback.md).
+
 ---
 
 ## 12. Menus
@@ -600,6 +631,47 @@ Recursos:
 ---
 
 ## 14. Campos de entrada
+
+### Campos modernos
+
+| Classe | Descrição |
+|---|---|
+| `CheckBoxField` | Caixa de seleção pintada, com marcação animada e estado indeterminado |
+| `RadioField<T>` / `RadioGroupField<T>` | Escolha única tipada, com `getSelectedValue()` no lugar de `ButtonGroup` |
+| `SegmentedField<T>` | Controle segmentado em pílula, com indicador deslizante |
+| `SliderField` | Deslizante com passo, marcações e balão de valor |
+| `RatingField` | Avaliação por estrelas, com meia estrela e modo somente leitura |
+| `PinField` | Código de verificação com uma caixa por dígito e colagem distribuída |
+| `StepperField` | Numérico com botões de menos e mais, sobre o `NumberField` |
+| `TextAreaField` | Texto longo com placeholder, contador, limite e crescimento automático |
+| `DualListField<T>` | Duas listas com botões de transferir, filtro e reordenação |
+
+```java
+DualListField<String> perfis = new DualListField<>(List.of("Suporte", "Vendas", "Financeiro"));
+perfis.setTitles("Disponíveis", "Do usuário").setReorderable(true).setShowFilter(true);
+perfis.addEventListener(EventType.CHANGE, e -> {
+    List<String> selecionados = e.tryGetValue();
+});
+```
+
+Cada campo tem doc própria em `docs/`: [CheckBoxField](docs/CheckBoxField.md), [RadioGroupField](docs/RadioGroupField.md), [SegmentedField](docs/SegmentedField.md), [SliderField](docs/SliderField.md), [RatingField](docs/RatingField.md), [PinField](docs/PinField.md), [StepperField](docs/StepperField.md), [TextAreaField](docs/TextAreaField.md) e [DualListField](docs/DualListField.md).
+
+### Formulários
+
+`FormPanel` monta o formulário em colunas, valida em bloco e devolve os valores como mapa. `FormField` envolve cada controle com rótulo, marcação de obrigatório, texto de ajuda e mensagem de erro.
+
+```java
+FormPanel form = new FormPanel(2);
+form.addField(new FormField("nome", "Nome", new JTextField()).setRequired(true));
+form.addField("email", "E-mail", new JTextField(), Validators.<String>required().and(Validators.email()));
+form.addField("cpf", "CPF", new JTextField(), Validators.cpf());
+
+if (form.submit()) {
+    Map<String, Object> valores = form.getValues();
+}
+```
+
+`Validators` traz `required`, `minLength`, `maxLength`, `pattern`, `email`, `range`, `cpf`, `cnpj`, `matches` e `of`, encadeáveis com `and`. Detalhes em [docs/FormPanel.md](docs/FormPanel.md).
 
 ### Text fields
 
@@ -1283,6 +1355,22 @@ Exemplo reduzido de tema:
 
 A documentação mais detalhada fica em `docs/JsonLookAndFeel_Documentacao.md`.
 
+### UiTokens
+
+`UiTokens` é a fonte central de cor, espaçamento, raio e tipografia usada pelos componentes modernos. Cada token é resolvido a partir do namespace `SwingTools.color.*` publicado pelo `JsonLookAndFeel`, caindo para a chave equivalente do Look and Feel e, por último, para um fallback embutido conforme o tema seja claro ou escuro.
+
+```java
+Color fundo = UiTokens.surface();
+int padding = UiTokens.space(3);                    // 12px
+int raio    = UiTokens.radius(UiTokens.Radius.MD);  // 10px
+Font titulo = UiTokens.fontTitle();
+
+UiTokens.setScaleFactor(1.25f);
+JsonLookAndFeel.updateOpenWindows();
+```
+
+`JsonLookAndFeel.apply(...)` e `updateOpenWindows()` invalidam o cache automaticamente, então trocar de tema em runtime já reflete nos componentes. Detalhes em [docs/UiTokens.md](docs/UiTokens.md).
+
 ---
 
 ## 23. System tray
@@ -1328,6 +1416,22 @@ Por padrão, clique esquerdo no ícone restaura a janela.
 | `invertImageColors(...)` | Inverte cores |
 | `resizeImageIcon(...)` | Redimensiona ícone |
 | `textToIcon(...)` | Converte texto em ícone |
+
+### PaintUtils
+
+| Método | Uso |
+|---|---|
+| `antialias(Graphics2D)` | Liga antialiasing de forma, texto e traço |
+| `roundRect(...)` | Retângulo arredondado em ponto flutuante |
+| `fillRoundRect(...)` / `drawRoundRect(...)` | Preenche e contorna respeitando a espessura |
+| `focusRing(...)` | Anel de foco |
+| `softShadow(...)` | Sombra suave atrás de uma forma |
+| `fitText(...)` | Reduz o texto com reticências |
+| `centeredBaseline(...)` | Linha de base centralizada |
+| `drawCenteredText(...)` / `drawLeftText(...)` / `drawPlaceholder(...)` | Desenho de texto |
+| `blend(...)` / `easeInOut(...)` / `easeOut(...)` | Interpolação e curvas de animação |
+
+Detalhes em [docs/PaintUtils.md](docs/PaintUtils.md).
 
 ### ResourceUtils
 
@@ -1394,6 +1498,8 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `GraphicsGlCubeExample` | Cubo 3D usando `GraphicsGlPanel` |
 | `GraphicsGlParallelRunOnUiExample` | Geração paralela com uso excepcional de `runOnUiThread` para atualizar recurso GL |
 | `MenuBarFlatLafThemeExample` | `MenuBar` com FlatLaf dark/light |
+| `ModernFieldsExample` | Campos modernos: check, radio, segmented, slider, rating, pin, stepper, textarea e dual list |
+| `ModernPanelsExample` | Cards, accordion, toolbar, breadcrumb, alertas, progresso, etapas, paginação e `FormPanel` |
 | `ModernComponentDialogExample` | Dialog moderno com componente customizado e retorno tipado |
 | `ModernInputDialogExample` | Input dialog moderno |
 | `TabbedPanelDockModeExample` | Abas em modo dock/split |

@@ -136,5 +136,19 @@
   "FilePickerInputPanel.validation.expectedFolder": "La selección debe ser una carpeta, pero se seleccionó un archivo.",
   "FilePickerInputPanel.validation.fileDoesNotExist": "El archivo seleccionado no existe.",
   "FilePickerInputPanel.validation.fileMustHaveExtension": "El archivo debe tener una extensión.",
-  "FilePickerInputPanel.validation.extensionNotAllowed": "La extensión del archivo no está permitida. Esperado: {expected}"
+  "FilePickerInputPanel.validation.extensionNotAllowed": "La extensión del archivo no está permitida. Esperado: {expected}",
+  "DualListField.title.available": "Disponibles",
+  "DualListField.title.selected": "Seleccionados",
+  "DualListField.filter.placeholder": "Filtrar...",
+  "DualListField.action.add": "Agregar seleccionados",
+  "DualListField.action.addAll": "Agregar todos",
+  "DualListField.action.remove": "Quitar seleccionados",
+  "DualListField.action.removeAll": "Quitar todos",
+  "DualListField.action.moveUp": "Mover arriba",
+  "DualListField.action.moveDown": "Mover abajo",
+  "Validators.required": "Campo obligatorio",
+  "Validators.email": "Correo electrónico inválido",
+  "Validators.range": "Valor fuera del intervalo permitido",
+  "Validators.cpf": "CPF inválido",
+  "Validators.cnpj": "CNPJ inválido"
 }

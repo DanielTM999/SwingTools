@@ -119,6 +119,7 @@ public final class JsonLookAndFeel {
     }
 
     public static void updateOpenWindows() {
+        UiTokens.refresh();
         Runnable update = () -> {
             for (Window window : Window.getWindows()) {
                 SwingUtilities.updateComponentTreeUI(window);
@@ -161,6 +162,8 @@ public final class JsonLookAndFeel {
         if (ui instanceof Map<?, ?> map) {
             applyDirectUi(castMap(map));
         }
+
+        UiTokens.refresh();
 
         if (updateOpenWindows) {
             updateOpenWindows();
