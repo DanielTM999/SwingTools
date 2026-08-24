@@ -45,7 +45,17 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
 
     @Override
     public void removeEventListner(String eventType, Consumer<EventComponent> event) {
-        listeners.get(eventType).remove(event);
+        List<Consumer<EventComponent>> eventListeners = listeners.get(eventType);
+
+        if (eventListeners == null) {
+            return;
+        }
+
+        eventListeners.remove(event);
+
+        if (eventListeners.isEmpty()) {
+            listeners.remove(eventType);
+        }
     }
 
     @Override

@@ -1,5 +1,9 @@
 package dtm.stools.component.events;
 
+import dtm.stools.exceptions.EventCastComponentException;
+import dtm.stools.exceptions.EventComponentException;
+import dtm.stools.exceptions.NullEventComponentException;
+
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +14,16 @@ public interface EventComponent {
     <T> T tryGetValue();
     String getEventType();
     default Map<String, Object> getProperties(){return new HashMap<>();}
+
+    default <T> T getValueOrThrow(){
+        try{
+            T event =  tryGetValue();
+            if (event != null) return event;
+            throw new NullEventComponentException("null event component");
+        }catch(ClassCastException e){
+            throw new EventCastComponentException("Event component does not implement this type", e);
+        }
+    }
 
     default Object getProperty(String name) {
         return getProperties().get(name);

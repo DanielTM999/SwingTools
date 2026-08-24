@@ -12,9 +12,7 @@ import java.awt.Font;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Container de formulário que organiza campos em colunas, valida em bloco e expõe os valores como mapa.
- */
+
 public class FormPanel extends PanelEventListener {
 
     public static final String VALIDATION_FAILED = "formValidationFailed";

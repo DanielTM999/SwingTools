@@ -332,8 +332,7 @@ public class WindowDesktopPanel extends PanelEventListener {
             moveWindowToFront(window);
             return true;
         }
-        WindowEvent before = window.dispatchWindowEvent(EventWindowPanel.BEFORE_WINDOW_ACTIVATE,
-                Map.of("oldWindowKey", activeWindow == null ? "" : activeWindow.getWindowKey()));
+        WindowEvent before = window.dispatchWindowEvent(EventWindowPanel.BEFORE_WINDOW_ACTIVATE, Map.of("oldWindowKey", activeWindow == null ? "" : activeWindow.getWindowKey()));
         if (before.isCanceled()) return false;
         WindowPanel old = activeWindow;
         activeWindow = window;
@@ -550,6 +549,12 @@ public class WindowDesktopPanel extends PanelEventListener {
     }
 
     void windowOpened(WindowPanel window) {
+        dispatchDesktopEvent(
+                EventWindowPanel.WINDOW_OPEN,
+                window,
+                Map.of()
+        );
+        onWindowOpened(window);
         if (window.isModal()) {
             updateModalState();
             dispatchDesktopEvent(EventWindowPanel.MODAL_OPEN, window, Map.of());
@@ -1173,13 +1178,12 @@ public class WindowDesktopPanel extends PanelEventListener {
     protected void onMinimizedBarMenuChanged(WindowPanel window, JPopupMenu menu, boolean opened) {}
     protected void onMinimizedBarMenuAction(WindowPanel window, WindowMinimizedMenuAction action) {}
     protected void onSnapLayoutsEnabledChanged(boolean enabled) {}
-    protected void onSnapLayoutTriggerChanged(WindowSnapLayoutTrigger oldTrigger,
-                                              WindowSnapLayoutTrigger newTrigger) {}
+    protected void onSnapLayoutTriggerChanged(WindowSnapLayoutTrigger oldTrigger, WindowSnapLayoutTrigger newTrigger) {}
     protected void onSnapLayoutDragChanged(WindowPanel window, boolean opened) {}
     protected void onSnapLayoutMenuChanged(WindowPanel window, WindowSnapLayoutPopup popup, boolean opened) {}
     protected void onSnapLayoutSelected(WindowPanel window, WindowSnap snap) {}
-    protected void onSnapLayoutPreviewChanged(WindowPanel window, WindowSnap snap,
-                                              Rectangle bounds, boolean visible) {}
+    protected void onSnapLayoutPreviewChanged(WindowPanel window, WindowSnap snap, Rectangle bounds, boolean visible) {}
+    protected void onWindowOpened(WindowPanel window) {}
     protected void onSnapAssistEnabledChanged(boolean enabled) {}
     protected void onSnapAssistChanged(WindowPanel source, boolean opened) {}
     protected void onSnapAssistWindowSelected(WindowPanel window, WindowSnap snap) {}

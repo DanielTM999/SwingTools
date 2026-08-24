@@ -6,10 +6,8 @@ import dtm.stools.component.panels.base.PanelEventListener;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 public class WindowPanel extends PanelEventListener {
@@ -20,9 +18,8 @@ public class WindowPanel extends PanelEventListener {
 
     protected final JPanel contentHost;
     protected final WindowTitleBar titleBar;
-    protected final Map<WindowControl, WindowControlButton> controlButtons = new java.util.EnumMap<>(WindowControl.class);
-    protected final java.util.Set<Component> titleBarDragSources =
-            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+    protected final Map<WindowControl, WindowControlButton> controlButtons = new EnumMap<>(WindowControl.class);
+    protected final Set<Component> titleBarDragSources = Collections.newSetFromMap(new IdentityHashMap<>());
 
     private final String windowKey;
     private String title;

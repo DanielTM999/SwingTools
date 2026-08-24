@@ -1,7 +1,6 @@
 package dtm.stools.component;
 
 import dtm.stools.context.DomElementLoader;
-import dtm.stools.context.IWindow;
 import dtm.stools.context.IWindowComponent;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
@@ -9,7 +8,6 @@ import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomComponentElementLoaderService;
 import lombok.NonNull;
 import lombok.SneakyThrows;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.FocusEvent;
