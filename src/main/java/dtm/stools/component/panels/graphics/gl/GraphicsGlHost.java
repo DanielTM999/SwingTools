@@ -247,6 +247,7 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
             GlNative.nSetVsync(contextHandle, vsync);
             vsyncDirty = false;
             context.updateSize(Math.max(1, canvas.getWidth()), Math.max(1, canvas.getHeight()));
+            GL.glViewport(0, 0, context.getWidth(), context.getHeight());
         } else {
             GlNative.nMakeCurrent(contextHandle);
         }
@@ -278,6 +279,7 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
         int h = Math.max(1, canvas.getHeight());
         if (w != context.getWidth() || h != context.getHeight()) {
             context.updateSize(w, h);
+            GL.glViewport(0, 0, w, h);
             if (currentRenderer != null) {
                 if (rendererReady) {
                     try {
@@ -365,6 +367,7 @@ class GraphicsGlHost implements GraphicsHost<GraphicsGlContext> {
                 GraphicsGlRenderContextRegistry.bind(glRenderer, context);
             }
             currentRenderer.initialize(context);
+            GL.glViewport(0, 0, context.getWidth(), context.getHeight());
             currentRenderer.resize(context, context.getWidth(), context.getHeight());
             rendererReady = true;
             return true;
