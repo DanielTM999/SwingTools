@@ -100,8 +100,22 @@ public class DockPanel extends PanelEventListener {
     }
 
     protected TabbedPanel createDockGroup(DockRegion region) {
-        TabbedPanel tabbedPanel = new TabbedPanel(JTabbedPane.TOP);
+        TabbedPanel tabbedPanel = new DockGroupPanel();
         return configureDockGroup(region, tabbedPanel);
+    }
+
+    private final class DockGroupPanel extends TabbedPanel {
+
+        private DockGroupPanel() {
+            super(JTabbedPane.TOP);
+        }
+
+        @Override
+        protected void onTabHeadersUpdated() {
+            if (shouldHideGroupHeader(this)) {
+                scrubSingleHiddenTabHeader(this);
+            }
+        }
     }
 
     protected TabbedPanel configureDockGroup(DockRegion region, TabbedPanel group) {
@@ -1456,14 +1470,11 @@ public class DockPanel extends PanelEventListener {
         boolean alreadyHidden = group.getTabbedPane().getUI() instanceof HiddenDockTabbedPaneUI;
 
         if (hideHeader) {
-            group.getTabbedPane().setUI(new HiddenDockTabbedPaneUI());
-            group.updateAllTabHeaders();
-            scrubSingleHiddenTabHeader(group);
+            group.setTabbedPaneUiFactory(owner -> new HiddenDockTabbedPaneUI());
             group.getTabbedPane().revalidate();
             group.getTabbedPane().repaint();
         } else if (alreadyHidden) {
-            group.getTabbedPane().updateUI();
-            group.updateAllTabHeaders();
+            group.setTabbedPaneUiFactory(null);
             group.getTabbedPane().revalidate();
             group.getTabbedPane().repaint();
         }

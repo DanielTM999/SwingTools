@@ -57,6 +57,10 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     @Getter
     private Color lineNumberColor = UIManager.getColor("Label.disabledForeground");
 
+    private Color themeBorderColor = borderColor;
+    private Color themeLineNumberColor = lineNumberColor;
+    private Color themeBackground;
+
     private Font lineNumberFont;
     private boolean fontExplicitlySet;
 
@@ -66,7 +70,8 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     public CodeEditorGutter(CodeEditorTextArea textArea) {
         this.textArea = textArea;
         setOpaque(true);
-        setBackground(UIManager.getColor("Panel.background"));
+        this.themeBackground = UIManager.getColor("Panel.background");
+        setBackground(themeBackground);
         textArea.addLineChangeListener(this);
         addListeners();
         addHierarchyListener(e -> {
@@ -178,6 +183,39 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
 
     public void setLineNumberColor(Color lineNumberColor) {
         this.lineNumberColor = lineNumberColor;
+        repaint();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        refreshThemeColors();
+    }
+
+    private void refreshThemeColors() {
+        if (!Objects.equals(borderColor, themeBorderColor)
+                && !Objects.equals(lineNumberColor, themeLineNumberColor)
+                && !Objects.equals(getBackground(), themeBackground)) {
+            return;
+        }
+
+        Color freshBorder = UIManager.getColor("Separator.foreground");
+        Color freshLineNumber = UIManager.getColor("Label.disabledForeground");
+        Color freshBackground = UIManager.getColor("Panel.background");
+
+        if (Objects.equals(borderColor, themeBorderColor)) {
+            borderColor = freshBorder;
+        }
+        if (Objects.equals(lineNumberColor, themeLineNumberColor)) {
+            lineNumberColor = freshLineNumber;
+        }
+        if (Objects.equals(getBackground(), themeBackground)) {
+            setBackground(freshBackground);
+        }
+
+        themeBorderColor = freshBorder;
+        themeLineNumberColor = freshLineNumber;
+        themeBackground = freshBackground;
         repaint();
     }
 

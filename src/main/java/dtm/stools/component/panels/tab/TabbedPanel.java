@@ -13,6 +13,7 @@ import lombok.Setter;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
+import javax.swing.plaf.TabbedPaneUI;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -84,7 +85,7 @@ public class TabbedPanel extends PanelEventListener {
     private TabGroupFactory tabGroupFactory;
     private TabWindowFactory tabWindowFactory;
     private TabSeparatorFactory tabSeparatorFactory;
-    private Function<TabbedPanel, StyledTabbedPaneUI> tabbedPaneUiFactory;
+    private Function<TabbedPanel, TabbedPaneUI> tabbedPaneUiFactory;
     private Runnable newTabAction;
     private BiPredicate<TabbedPanel, TabEntry> closeConfirmationProvider;
     private JRootPane dockRootPane;
@@ -2715,7 +2716,10 @@ public class TabbedPanel extends PanelEventListener {
         for (String key : new ArrayList<>(tabsByKey.keySet())) {
             updateTabHeader(key);
         }
+        onTabHeadersUpdated();
     }
+
+    protected void onTabHeadersUpdated() {}
 
     protected void updateTabHeader(String key) {
         TabEntry entry = tabsByKey.get(key);
@@ -3006,7 +3010,7 @@ public class TabbedPanel extends PanelEventListener {
         tabbedPane.setOpaque(false);
     }
 
-    public TabbedPanel setTabbedPaneUiFactory(Function<TabbedPanel, StyledTabbedPaneUI> tabbedPaneUiFactory) {
+    public TabbedPanel setTabbedPaneUiFactory(Function<TabbedPanel, TabbedPaneUI> tabbedPaneUiFactory) {
         this.tabbedPaneUiFactory = tabbedPaneUiFactory;
         installTabbedPaneStyle();
         updateAllTabHeaders();
@@ -3015,13 +3019,13 @@ public class TabbedPanel extends PanelEventListener {
         return this;
     }
 
-    public Function<TabbedPanel, StyledTabbedPaneUI> getTabbedPaneUiFactory() {
+    public Function<TabbedPanel, TabbedPaneUI> getTabbedPaneUiFactory() {
         return tabbedPaneUiFactory;
     }
 
-    private StyledTabbedPaneUI createTabbedPaneUi() {
+    private TabbedPaneUI createTabbedPaneUi() {
         if (tabbedPaneUiFactory != null) {
-            StyledTabbedPaneUI ui = tabbedPaneUiFactory.apply(this);
+            TabbedPaneUI ui = tabbedPaneUiFactory.apply(this);
             if (ui != null) {
                 return ui;
             }
