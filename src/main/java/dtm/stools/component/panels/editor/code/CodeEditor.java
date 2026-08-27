@@ -699,9 +699,7 @@ public class CodeEditor extends BlockingPanel {
         } else {
             savedScrollPaneBorder = scrollPane.getBorder();
             savedTextAreaBorder = textArea.getBorder();
-            String style = "focusWidth: 0; innerFocusWidth: 0; borderWidth: 0";
-            scrollPane.putClientProperty("FlatLaf.style", style);
-            textArea.putClientProperty("FlatLaf.style", style);
+            textArea.putClientProperty("FlatLaf.style", "focusWidth: 0; innerFocusWidth: 0; borderWidth: 0");
             scrollPane.setBorder(BorderFactory.createEmptyBorder());
             textArea.setBorder(BorderFactory.createEmptyBorder());
         }

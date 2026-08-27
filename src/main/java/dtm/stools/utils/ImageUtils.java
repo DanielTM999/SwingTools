@@ -1,6 +1,7 @@
 package dtm.stools.utils;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import dtm.stools.theme.ThemeIcon;
 import dtm.stools.exceptions.ResourceNotFoundException;
 
 import javax.swing.*;
@@ -212,6 +213,9 @@ public final class ImageUtils {
     }
 
     public static Icon resizeIcon(Icon baseIcon, int resizedWidth, int resizedHeight){
+        if (baseIcon instanceof ThemeIcon themeIcon) {
+            return themeIcon.derive(resizedWidth, resizedHeight);
+        }
         if (baseIcon instanceof FlatSVGIcon svg) {
             return svg.derive(resizedWidth, resizedHeight);
         }
