@@ -11,6 +11,7 @@ import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
 import dtm.stools.internal.window.ActivityWindowExecutor;
+import dtm.stools.internal.DrawingOnceGate;
 import dtm.stools.models.SystemTrayConfigurationConcrete;
 import lombok.Getter;
 import lombok.NonNull;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unchecked")
 public abstract class Activity extends JFrame implements IWindow {
+    private final DrawingOnceGate drawingOnceGate = new DrawingOnceGate();
     private final Map<String, Object> clientSideElements;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final SystemTrayConfiguration systemTrayConfiguration;
@@ -87,7 +89,7 @@ public abstract class Activity extends JFrame implements IWindow {
                 try {
                     applySystemTrayConfiguration(systemTrayConfiguration);
                     setupSystemTray();
-                    onDrawing();
+                    dispatchDrawing();
 
                     if (!executorService.isShutdown()) {
                         this.domElementLoader.load();
@@ -230,6 +232,20 @@ public abstract class Activity extends JFrame implements IWindow {
     protected void onShow() {}
 
     protected void onHidden() {}
+
+    /**
+     * Faz com que o {@code onDrawing()} seja executado apenas uma vez durante
+     * todo o ciclo de vida deste componente, mesmo que o gatilho de desenho
+     * seja disparado novamente.
+     */
+    protected final void applyDrawingOnce() {
+        drawingOnceGate.enable();
+    }
+
+    /** Dispara o {@code onDrawing()} respeitando o {@link #applyDrawingOnce()}. */
+    protected final void dispatchDrawing() {
+        drawingOnceGate.dispatch(this::onDrawing);
+    }
 
     protected void onDrawing() {
         setupWindow();

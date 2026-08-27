@@ -28,7 +28,7 @@ public abstract class DelegatedBlockingPanel<T extends AbstractViewController<Bl
     @Override
     public void addNotify() {
         super.addNotify();
-        onDrawing();
+        dispatchDrawing();
         reloadDomElements();
         onCreateController();
         getOrCreateController().onInit(this);

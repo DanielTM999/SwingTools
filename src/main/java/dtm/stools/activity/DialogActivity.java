@@ -9,6 +9,7 @@ import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomElementLoaderService;
 import dtm.stools.internal.window.ActivityWindowExecutor;
+import dtm.stools.internal.DrawingOnceGate;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 
@@ -24,6 +25,7 @@ import java.util.function.Supplier;
 
 @SuppressWarnings("unchecked")
 public abstract class DialogActivity extends JDialog implements IWindow {
+    private final DrawingOnceGate drawingOnceGate = new DrawingOnceGate();
     private final Map<String, Object> clientSideElements;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final ExecutorService executorService;
@@ -84,7 +86,7 @@ public abstract class DialogActivity extends JDialog implements IWindow {
 
             if (initialized.compareAndSet(false, true)) {
                 try {
-                    onDrawing();
+                    dispatchDrawing();
 
                     if (!executorService.isShutdown()) {
                         try {
@@ -207,6 +209,20 @@ public abstract class DialogActivity extends JDialog implements IWindow {
         }catch (Exception e){
             return false;
         }
+    }
+
+    /**
+     * Faz com que o {@code onDrawing()} seja executado apenas uma vez durante
+     * todo o ciclo de vida deste componente, mesmo que o gatilho de desenho
+     * seja disparado novamente.
+     */
+    protected final void applyDrawingOnce() {
+        drawingOnceGate.enable();
+    }
+
+    /** Dispara o {@code onDrawing()} respeitando o {@link #applyDrawingOnce()}. */
+    protected final void dispatchDrawing() {
+        drawingOnceGate.dispatch(this::onDrawing);
     }
 
     protected void onDrawing() {

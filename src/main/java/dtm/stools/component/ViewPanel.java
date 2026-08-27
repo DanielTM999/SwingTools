@@ -6,6 +6,7 @@ import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomComponentElementLoaderService;
+import dtm.stools.internal.DrawingOnceGate;
 import dtm.stools.theme.ThemeAware;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -24,6 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("unchecked")
 public abstract class ViewPanel extends JPanel implements IWindowComponent, ThemeAware {
+    private final DrawingOnceGate drawingOnceGate = new DrawingOnceGate();
     private boolean themeHookReady;
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
@@ -73,7 +75,7 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent, Them
     @Override
     public void addNotify() {
         super.addNotify();
-        onDrawing();
+        dispatchDrawing();
         reloadDomElements();
         onInit();
     }
@@ -141,6 +143,14 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent, Them
         }catch (Exception e){
             throw new InvalidClientSideElementException(key, value, e);
         }
+    }
+
+    protected final void applyDrawingOnce() {
+        drawingOnceGate.enable();
+    }
+
+    protected final void dispatchDrawing() {
+        drawingOnceGate.dispatch(this::onDrawing);
     }
 
     protected void onDrawing(){
