@@ -4,6 +4,8 @@ import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.panels.base.PanelEventListener;
 import dtm.stools.component.panels.tab.*;
+import dtm.stools.theme.ThemeAwareSplitPane;
+import dtm.stools.theme.ThemeSupport;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -1244,13 +1246,12 @@ public class DockPanel extends PanelEventListener {
                 ? null
                 : dockSeparatorFactory.createSeparator(this, region, first, second, orientation);
         if (split == null) {
-            split = new JSplitPane(orientation);
-            split.setContinuousLayout(true);
-            split.setBorder(null);
+            split = new ThemeAwareSplitPane(orientation);
             split.setOneTouchExpandable(isSplitOneTouchExpandableEnabled());
         } else {
             split.setOrientation(orientation);
         }
+        ThemeSupport.protectDividerLocation(split);
 
         if (orientation == JSplitPane.HORIZONTAL_SPLIT) {
             split.setLeftComponent(first);

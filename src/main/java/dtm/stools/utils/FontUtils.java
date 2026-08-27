@@ -11,6 +11,8 @@ import java.util.List;
 
 public final class FontUtils {
 
+    private static volatile Font globalFont;
+
     private FontUtils() {
         throw new IllegalStateException("utility class");
     }
@@ -34,8 +36,14 @@ public final class FontUtils {
         return hasGlobalFont(font.getFamily());
     }
 
+    public static Font getGlobalFont() {
+        return globalFont;
+    }
+
     public static void setGlobalFont(Font font) {
         if (font == null) return;
+
+        globalFont = font;
 
         UIDefaults defaults = UIManager.getDefaults();
         Enumeration<Object> keys = defaults.keys();

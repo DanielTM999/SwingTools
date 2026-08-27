@@ -6,6 +6,8 @@ import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.panels.base.PanelEventListener;
 import dtm.stools.context.IWindow;
+import dtm.stools.theme.ThemeAwareSplitPane;
+import dtm.stools.theme.ThemeSupport;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class TabbedPanel extends PanelEventListener {
 
@@ -81,6 +84,7 @@ public class TabbedPanel extends PanelEventListener {
     private TabGroupFactory tabGroupFactory;
     private TabWindowFactory tabWindowFactory;
     private TabSeparatorFactory tabSeparatorFactory;
+    private Function<TabbedPanel, StyledTabbedPaneUI> tabbedPaneUiFactory;
     private Runnable newTabAction;
     private BiPredicate<TabbedPanel, TabEntry> closeConfirmationProvider;
     private JRootPane dockRootPane;
@@ -92,7 +96,7 @@ public class TabbedPanel extends PanelEventListener {
 
     public TabbedPanel(int tabPlacement) {
         super(new BorderLayout(), true);
-        this.tabbedPane = new JTabbedPane(tabPlacement);
+        this.tabbedPane = new StyledTabbedPane(tabPlacement);
         this.tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         installTabbedPaneStyle();
         installTabControlBar();
@@ -2332,6 +2336,9 @@ public class TabbedPanel extends PanelEventListener {
         target.tabGroupFactory = tabGroupFactory;
         target.tabWindowFactory = tabWindowFactory;
         target.tabSeparatorFactory = tabSeparatorFactory;
+        if (tabbedPaneUiFactory != null) {
+            target.setTabbedPaneUiFactory(tabbedPaneUiFactory);
+        }
         target.dockRootPane = dockRootPane;
         target.tabbedPane.setTabLayoutPolicy(tabbedPane.getTabLayoutPolicy());
         target.installTabbedPaneStyle();
@@ -2536,13 +2543,12 @@ public class TabbedPanel extends PanelEventListener {
                 ? null
                 : tabSeparatorFactory.createSeparator(this, target, placement, orientation);
         if (split == null) {
-            split = new JSplitPane(orientation);
-            split.setContinuousLayout(true);
+            split = new ThemeAwareSplitPane(orientation);
             split.setResizeWeight(0.5);
-            split.setBorder(null);
         } else {
             split.setOrientation(orientation);
         }
+        ThemeSupport.protectDividerLocation(split);
 
         if (placement == TabSplitPlacement.LEFT) {
             split.setLeftComponent(target);
@@ -2996,8 +3002,56 @@ public class TabbedPanel extends PanelEventListener {
     }
 
     private void installTabbedPaneStyle() {
-        tabbedPane.setUI(new StyledTabbedPaneUI(this));
+        tabbedPane.setUI(createTabbedPaneUi());
         tabbedPane.setOpaque(false);
+    }
+
+    public TabbedPanel setTabbedPaneUiFactory(Function<TabbedPanel, StyledTabbedPaneUI> tabbedPaneUiFactory) {
+        this.tabbedPaneUiFactory = tabbedPaneUiFactory;
+        installTabbedPaneStyle();
+        updateAllTabHeaders();
+        revalidate();
+        repaint();
+        return this;
+    }
+
+    public Function<TabbedPanel, StyledTabbedPaneUI> getTabbedPaneUiFactory() {
+        return tabbedPaneUiFactory;
+    }
+
+    private StyledTabbedPaneUI createTabbedPaneUi() {
+        if (tabbedPaneUiFactory != null) {
+            StyledTabbedPaneUI ui = tabbedPaneUiFactory.apply(this);
+            if (ui != null) {
+                return ui;
+            }
+        }
+        return new StyledTabbedPaneUI(this);
+    }
+
+    @Override
+    protected void onThemeChanged() {
+        tabStyle.refreshTheme();
+        updateAllTabHeaders();
+        updateTabControlBar();
+    }
+
+    private final class StyledTabbedPane extends JTabbedPane {
+
+        private StyledTabbedPane(int tabPlacement) {
+            super(tabPlacement);
+        }
+
+        @Override
+        public void updateUI() {
+            if (TabbedPanel.this.tabStyle == null) {
+                super.updateUI();
+                return;
+            }
+
+            setUI(createTabbedPaneUi());
+            setOpaque(false);
+        }
     }
 
     private void fireSelectionChange(String oldKey, String newKey) {

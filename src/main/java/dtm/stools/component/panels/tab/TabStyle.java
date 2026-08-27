@@ -5,6 +5,11 @@ import lombok.Setter;
 
 import javax.swing.*;
 import java.awt.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @Getter
 @Setter
@@ -89,6 +94,10 @@ public class TabStyle {
     private int tabScrollButtonSize;
     private int tabScrollButtonArc;
     private float tabScrollButtonStrokeWidth;
+
+    @Getter(lombok.AccessLevel.NONE)
+    @Setter(lombok.AccessLevel.NONE)
+    private Map<String, Object> themeBaseline;
 
     public TabStyle() {
         Color panel = color("Panel.background", new Color(43, 45, 48));
@@ -183,6 +192,52 @@ public class TabStyle {
         this.tabScrollButtonSize = 28;
         this.tabScrollButtonArc = 8;
         this.tabScrollButtonStrokeWidth = 1.8f;
+
+        this.themeBaseline = snapshotThemeValues(this);
+    }
+
+    public void refreshTheme() {
+        TabStyle fresh = new TabStyle();
+        Map<String, Object> freshValues = snapshotThemeValues(fresh);
+        Map<String, Object> baseline = themeBaseline == null ? Map.of() : themeBaseline;
+
+        for (Field field : themeFields()) {
+            try {
+                Object current = field.get(this);
+                if (Objects.equals(current, baseline.get(field.getName()))) {
+                    field.set(this, freshValues.get(field.getName()));
+                }
+            } catch (IllegalAccessException ignored) {
+            }
+        }
+
+        this.themeBaseline = freshValues;
+    }
+
+    private static Map<String, Object> snapshotThemeValues(TabStyle style) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (Field field : themeFields()) {
+            try {
+                values.put(field.getName(), field.get(style));
+            } catch (IllegalAccessException ignored) {
+            }
+        }
+        return values;
+    }
+
+    private static java.util.List<Field> themeFields() {
+        java.util.List<Field> fields = new java.util.ArrayList<>();
+        for (Field field : TabStyle.class.getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            if (field.getType() != Color.class && field.getType() != Font.class) {
+                continue;
+            }
+            field.setAccessible(true);
+            fields.add(field);
+        }
+        return fields;
     }
 
     private static Color color(String key, Color fallback) {
@@ -276,5 +331,7 @@ public class TabStyle {
         target.tabScrollButtonSize = tabScrollButtonSize;
         target.tabScrollButtonArc = tabScrollButtonArc;
         target.tabScrollButtonStrokeWidth = tabScrollButtonStrokeWidth;
+
+        target.themeBaseline = themeBaseline == null ? null : new LinkedHashMap<>(themeBaseline);
     }
 }

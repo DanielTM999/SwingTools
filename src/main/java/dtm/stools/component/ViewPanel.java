@@ -6,6 +6,7 @@ import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
 import dtm.stools.internal.DomComponentElementLoaderService;
+import dtm.stools.theme.ThemeAware;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import javax.swing.*;
@@ -22,7 +23,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("unchecked")
-public abstract class ViewPanel extends JPanel implements IWindowComponent {
+public abstract class ViewPanel extends JPanel implements IWindowComponent, ThemeAware {
+    private boolean themeHookReady;
     private final ExecutorService executorService;
     private final Map<String, List<Component>> domViewer;
     private final DomElementLoader domElementLoader;
@@ -34,6 +36,7 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomComponentElementLoaderService<>(this, domViewer, executorService);
         setupHierarchyListener();
+        this.themeHookReady = true;
     }
 
     protected ViewPanel(LayoutManager layout){
@@ -43,7 +46,29 @@ public abstract class ViewPanel extends JPanel implements IWindowComponent {
         this.clientSideElements = new ConcurrentHashMap<>();
         this.domElementLoader = new DomComponentElementLoaderService<>(this, domViewer, executorService);
         setupHierarchyListener();
+        this.themeHookReady = true;
     }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        if (!themeHookReady) {
+            return;
+        }
+
+        applyTheme();
+    }
+
+    @Override
+    public final void applyTheme() {
+        try {
+            onThemeChanged();
+        } catch (Exception ignored) {
+        }
+    }
+
+    protected void onThemeChanged() {}
 
     @Override
     public void addNotify() {
