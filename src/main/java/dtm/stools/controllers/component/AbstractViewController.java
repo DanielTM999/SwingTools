@@ -11,4 +11,7 @@ public abstract class AbstractViewController<T extends IWindowComponent>{
     public void onRemoved(T component) {}
     public void onLostFocus(T component) {}
     public void onFocus(T component) {}
+
+    @SuppressWarnings("unchecked")
+    public <V extends T> V view(){return (V)component;}
 }

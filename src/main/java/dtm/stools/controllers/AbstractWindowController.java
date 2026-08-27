@@ -29,7 +29,7 @@ public abstract class AbstractWindowController<T extends IWindow> {
     public void applySystemTrayConfiguration(T activity, SystemTrayConfiguration systemTrayConfiguration) {}
     public void sendEvent(T activity, Object args){
         if(activity instanceof DelegatedWindow delegatedWindow){
-            delegatedWindow.onRecieveEvent(args);
+            delegatedWindow.onReceiveEvent(args);
         }
     }
     public <S extends Component> S findById(@NonNull String id){
@@ -42,6 +42,11 @@ public abstract class AbstractWindowController<T extends IWindow> {
     };
     public final T getWindow(){ return window.get(); }
 
+    @SuppressWarnings("unchecked")
+    public final <S extends T> S getWindowAs(){
+        return (S) getWindow();
+    }
+
     public final <S extends T> S getWindowAs(final Class<S> ref){
         T window = getWindow();
         try{
@@ -50,4 +55,6 @@ public abstract class AbstractWindowController<T extends IWindow> {
             return null;
         }
     }
+
+
 }
