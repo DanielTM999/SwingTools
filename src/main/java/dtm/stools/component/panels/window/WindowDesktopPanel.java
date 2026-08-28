@@ -37,6 +37,7 @@ public class WindowDesktopPanel extends PanelEventListener {
     private WindowSnapPolicy snapPolicy;
     private WindowAnimator windowAnimator;
     private WindowMinimizedMenuFactory minimizedMenuFactory;
+    private WindowMinimizedBarFactory minimizedBarFactory;
     private boolean minimizedBarContextMenuEnabled;
     private boolean snapLayoutsEnabled = true;
     private boolean snapAssistEnabled = true;
@@ -52,7 +53,13 @@ public class WindowDesktopPanel extends PanelEventListener {
     }
 
     public WindowDesktopPanel(boolean minimizedBarAutoHideEnabled) {
+        this(minimizedBarAutoHideEnabled, null);
+    }
+
+    public WindowDesktopPanel(boolean minimizedBarAutoHideEnabled,
+                              WindowMinimizedBarFactory minimizedBarFactory) {
         super(new WindowDesktopLayout(), false);
+        this.minimizedBarFactory = minimizedBarFactory;
         setLayout(createDesktopLayout());
         setOpaque(true);
         Color desktopBackground = UIManager.getColor("Desktop.background");
@@ -89,7 +96,10 @@ public class WindowDesktopPanel extends PanelEventListener {
     protected WindowSnapPreviewOverlay createSnapPreviewOverlay() { return new WindowSnapPreviewOverlay(); }
     protected WindowSnapAssistOverlay createSnapAssistOverlay() { return new WindowSnapAssistOverlay(this); }
     protected WindowSnapDragSelector createSnapDragSelector() { return new WindowSnapDragSelector(); }
-    protected WindowMinimizedBar createMinimizedWindowBar() { return new WindowMinimizedBar(); }
+    protected WindowMinimizedBar createMinimizedWindowBar() {
+        WindowMinimizedBar bar = minimizedBarFactory == null ? null : minimizedBarFactory.createBar(this);
+        return bar == null ? new WindowMinimizedBar() : bar;
+    }
     protected WindowPanel createWindow(WindowConfig config) { return new WindowPanel(config); }
     protected WindowPlacementPolicy createPlacementPolicy() { return new DefaultWindowPlacementPolicy(); }
     protected WindowSnapPolicy createSnapPolicy() { return new DefaultWindowSnapPolicy(); }
@@ -418,6 +428,26 @@ public class WindowDesktopPanel extends PanelEventListener {
 
     protected AbstractButton createMinimizedWindowButton(WindowPanel window) {
         return minimizedBar.createWindowButton(window);
+    }
+
+    protected void rebuildMinimizedButtons() {
+        if (minimizedButtons.isEmpty()) return;
+        for (WindowPanel window : new ArrayList<>(minimizedButtons.keySet())) {
+            rebuildMinimizedButton(window);
+        }
+    }
+
+    protected void rebuildMinimizedButton(WindowPanel window) {
+        AbstractButton previous = minimizedButtons.get(window);
+        if (previous == null) return;
+        int index = minimizedBar.getComponentZOrder(previous);
+        AbstractButton button = createMinimizedWindowButton(window);
+        configureMinimizedWindowButton(window, button);
+        minimizedButtons.put(window, button);
+        minimizedBar.remove(previous);
+        if (index < 0 || index > minimizedBar.getComponentCount()) minimizedBar.add(button);
+        else minimizedBar.add(button, index);
+        minimizedBar.revalidate(); minimizedBar.repaint();
     }
 
     protected void configureMinimizedWindowButton(WindowPanel window, AbstractButton button) {
@@ -1058,8 +1088,15 @@ public class WindowDesktopPanel extends PanelEventListener {
         minimizedButtons.forEach(this::configureMinimizedWindowButton);
         return this;
     }
+    public WindowDesktopPanel minimizedBarButtonFactory(WindowMinimizedButtonFactory factory) {
+        minimizedBar.buttonFactory(factory);
+        rebuildMinimizedButtons();
+        return this;
+    }
     public boolean isMinimizedBarContextMenuEnabled() { return minimizedBarContextMenuEnabled; }
     public WindowMinimizedMenuFactory getMinimizedMenuFactory() { return minimizedMenuFactory; }
+    public WindowMinimizedButtonFactory getMinimizedButtonFactory() { return minimizedBar.getButtonFactory(); }
+    public WindowMinimizedBarFactory getMinimizedBarFactory() { return minimizedBarFactory; }
 
     public boolean cancelWindowAnimation(WindowPanel window) {
         if (window == null || !windowsByKey.containsValue(window)) return false;
@@ -1095,11 +1132,8 @@ public class WindowDesktopPanel extends PanelEventListener {
     }
 
     protected void updateMinimizedWindowButton(WindowPanel window) {
-        AbstractButton button = minimizedButtons.get(window);
-        if (button == null) return;
-        button.setText(window.getTitle());
-        button.setIcon(window.getIcon());
-        configureMinimizedWindowButton(window, button);
+        if (!minimizedButtons.containsKey(window)) return;
+        rebuildMinimizedButton(window);
     }
 
     protected void dispatchEventObject(String type, WindowEvent event) {

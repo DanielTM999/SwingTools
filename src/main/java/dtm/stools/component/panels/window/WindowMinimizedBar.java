@@ -10,6 +10,7 @@ public class WindowMinimizedBar extends JPanel {
     public static final String PROPERTY_AUTO_HIDE = "autoHideEnabled";
 
     private final Timer collapseDelayTimer;
+    private WindowMinimizedButtonFactory buttonFactory;
     private Timer sizeAnimationTimer;
     private boolean autoHideEnabled;
     private boolean expanded = true;
@@ -30,6 +31,7 @@ public class WindowMinimizedBar extends JPanel {
         setPreferredSize(new Dimension(10, expandedHeight));
         setOpaque(true);
         setVisible(false);
+        buttonFactory = createButtonFactory();
 
         collapseDelayTimer = new Timer(collapseDelayMillis, event -> {
             if (!popupActive && !isPointerInside()) collapse();
@@ -49,14 +51,24 @@ public class WindowMinimizedBar extends JPanel {
         addMouseListener(hoverHandler);
     }
 
-    public AbstractButton createWindowButton(WindowPanel window) {
-        JButton button = new JButton(window.getTitle(), window.getIcon());
-        button.setFocusable(false);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setPreferredSize(new Dimension(180, 28));
-        button.addActionListener(event -> window.restore().activate());
-        return button;
+    protected WindowMinimizedButtonFactory createButtonFactory() {
+        return new DefaultWindowMinimizedButtonFactory();
     }
+
+    /**
+     * Builds the button of a minimized window. Overriding this method takes precedence
+     * over any {@link WindowMinimizedButtonFactory} installed through {@link #buttonFactory}.
+     */
+    public AbstractButton createWindowButton(WindowPanel window) {
+        return buttonFactory.createButton(this, window);
+    }
+
+    public WindowMinimizedBar buttonFactory(WindowMinimizedButtonFactory factory) {
+        buttonFactory = factory == null ? createButtonFactory() : factory;
+        return this;
+    }
+
+    public WindowMinimizedButtonFactory getButtonFactory() { return buttonFactory; }
 
     public WindowMinimizedBar autoHideEnabled(boolean value) {
         if (autoHideEnabled == value) return this;

@@ -1,5 +1,7 @@
 package dtm.stools.component.panels.window;
 
+import dtm.stools.component.icon.FittedIcon;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -21,12 +23,20 @@ public class DefaultWindowMinimizedMenuFactory implements WindowMinimizedMenuFac
     }
 
     protected JMenuItem createHeaderItem(WindowPanel window) {
-        JMenuItem header = new JMenuItem(window.getTitle(), window.getIcon());
+        JMenuItem header = new JMenuItem(window.getTitle(), resolveIcon(window));
         Font font = header.getFont();
         if (font != null) header.setFont(font.deriveFont(Font.BOLD));
+        if (header.getIcon() == null) header.setIconTextGap(0);
+        header.setDisabledIcon(header.getIcon());
         header.setEnabled(false);
         return header;
     }
+
+    protected Icon resolveIcon(WindowPanel window) {
+        return FittedIcon.fit(window.getIcon(), iconSize());
+    }
+
+    protected int iconSize() { return 16; }
 
     protected void addWindowActions(JPopupMenu menu, WindowDesktopPanel desktop, WindowPanel window) {
         menu.add(createActionItem("Restaurar", WindowMinimizedMenuAction.RESTORE,

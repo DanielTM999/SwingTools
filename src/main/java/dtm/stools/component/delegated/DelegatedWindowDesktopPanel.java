@@ -13,7 +13,12 @@ public abstract class DelegatedWindowDesktopPanel<T extends AbstractWindowDeskto
     }
 
     protected DelegatedWindowDesktopPanel(boolean minimizedBarAutoHideEnabled) {
-        super(minimizedBarAutoHideEnabled);
+        this(minimizedBarAutoHideEnabled, null);
+    }
+
+    protected DelegatedWindowDesktopPanel(boolean minimizedBarAutoHideEnabled,
+                                          WindowMinimizedBarFactory minimizedBarFactory) {
+        super(minimizedBarAutoHideEnabled, minimizedBarFactory);
         installControllerEvents();
     }
 

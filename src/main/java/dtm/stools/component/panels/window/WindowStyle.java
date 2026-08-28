@@ -17,6 +17,8 @@ public class WindowStyle {
     private Font titleFont;
     private Cursor titleBarCursor = Cursor.getDefaultCursor();
     private Insets contentInsets = new Insets(0, 0, 0, 0);
+    private Insets titleBarInsets = new Insets(0, 10, 0, 4);
+    private int titleBarIconGap = 8;
     private int titleBarHeight = 36;
     private int arc = 12;
     private int shadowSize = 8;
@@ -56,6 +58,14 @@ public class WindowStyle {
         return this;
     }
     public WindowStyle contentInsets(Insets value) { contentInsets = copy(value); return this; }
+    public WindowStyle titleBarInsets(Insets value) { titleBarInsets = copy(value); return this; }
+    public WindowStyle titleBarInsets(int top, int left, int bottom, int right) {
+        return titleBarInsets(new Insets(top, left, bottom, right));
+    }
+    public WindowStyle titleBarMargin(int horizontal) {
+        return titleBarInsets(titleBarInsets.top, horizontal, titleBarInsets.bottom, horizontal);
+    }
+    public WindowStyle titleBarIconGap(int value) { titleBarIconGap = Math.max(0, value); return this; }
     public WindowStyle titleBarHeight(int value) { titleBarHeight = Math.max(24, value); return this; }
     public WindowStyle arc(int value) { arc = Math.max(0, value); return this; }
     public WindowStyle shadowSize(int value) { shadowSize = Math.max(0, value); return this; }
@@ -76,6 +86,8 @@ public class WindowStyle {
     public Font getTitleFont() { return titleFont; }
     public Cursor getTitleBarCursor() { return titleBarCursor; }
     public Insets getContentInsets() { return copy(contentInsets); }
+    public Insets getTitleBarInsets() { return copy(titleBarInsets); }
+    public int getTitleBarIconGap() { return titleBarIconGap; }
     public int getTitleBarHeight() { return titleBarHeight; }
     public int getArc() { return arc; }
     public int getShadowSize() { return shadowSize; }
@@ -92,6 +104,7 @@ public class WindowStyle {
         copy.controlHoverBackground = controlHoverBackground; copy.closeHoverBackground = closeHoverBackground;
         copy.titleFont = titleFont; copy.contentInsets = copy(contentInsets);
         copy.titleBarCursor = titleBarCursor;
+        copy.titleBarInsets = copy(titleBarInsets); copy.titleBarIconGap = titleBarIconGap;
         copy.titleBarHeight = titleBarHeight; copy.arc = arc; copy.shadowSize = shadowSize;
         copy.resizeHandleSize = resizeHandleSize; copy.controlSize = controlSize; copy.borderWidth = borderWidth;
         return copy;

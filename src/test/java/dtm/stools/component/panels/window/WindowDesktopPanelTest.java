@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.window;
 
+import dtm.stools.component.icon.FittedIcon;
 import dtm.stools.component.delegated.DelegatedWindowPanel;
 import dtm.stools.component.delegated.DelegatedWindowDesktopPanel;
 import dtm.stools.controllers.component.AbstractWindowDesktopController;
@@ -755,6 +756,246 @@ class WindowDesktopPanelTest {
             assertTrue(desktop.updateSnapLayoutDrag(buttonOnly, new Point(500, 0)));
             return null;
         });
+    }
+
+    @Test
+    void minimizedBarAcceptsCustomButtonFactoryAndRebuildsExistingButtons() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            WindowPanel window = desktop.openWindow(new WindowConfig("btn", "Editor.java", new JPanel()));
+            window.minimize();
+            assertEquals(1, desktop.getMinimizedBar().getComponentCount());
+
+            AtomicInteger calls = new AtomicInteger();
+            desktop.minimizedBarButtonFactory((bar, target) -> {
+                calls.incrementAndGet();
+                return new JButton("custom:" + target.getTitle());
+            });
+
+            assertEquals(1, calls.get());
+            assertEquals(1, desktop.getMinimizedBar().getComponentCount());
+            AbstractButton button = (AbstractButton) desktop.getMinimizedBar().getComponent(0);
+            assertEquals("custom:Editor.java", button.getText());
+            assertSame(desktop.getMinimizedBar().getButtonFactory(), desktop.getMinimizedButtonFactory());
+            return null;
+        });
+    }
+
+    @Test
+    void overriddenButtonHookTakesPrecedenceOverButtonFactory() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = new WindowDesktopPanel() {
+                @Override
+                protected AbstractButton createMinimizedWindowButton(WindowPanel window) {
+                    return new JButton("override:" + window.getTitle());
+                }
+            };
+            sizeDesktop(desktop);
+            desktop.minimizedBarButtonFactory((bar, window) -> new JButton("factory"));
+
+            WindowPanel window = desktop.openWindow(new WindowConfig("prec", "Props", new JPanel()));
+            window.minimize();
+
+            assertEquals("override:Props", ((AbstractButton) desktop.getMinimizedBar().getComponent(0)).getText());
+            return null;
+        });
+    }
+
+    @Test
+    void minimizedBarFactoryIsUsedUnlessTheHookIsOverridden() throws Exception {
+        onEdt(() -> {
+            WindowMinimizedBar injected = new WindowMinimizedBar();
+            WindowDesktopPanel desktop = new WindowDesktopPanel(false, host -> injected);
+            sizeDesktop(desktop);
+            assertSame(injected, desktop.getMinimizedBar());
+
+            WindowMinimizedBar ignored = new WindowMinimizedBar();
+            WindowMinimizedBar overridden = new WindowMinimizedBar();
+            WindowDesktopPanel subclass = new WindowDesktopPanel(false, host -> ignored) {
+                @Override
+                protected WindowMinimizedBar createMinimizedWindowBar() {
+                    return overridden;
+                }
+            };
+            sizeDesktop(subclass);
+            assertSame(overridden, subclass.getMinimizedBar());
+            return null;
+        });
+    }
+
+    @Test
+    void minimizedButtonIconIsScaledDownToFitTheBar() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            WindowPanel window = desktop.openWindow(new WindowConfig("icon", "Props", new JPanel())
+                    .icon(new SquareIcon(48)));
+            window.minimize();
+
+            AbstractButton button = (AbstractButton) desktop.getMinimizedBar().getComponent(0);
+            Icon icon = button.getIcon();
+            assertNotNull(icon);
+            assertTrue(icon.getIconHeight() <= desktop.getMinimizedBar().getExpandedHeight() - 18);
+            assertEquals(icon.getIconWidth(), icon.getIconHeight());
+            assertTrue(button.getPreferredSize().height >= icon.getIconHeight());
+            return null;
+        });
+    }
+
+    @Test
+    void fittedIconPreservesAspectRatioAndSkipsSmallIcons() {
+        Icon small = new SquareIcon(12);
+        assertSame(small, FittedIcon.fit(small, 16));
+        assertNull(FittedIcon.fit(null, 16));
+
+        Icon wide = new SizedIcon(64, 32);
+        Icon fitted = FittedIcon.fit(wide, 16);
+        assertNotSame(wide, fitted);
+        assertEquals(16, fitted.getIconWidth());
+        assertEquals(8, fitted.getIconHeight());
+    }
+
+    private static class SizedIcon implements Icon {
+        private final int width;
+        private final int height;
+
+        SizedIcon(int width, int height) { this.width = width; this.height = height; }
+
+        @Override public int getIconWidth() { return width; }
+        @Override public int getIconHeight() { return height; }
+        @Override public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            graphics.fillRect(x, y, width, height);
+        }
+    }
+
+    private static class SquareIcon extends SizedIcon {
+        SquareIcon(int size) { super(size, size); }
+    }
+
+    @Test
+    void popupHeaderIconIsScaledAndKeepsItsColorsWhileDisabled() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop().minimizedBarContextMenuEnabled(true);
+            WindowPanel window = desktop.openWindow(new WindowConfig("popup-icon", "Props", new JPanel())
+                    .icon(new SquareIcon(64)));
+            window.minimize();
+
+            JPopupMenu menu = ((AbstractButton) desktop.getMinimizedBar().getComponent(0))
+                    .getComponentPopupMenu();
+            JMenuItem header = (JMenuItem) menu.getComponent(0);
+            assertEquals("Props", header.getText());
+            assertFalse(header.isEnabled());
+            assertEquals(16, header.getIcon().getIconWidth());
+            assertEquals(16, header.getIcon().getIconHeight());
+            assertSame(header.getIcon(), header.getDisabledIcon());
+            return null;
+        });
+    }
+
+    @Test
+    void titleBarIconIsScaledToTheTitleBarHeight() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            WindowPanel big = desktop.openWindow(new WindowConfig("big", "Grande", new JPanel())
+                    .icon(new SquareIcon(64)));
+            WindowPanel small = desktop.openWindow(new WindowConfig("small", "Pequeno", new JPanel())
+                    .icon(new SquareIcon(16)));
+            WindowPanel none = desktop.openWindow(new WindowConfig("none", "Sem icone", new JPanel()));
+
+            Icon scaled = big.getTitleBar().getIconLabel().getIcon();
+            int limit = Math.max(12, Math.min(20, big.getWindowStyle().getTitleBarHeight() - 20));
+            assertEquals(limit, scaled.getIconWidth());
+            assertEquals(limit, scaled.getIconHeight());
+            assertTrue(big.getTitleBar().getIconLabel().isVisible());
+
+            assertEquals(16, small.getTitleBar().getIconLabel().getIcon().getIconWidth());
+            assertNull(none.getTitleBar().getIconLabel().getIcon());
+            assertFalse(none.getTitleBar().getIconLabel().isVisible());
+            return null;
+        });
+    }
+
+    @Test
+    void titleBarIconIsVerticallyCenteredInTheTitleBar() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            WindowPanel window = desktop.openWindow(new WindowConfig("centered", "Propriedades", new JPanel())
+                    .bounds(new Rectangle(10, 10, 300, 200))
+                    .icon(new SquareIcon(16)));
+
+            WindowTitleBar bar = window.getTitleBar();
+            int barHeight = window.getWindowStyle().getTitleBarHeight();
+            bar.setSize(272, barHeight);
+            bar.doLayout();
+            for (Component child : bar.getComponents()) {
+                child.doLayout();
+            }
+
+            JLabel icon = bar.getIconLabel();
+            assertEquals(16, icon.getHeight());
+            assertEquals((barHeight - icon.getHeight()) / 2, icon.getY(),
+                    "o icone deve ficar centralizado verticalmente na title bar");
+            return null;
+        });
+    }
+
+    @Test
+    void titleBarMarginsAreConfigurableThroughTheWindowStyle() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            WindowPanel window = desktop.openWindow(new WindowConfig("margins", "Propriedades", new JPanel())
+                    .bounds(new Rectangle(10, 10, 300, 200))
+                    .icon(new SquareIcon(16)));
+            WindowTitleBar bar = window.getTitleBar();
+
+            assertEquals(new Insets(0, 10, 0, 4), bar.getBorder().getBorderInsets(bar));
+            assertEquals(8, ((FlowLayout) bar.getIconLabel().getParent().getLayout()).getHgap());
+
+            window.style(style -> style.titleBarInsets(2, 24, 2, 16).titleBarIconGap(14));
+
+            assertEquals(new Insets(2, 24, 2, 16), bar.getBorder().getBorderInsets(bar));
+            assertEquals(14, ((FlowLayout) bar.getIconLabel().getParent().getLayout()).getHgap());
+
+            window.style(style -> style.titleBarMargin(30));
+            assertEquals(new Insets(2, 30, 2, 30), bar.getBorder().getBorderInsets(bar));
+
+            WindowStyle copy = window.getWindowStyle().copy();
+            assertEquals(new Insets(2, 30, 2, 30), copy.getTitleBarInsets());
+            assertEquals(14, copy.getTitleBarIconGap());
+            return null;
+        });
+    }
+
+    @Test
+    void titleBarIconGapDoesNotLeakIntoTheOuterMargin() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            WindowPanel window = desktop.openWindow(new WindowConfig("gap", "Propriedades", new JPanel())
+                    .bounds(new Rectangle(10, 10, 340, 200))
+                    .icon(new SquareIcon(16)));
+            WindowPanel bare = desktop.openWindow(new WindowConfig("bare", "Sem icone", new JPanel())
+                    .bounds(new Rectangle(10, 220, 340, 200)));
+
+            // Margem zero deve encostar o icone na borda: o gap vale so entre componentes.
+            window.style(style -> style.titleBarInsets(0, 0, 0, 0));
+            assertEquals(0, absoluteIconX(window));
+
+            window.style(style -> style.titleBarMargin(24));
+            assertEquals(24, absoluteIconX(window));
+
+            // Um leading vazio nao pode reservar largura fantasma.
+            assertEquals(0, bare.getTitleBar().getIconLabel().getParent().getPreferredSize().width);
+            assertTrue(window.getTitleBar().getIconLabel().getParent().getPreferredSize().width >= 16);
+            return null;
+        });
+    }
+
+    private static int absoluteIconX(WindowPanel window) {
+        WindowTitleBar bar = window.getTitleBar();
+        bar.setSize(300, window.getWindowStyle().getTitleBarHeight());
+        bar.doLayout();
+        Container leading = bar.getIconLabel().getParent();
+        leading.doLayout();
+        return leading.getX() + bar.getIconLabel().getX();
     }
 
     private static WindowDesktopPanel createDesktop() {

@@ -157,6 +157,54 @@ desktop.collapseMinimizedBar();
 
 Os eventos `MINIMIZED_BAR_EXPAND`, `MINIMIZED_BAR_COLLAPSE` e `MINIMIZED_BAR_AUTO_HIDE_CHANGE` tambem estao disponiveis no host e no controller delegado.
 
+### Factory da barra e dos botoes minimizados
+
+A barra e os botoes das janelas minimizadas possuem factories injetaveis. A regra de precedencia e sempre a mesma: **um override em subclasse vence a factory**, porque quem consulta a factory e a implementacao padrao do hook.
+
+A barra e criada dentro do construtor do host, entao a `WindowMinimizedBarFactory` entra por construtor:
+
+```java
+WindowDesktopPanel desktop = new WindowDesktopPanel(true, host -> new WindowMinimizedBar()
+        .expandedHeight(46)
+        .collapseDelay(400));
+```
+
+Os botoes usam `WindowMinimizedButtonFactory`, que recebe a barra para permitir dimensionamento coerente:
+
+```java
+desktop.minimizedBarButtonFactory((bar, window) -> {
+    JButton button = new JButton(window.getTitle(), window.getIcon());
+    button.setPreferredSize(new Dimension(220, bar.getExpandedHeight() - 10));
+    button.addActionListener(event -> window.restore().activate());
+    return button;
+});
+```
+
+Trocar a factory reconstroi os botoes ja presentes na barra, preservando a ordem. A mesma factory pode ser instalada direto na barra com `desktop.getMinimizedBar().buttonFactory(...)`; passar `null` volta ao padrao.
+
+Para ajustes menores, herde `DefaultWindowMinimizedButtonFactory` e sobrescreva apenas `resolveIcon(...)`, `iconSize(...)`, `buttonSize(...)` ou `installAction(...)`. Essa implementacao padrao normaliza o icone da janela com `FittedIcon.fit(...)`, que reduz qualquer `Icon` maior que o espaco disponivel preservando a proporcao: icones grandes de sistema (`FileSystemView.getSystemIcon(...)` em HiDPI, por exemplo) deixam de estourar o botao.
+
+O icone da janela e normalizado nos tres pontos que o exibem: o botao da barra, o cabecalho do menu de contexto (`DefaultWindowMinimizedMenuFactory.resolveIcon(...)` / `iconSize()`, 16px por padrao, com `disabledIcon` preservado para o cabecalho nao aparecer esmaecido) e a barra de titulo (`WindowTitleBar.resolveIcon(...)` / `iconSize(style)`, derivado de `WindowStyle.getTitleBarHeight()`). Todos usam `FittedIcon.fit(...)`, entao icones ja pequenos passam intactos e apenas os maiores sao reduzidos.
+
+As margens da barra de titulo ficam no `WindowStyle`, entao quanto maior a margem mais o icone e os controles se afastam das laterais da janela:
+
+```java
+window.style(style -> style
+        .titleBarInsets(0, 24, 0, 16)  // top, left, bottom, right
+        .titleBarIconGap(12));         // espaco entre o icone e o titulo
+
+// Atalho para margem horizontal simetrica:
+window.style(style -> style.titleBarMargin(24));
+```
+
+O `titleBarIconGap` vale apenas *entre* componentes (icone -> titulo -> controles), nunca antes do primeiro nem depois do ultimo. Por isso `titleBarInsets(0, 0, 0, 0)` encosta mesmo o icone na borda, e uma janela sem icone nao reserva largura fantasma no `leading`.
+
+Os padroes sao `Insets(0, 10, 0, 4)` e gap `8`, que reproduzem o comportamento anterior. Alterar o estilo ja dispara `updateStyle()` e reaplica tudo na hora; os valores tambem viajam no `WindowStyle.copy()`.
+
+Na barra de titulo os paineis `leading` e `controls` usam `WindowTitleBar.CenteredFlowLayout`: o `FlowLayout` comum empilha a linha a partir do topo, o que deixava o icone da janela colado na borda superior em vez de centralizado. Componentes adicionados com `addLeading(...)` e `addControl(...)` herdam a centralizacao.
+
+Por heranca, os pontos equivalentes sao `createMinimizedWindowBar()` e `createMinimizedWindowButton(...)` no host, e `createWindowButton(...)` / `createButtonFactory()` na barra. `rebuildMinimizedButtons()` e `rebuildMinimizedButton(window)` recriam botoes sob demanda.
+
 ### Menu de contexto da barra minimizada
 
 O menu aberto com o botao direito, semelhante ao da barra de tarefas do Windows, e opcional e fica desabilitado por padrao. Quando habilitado, o menu padrao oferece restaurar, maximizar e fechar:
