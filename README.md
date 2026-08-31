@@ -1494,6 +1494,7 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `CodeEditorContextMenuExample` | Provider de menu de contexto no editor |
 | `CodeEditorMarkerEventsExample` | Breakpoints, bookmarks e eventos de marker |
 | `CodeEditorTabsExample` | `CodeEditor` dentro de `TabbedPanel` |
+| `WindowConfigCollapsibleMenuBarExample` | `CollapsibleMenuBar` e ação central integrados à barra de título de uma `WindowPanel` |
 | `GraphicsGlPanelExample` | Triângulo OpenGL, input, VSync e FPS |
 | `GraphicsGlCubeExample` | Cubo 3D usando `GraphicsGlPanel` |
 | `GraphicsGlParallelRunOnUiExample` | Geração paralela com uso excepcional de `runOnUiThread` para atualizar recurso GL |

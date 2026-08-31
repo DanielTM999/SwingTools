@@ -9,7 +9,12 @@ public class WindowConfig {
     private String title;
     private Component content;
     private Icon icon;
+    private JMenuBar menuBar;
+    private WindowMenuBarPlacement menuBarPlacement = WindowMenuBarPlacement.BELOW_TITLE_BAR;
+    private boolean menuBarFollowTitleBarColor;
+    private Component titleBarCenter;
     private Rectangle bounds;
+    private WindowPosition position = WindowPosition.CASCADE;
     private Dimension minimumSize = new Dimension(220, 140);
     private Insets maximizedInsets;
     private boolean movable = true;
@@ -35,7 +40,32 @@ public class WindowConfig {
     public WindowConfig title(String title) { this.title = title == null ? "" : title; return this; }
     public WindowConfig content(Component content) { this.content = Objects.requireNonNull(content, "content"); return this; }
     public WindowConfig icon(Icon icon) { this.icon = icon; return this; }
+    /** Adds the actual menu bar instance rendered according to the selected placement. */
+    public WindowConfig menuBar(JMenuBar menuBar) { this.menuBar = menuBar; return this; }
+    /** Adds a menu bar and selects whether it uses its own row or the title bar row. */
+    public WindowConfig menuBar(JMenuBar menuBar, WindowMenuBarPlacement placement) {
+        this.menuBar = menuBar;
+        this.menuBarPlacement = Objects.requireNonNull(placement, "placement");
+        return this;
+    }
+    public WindowConfig menuBarPlacement(WindowMenuBarPlacement placement) {
+        this.menuBarPlacement = Objects.requireNonNull(placement, "placement"); return this;
+    }
+    public WindowConfig menuBarFollowTitleBarColor(boolean follow) {
+        this.menuBarFollowTitleBarColor = follow; return this;
+    }
+    /** Adds a user component geometrically centered in the title bar. */
+    public WindowConfig titleBarCenter(Component component) {
+        this.titleBarCenter = component; return this;
+    }
     public WindowConfig bounds(Rectangle bounds) { this.bounds = copy(bounds); return this; }
+    /**
+     * Selects where the window opens. When bounds are also supplied, their width and
+     * height are preserved while this position determines the initial x and y.
+     */
+    public WindowConfig position(WindowPosition position) {
+        this.position = Objects.requireNonNull(position, "position"); return this;
+    }
     public WindowConfig minimumSize(Dimension minimumSize) {
         this.minimumSize = minimumSize == null ? new Dimension(220, 140) : new Dimension(minimumSize);
         return this;
@@ -67,7 +97,12 @@ public class WindowConfig {
     public String getTitle() { return title; }
     public Component getContent() { return content; }
     public Icon getIcon() { return icon; }
+    public JMenuBar getMenuBar() { return menuBar; }
+    public WindowMenuBarPlacement getMenuBarPlacement() { return menuBarPlacement; }
+    public boolean isMenuBarFollowTitleBarColor() { return menuBarFollowTitleBarColor; }
+    public Component getTitleBarCenter() { return titleBarCenter; }
     public Rectangle getBounds() { return copy(bounds); }
+    public WindowPosition getPosition() { return position; }
     public Dimension getMinimumSize() { return new Dimension(minimumSize); }
     public Insets getMaximizedInsets() { return copy(maximizedInsets); }
     public boolean isMovable() { return movable; }

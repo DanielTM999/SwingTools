@@ -1,6 +1,8 @@
 package dtm.stools.component.panels.window;
 
 import dtm.stools.component.icon.FittedIcon;
+import dtm.stools.component.menu.bar.CollapsibleMenuBar;
+import dtm.stools.component.menu.bar.MenuBar;
 import dtm.stools.component.delegated.DelegatedWindowPanel;
 import dtm.stools.component.delegated.DelegatedWindowDesktopPanel;
 import dtm.stools.controllers.component.AbstractWindowDesktopController;
@@ -23,6 +25,133 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WindowDesktopPanelTest {
+
+    @Test
+    void opensAtThePositionConfiguredByWindowConfig() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+
+            assertPosition(desktop, "center", WindowPosition.CENTER, 350, 250);
+            assertPosition(desktop, "left", WindowPosition.LEFT, 0, 250);
+            assertPosition(desktop, "right", WindowPosition.RIGHT, 700, 250);
+            assertPosition(desktop, "top", WindowPosition.TOP, 350, 0);
+            assertPosition(desktop, "bottom", WindowPosition.BOTTOM, 350, 500);
+            assertPosition(desktop, "top-left", WindowPosition.TOP_LEFT, 0, 0);
+            assertPosition(desktop, "top-right", WindowPosition.TOP_RIGHT, 700, 0);
+            assertPosition(desktop, "bottom-left", WindowPosition.BOTTOM_LEFT, 0, 500);
+            assertPosition(desktop, "bottom-right", WindowPosition.BOTTOM_RIGHT, 700, 500);
+            return null;
+        });
+    }
+
+    @Test
+    void rendersTheActualMenuBarConfiguredForTheWindow() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            MenuBar menuBar = new MenuBar();
+            menuBar.add(new JMenu("Arquivo"));
+            JPanel firstContent = new JPanel();
+            WindowConfig config = new WindowConfig("with-menu", "Editor", firstContent)
+                    .menuBar(menuBar);
+
+            WindowPanel window = desktop.openWindow(config);
+
+            assertSame(menuBar, config.getMenuBar());
+            assertSame(menuBar, window.getMenuBar());
+            assertEquals(WindowMenuBarPlacement.BELOW_TITLE_BAR, window.getMenuBarPlacement());
+            assertSame(window.getContentHost(), menuBar.getParent());
+            assertSame(window.getContentHost(), firstContent.getParent());
+
+            JPanel replacement = new JPanel();
+            window.content(replacement);
+            assertSame(window.getContentHost(), menuBar.getParent(),
+                    "trocar o conteudo nao deve remover a barra de menu");
+            assertSame(window.getContentHost(), replacement.getParent());
+            return null;
+        });
+    }
+
+    @Test
+    void rendersCollapsibleMenuBarInsideTheTitleBarWhenConfigured() throws Exception {
+        onEdt(() -> {
+            WindowDesktopPanel desktop = createDesktop();
+            CollapsibleMenuBar menuBar = new CollapsibleMenuBar();
+            menuBar.addMenu("file", "Arquivo").addItem("new", "Novo");
+            Color originalMenuBackground = menuBar.getBackground();
+            JButton centerAction = new JButton("Executar");
+
+            WindowPanel window = desktop.openWindow(new WindowConfig(
+                            "integrated-menu", "Editor", new JPanel())
+                    .bounds(new Rectangle(100, 80, 640, 420))
+                    .menuBar(menuBar, WindowMenuBarPlacement.TITLE_BAR)
+                    .menuBarFollowTitleBarColor(true)
+                    .titleBarCenter(centerAction));
+
+            assertSame(menuBar, window.getMenuBar());
+            assertSame(menuBar, window.getTitleBar().getMenuBar());
+            assertEquals(WindowMenuBarPlacement.TITLE_BAR, window.getMenuBarPlacement());
+            assertSame(centerAction, window.getTitleBarCenter());
+            assertTrue(SwingUtilities.isDescendingFrom(centerAction, window.getTitleBar()));
+            assertFalse(window.getTitleBar().center.isOptimizedDrawingEnabled(),
+                    "o host deve repintar corretamente o centro sobre o menu");
+            assertTrue(SwingUtilities.isDescendingFrom(menuBar, window.getTitleBar()));
+            assertFalse(SwingUtilities.isDescendingFrom(menuBar, window.getContentHost()));
+            assertFalse(SwingUtilities.isDescendingFrom(
+                    window.getTitleBar().getTitleLabel(), window.getTitleBar()),
+                    "o titulo deve ceder toda a area central ao menu integrado");
+            assertTrue(menuBar.isTitleBarEmbedded());
+            assertTrue(menuBar.isOpaque());
+            assertEquals(window.getWindowStyle().getActiveTitleBackground(), menuBar.getBackground());
+
+            menuBar.setCollapsed(true);
+            assertSame(centerAction, window.getTitleBarCenter());
+            assertTrue(centerAction.isVisible());
+            assertEquals(0, window.getTitleBar().center.getComponentZOrder(centerAction),
+                    "o componente central deve continuar acima do menu ao recolher");
+            menuBar.setCollapsed(false);
+            assertEquals(window.getWindowStyle().getTitleBarHeight(),
+                    window.getTitleBar().getPreferredSize().height,
+                    "o menu nao deve aumentar a altura definida para a barra de titulo");
+
+            WindowTitleBar titleBar = window.getTitleBar();
+            titleBar.setSize(612, titleBar.getPreferredSize().height);
+            titleBar.doLayout();
+            titleBar.center.doLayout();
+            assertEquals(0, titleBar.getBorder().getBorderInsets(titleBar).left);
+            assertEquals(0, titleBar.center.getX(),
+                    "sem icone o menu deve usar a area desde o inicio da barra");
+            assertEquals((titleBar.getWidth() - centerAction.getWidth()) / 2,
+                    titleBar.center.getX() + centerAction.getX(),
+                    "a acao do usuario deve ficar no centro geometrico da barra");
+
+            window.icon(new SquareIcon(16));
+            titleBar.setSize(612, titleBar.getPreferredSize().height);
+            titleBar.doLayout();
+            titleBar.center.doLayout();
+            assertTrue(titleBar.getIconLabel().isVisible());
+            assertTrue(titleBar.center.getX() > 0,
+                    "com icone a area do menu deve iniciar depois dele");
+            assertFalse(SwingUtilities.isDescendingFrom(titleBar.getTitleLabel(), titleBar));
+
+            window.setActiveDirect(false);
+            assertEquals(window.getWindowStyle().getTitleBackground(), menuBar.getBackground(),
+                    "o menu deve acompanhar a cor inativa da barra de titulo");
+            window.setActiveDirect(true);
+            assertEquals(window.getWindowStyle().getActiveTitleBackground(), menuBar.getBackground());
+
+            window.menuBarPlacement(WindowMenuBarPlacement.BELOW_TITLE_BAR);
+            assertNull(window.getTitleBar().getMenuBar());
+            assertSame(window.getContentHost(), menuBar.getParent());
+            assertFalse(menuBar.isTitleBarEmbedded());
+            assertEquals(originalMenuBackground, menuBar.getBackground());
+
+            JLabel replacement = new JLabel("Centro novo");
+            window.titleBarCenter(replacement);
+            assertSame(replacement, window.getTitleBarCenter());
+            assertFalse(SwingUtilities.isDescendingFrom(centerAction, titleBar));
+            return null;
+        });
+    }
 
     @Test
     void opensAndTransitionsThroughDefaultStates() throws Exception {
@@ -1002,6 +1131,15 @@ class WindowDesktopPanelTest {
         WindowDesktopPanel desktop = new WindowDesktopPanel();
         sizeDesktop(desktop);
         return desktop;
+    }
+
+    private static void assertPosition(WindowDesktopPanel desktop, String key,
+                                       WindowPosition position, int x, int y) {
+        WindowPanel window = desktop.openWindow(new WindowConfig(key, key, new JPanel())
+                .bounds(new Rectangle(99, 88, 300, 200))
+                .position(position));
+        assertEquals(new Rectangle(x, y, 300, 200), window.getBounds());
+        assertEquals(position, window.getInitialPosition());
     }
 
     private static void sizeDesktop(WindowDesktopPanel desktop) {

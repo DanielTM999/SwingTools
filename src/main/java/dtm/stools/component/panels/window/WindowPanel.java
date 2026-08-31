@@ -24,7 +24,11 @@ public class WindowPanel extends PanelEventListener {
     private final String windowKey;
     private String title;
     private Icon icon;
+    private JMenuBar menuBar;
+    private WindowMenuBarPlacement menuBarPlacement;
+    private boolean menuBarFollowTitleBarColor;
     private Component content;
+    private final WindowPosition initialPosition;
     private WindowStyle windowStyle;
     private WindowState windowState = WindowState.NORMAL;
     private WindowSnap snap = WindowSnap.NONE;
@@ -56,6 +60,9 @@ public class WindowPanel extends PanelEventListener {
         windowKey = config.getKey();
         title = config.getTitle();
         icon = config.getIcon();
+        initialPosition = config.getPosition();
+        menuBarPlacement = config.getMenuBarPlacement();
+        menuBarFollowTitleBarColor = config.isMenuBarFollowTitleBarColor();
         windowStyle = config.getStyle() == null ? createDefaultStyle() : config.getStyle().copy();
         closeOperation = config.getCloseOperation();
         maximizedInsets = config.getMaximizedInsets();
@@ -77,9 +84,11 @@ public class WindowPanel extends PanelEventListener {
         contentHost = createContentHost();
         titleBar = createTitleBar();
         configureTitleBar(titleBar);
+        titleBar.setUserCenterComponent(config.getTitleBarCenter());
         installControls();
         add(titleBar, BorderLayout.NORTH);
         add(contentHost, BorderLayout.CENTER);
+        menuBar(config.getMenuBar());
         content(config.getContent());
         installInteractions();
         installKeyboardActions();
@@ -345,11 +354,54 @@ public class WindowPanel extends PanelEventListener {
     public WindowPanel content(Component value) {
         Component old = content;
         content = Objects.requireNonNull(value, "content");
-        contentHost.removeAll();
+        if (old != null) contentHost.remove(old);
         contentHost.add(content, BorderLayout.CENTER);
         contentHost.revalidate(); contentHost.repaint(); reloadDomElements();
         dispatchNullableChange(EventWindowPanel.WINDOW_CONTENT_CHANGE, "oldContent", old, "content", value);
         return this;
+    }
+    public WindowPanel menuBar(JMenuBar value) {
+        if (menuBar == value) return this;
+        detachMenuBar();
+        menuBar = value;
+        attachMenuBar();
+        refreshMenuBarLayout();
+        return this;
+    }
+    public WindowPanel menuBarPlacement(WindowMenuBarPlacement value) {
+        WindowMenuBarPlacement placement = Objects.requireNonNull(value, "value");
+        if (menuBarPlacement == placement) return this;
+        detachMenuBar();
+        menuBarPlacement = placement;
+        attachMenuBar();
+        refreshMenuBarLayout();
+        return this;
+    }
+    public WindowPanel menuBarFollowTitleBarColor(boolean follow) {
+        if (menuBarFollowTitleBarColor == follow) return this;
+        menuBarFollowTitleBarColor = follow;
+        titleBar.updateFromWindow();
+        return this;
+    }
+    public WindowPanel titleBarCenter(Component component) {
+        titleBar.setUserCenterComponent(component);
+        return this;
+    }
+    private void detachMenuBar() {
+        if (menuBar == null) return;
+        contentHost.remove(menuBar);
+        if (titleBar.getMenuBar() == menuBar) titleBar.setMenuBar(null);
+    }
+    private void attachMenuBar() {
+        if (menuBar == null) return;
+        if (menuBarPlacement == WindowMenuBarPlacement.TITLE_BAR) titleBar.setMenuBar(menuBar);
+        else contentHost.add(menuBar, BorderLayout.NORTH);
+    }
+    private void refreshMenuBarLayout() {
+        titleBar.updateFromWindow();
+        titleBar.revalidate(); titleBar.repaint();
+        contentHost.revalidate(); contentHost.repaint();
+        revalidate(); repaint(); reloadDomElements();
     }
     public WindowPanel style(Consumer<WindowStyle> configurer) {
         if (configurer != null) configurer.accept(windowStyle);
@@ -707,7 +759,12 @@ public class WindowPanel extends PanelEventListener {
     public String getWindowKey() { return windowKey; }
     public String getTitle() { return title; }
     public Icon getIcon() { return icon; }
+    public JMenuBar getMenuBar() { return menuBar; }
+    public WindowMenuBarPlacement getMenuBarPlacement() { return menuBarPlacement; }
+    public boolean isMenuBarFollowTitleBarColor() { return menuBarFollowTitleBarColor; }
+    public Component getTitleBarCenter() { return titleBar.getUserCenterComponent(); }
     public Component getContent() { return content; }
+    public WindowPosition getInitialPosition() { return initialPosition; }
     public WindowStyle getWindowStyle() { return windowStyle; }
     public WindowState getWindowState() { return windowState; }
     public WindowSnap getSnap() { return snap; }

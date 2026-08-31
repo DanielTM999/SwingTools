@@ -55,6 +55,8 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
     private static final String HOVER_ACTIVE_PROPERTY = MenuBar.class.getName() + ".hoverActive";
     public static final String ITEM_MOUSE_ENTER = "itemMouseEnter";
     public static final String ITEM_MOUSE_EXIT = "itemMouseExit";
+    public static final String TITLE_BAR_EMBEDDED_PROPERTY = "MenuBar.titleBarEmbedded";
+    public static final String TITLE_BAR_BACKGROUND_PROPERTY = "MenuBar.titleBarBackground";
 
     protected final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
     private final Map<String, Menu> menus = new LinkedHashMap<>();
@@ -66,6 +68,7 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
 
     @Getter
     private MenuBarStyle style = config.getStyle();
+    private Color backgroundBeforeTitleBarEmbedding;
 
     private JLabel brandIconLabel;
     private int brandIconSize = 24;
@@ -124,6 +127,39 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
             setConfig(next);
         }
         return this;
+    }
+
+    /**
+     * Makes the bar use its host title-bar background instead of painting a separate strip.
+     * Menu hover/selection and popup painting remain active.
+     */
+    public MenuBar titleBarEmbedded(boolean embedded) {
+        boolean wasEmbedded = isTitleBarEmbedded();
+        if (embedded && !wasEmbedded) backgroundBeforeTitleBarEmbedding = getBackground();
+        putClientProperty(TITLE_BAR_EMBEDDED_PROPERTY, embedded);
+        if (!embedded) {
+            putClientProperty(TITLE_BAR_BACKGROUND_PROPERTY, null);
+            if (wasEmbedded) setBackground(backgroundBeforeTitleBarEmbedding);
+            backgroundBeforeTitleBarEmbedding = null;
+        }
+        applyStyle();
+        return this;
+    }
+
+    public boolean isTitleBarEmbedded() {
+        return Boolean.TRUE.equals(getClientProperty(TITLE_BAR_EMBEDDED_PROPERTY));
+    }
+
+    /** Sets the solid host title-bar color, or {@code null} to remain transparent. */
+    public MenuBar titleBarEmbeddedBackground(Color color) {
+        putClientProperty(TITLE_BAR_BACKGROUND_PROPERTY, color);
+        applyStyle();
+        return this;
+    }
+
+    public Color getTitleBarEmbeddedBackground() {
+        Object value = getClientProperty(TITLE_BAR_BACKGROUND_PROPERTY);
+        return value instanceof Color color ? color : null;
     }
 
     public MenuBar style(Consumer<MenuBarStyle> styleConfigurer) {
@@ -825,7 +861,7 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (!config.isCustomPaintingEnabled()) return;
+        if (!config.isCustomPaintingEnabled() || isTitleBarEmbedded()) return;
 
         Graphics2D g2 = (Graphics2D) g.create();
         try {
@@ -914,7 +950,12 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
     }
 
     protected void applyStyle() {
-        if (config.isCustomPaintingEnabled()) {
+        if (isTitleBarEmbedded()) {
+            Color embeddedBackground = getTitleBarEmbeddedBackground();
+            setOpaque(embeddedBackground != null);
+            if (embeddedBackground != null) setBackground(embeddedBackground);
+            setBorder(BorderFactory.createEmptyBorder());
+        } else if (config.isCustomPaintingEnabled()) {
             setOpaque(isBarBackgroundOpaque());
             setBorder(BorderFactory.createEmptyBorder(
                     style.getBarPadding().top,
