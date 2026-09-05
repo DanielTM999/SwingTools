@@ -12,6 +12,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -22,6 +23,7 @@ public final class I18n {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Set<I18nElement> REQUESTED_ELEMENTS = ConcurrentHashMap.newKeySet();
     private static final Map<Locale, Map<String, String>> TEXTS = new ConcurrentHashMap<>();
+    private static final Map<Locale, Queue<URL>> PENDING_SOURCES = new ConcurrentHashMap<>();
     private static final AtomicReference<Locale> LOCALE_REF = new AtomicReference<>(Locale.getDefault());
 
     static {
@@ -144,6 +146,7 @@ public final class I18n {
                 LOCALE_REF.get(),
                 Locale.getDefault()
         );
+        materialize(locale);
         Map<String, String> texts = TEXTS.computeIfAbsent(
                 locale,
                 keyM -> new ConcurrentHashMap<>()
@@ -161,6 +164,7 @@ public final class I18n {
     }
 
     public static Set<I18nElement> getElementsFromLocale(Locale locale) {
+        materialize(locale);
         Map<String, String> map = TEXTS.get(locale);
         if(map == null) return Set.of();
 
@@ -170,6 +174,7 @@ public final class I18n {
     }
 
     public static Set<I18nLocaleElements> getElements() {
+        materializeAll();
         Set<I18nLocaleElements> i18nElements = ConcurrentHashMap.newKeySet();
         TEXTS.keySet().forEach((key) -> {
             i18nElements.add(new I18nLocaleElements(key, getElementsFromLocale(key)));
@@ -180,6 +185,7 @@ public final class I18n {
     public static Set<Locale> getRegisteredLocales() {
         Set<Locale> locales = ConcurrentHashMap.newKeySet();
         locales.addAll(TEXTS.keySet());
+        locales.addAll(PENDING_SOURCES.keySet());
         return locales;
     }
 
@@ -215,7 +221,34 @@ public final class I18n {
             throw new IllegalArgumentException("Locale não disponível: " + localeName);
         }
 
-        loadMapFromURL(locale, url);
+        PENDING_SOURCES
+                .computeIfAbsent(locale, key -> new ConcurrentLinkedQueue<>())
+                .add(url);
+    }
+
+    private static void materialize(Locale locale) {
+        if (locale == null || PENDING_SOURCES.isEmpty() || !PENDING_SOURCES.containsKey(locale)) {
+            return;
+        }
+        synchronized (PENDING_SOURCES) {
+            Queue<URL> pending = PENDING_SOURCES.remove(locale);
+            if (pending == null) {
+                return;
+            }
+            URL url;
+            while ((url = pending.poll()) != null) {
+                loadMapFromURL(locale, url);
+            }
+        }
+    }
+
+    private static void materializeAll() {
+        if (PENDING_SOURCES.isEmpty()) {
+            return;
+        }
+        for (Locale locale : new HashSet<>(PENDING_SOURCES.keySet())) {
+            materialize(locale);
+        }
     }
 
     private static String getResourceFileName(URL url) {

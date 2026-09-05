@@ -12,6 +12,8 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.font.FontRenderContext;
 
 /**
  * Etiqueta compacta em formato de pílula usada para indicar status.
@@ -38,6 +40,9 @@ public class BadgeLabel extends PanelEventListener {
     public enum Size {
         SM, MD
     }
+
+    private static final FontRenderContext PAINT_CONTEXT = new FontRenderContext(null,
+            RenderingHints.VALUE_TEXT_ANTIALIAS_ON, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
 
     private String text = "";
     private Tone tone = Tone.NEUTRAL;
@@ -157,11 +162,12 @@ public class BadgeLabel extends PanelEventListener {
         if (text == null) {
             return;
         }
-        FontMetrics metrics = getFontMetrics(getFont() != null ? getFont() : UiTokens.fontSmall());
+        Font font = getFont() != null ? getFont() : UiTokens.fontSmall();
+        FontMetrics metrics = getFontMetrics(font);
         int horizontalPadding = size == Size.SM ? UiTokens.space(2) : UiTokens.space(3);
         int verticalPadding = size == Size.SM ? UiTokens.space(1) : UiTokens.space(1) + 2;
 
-        int width = metrics.stringWidth(text) + horizontalPadding * 2;
+        int width = textWidth(font) + horizontalPadding * 2;
         if (showDot) {
             width += dotSize() + UiTokens.space(1);
         }
@@ -172,6 +178,17 @@ public class BadgeLabel extends PanelEventListener {
         setMinimumSize(preferred);
         setMaximumSize(preferred);
         revalidate();
+    }
+
+    /**
+     * Mede o texto com o mesmo contexto usado na pintura (com antialiasing), evitando
+     * que a etiqueta fique um pixel menor que o necessario e o texto seja truncado.
+     */
+    private int textWidth(Font font) {
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        return (int) Math.ceil(font.getStringBounds(text, PAINT_CONTEXT).getWidth()) + 1;
     }
 
     private int dotSize() {
