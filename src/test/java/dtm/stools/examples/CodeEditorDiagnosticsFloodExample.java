@@ -6,7 +6,6 @@ import dtm.stools.component.panels.editor.code.diagnostics.Diagnostic;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticSeverity;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticsProvider;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
-
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;

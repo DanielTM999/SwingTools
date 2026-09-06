@@ -609,32 +609,39 @@ public class CodeEditorGutter extends JComponent implements LineChangeListener {
     protected void paintComponent(Graphics g) {
         validateTransientHoverState();
 
-        g.setColor(getBackground());
-        g.fillRect(0, 0, getWidth(), getHeight());
+        Graphics2D g2 = (Graphics2D) g.create();
+        try {
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        int lineCount = textArea.getBuffer().lineCount();
-        int lineHeight = getLineHeight();
+            g2.setColor(getBackground());
+            g2.fillRect(0, 0, getWidth(), getHeight());
 
-        Rectangle clip = g.getClipBounds();
-        int firstLine = clip != null ? textArea.bufferLineAtY(clip.y) : 0;
-        int lastLine  = clip != null ? textArea.bufferLineAtY(clip.y + clip.height) : lineCount - 1;
-        firstLine = Math.max(0, firstLine);
-        lastLine  = Math.min(lineCount - 1, lastLine);
+            int lineCount = textArea.getBuffer().lineCount();
+            int lineHeight = getLineHeight();
 
-        for (int line = firstLine; line <= lastLine; line++) {
-            if (textArea.isLineHidden(line)) continue;
-            int y = textArea.yOfBufferLine(line);
+            Rectangle clip = g2.getClipBounds();
+            int firstLine = clip != null ? textArea.bufferLineAtY(clip.y) : 0;
+            int lastLine  = clip != null ? textArea.bufferLineAtY(clip.y + clip.height) : lineCount - 1;
+            firstLine = Math.max(0, firstLine);
+            lastLine  = Math.min(lineCount - 1, lastLine);
 
-            for (GutterLayer layer : layers) {
-                if (layer instanceof BreakpointLayer bp && !breakpointEnabled) continue;
-                if (layer instanceof BookmarkLayer && !bookmarkEnabled) continue;
-                if (layer instanceof LineNumberLayer && !lineNumberEnabled) continue;
-                layer.paint(g, this, line, 0, y, getGutterWidth(), lineHeight);
+            for (int line = firstLine; line <= lastLine; line++) {
+                if (textArea.isLineHidden(line)) continue;
+                int y = textArea.yOfBufferLine(line);
+
+                for (GutterLayer layer : layers) {
+                    if (layer instanceof BreakpointLayer bp && !breakpointEnabled) continue;
+                    if (layer instanceof BookmarkLayer && !bookmarkEnabled) continue;
+                    if (layer instanceof LineNumberLayer && !lineNumberEnabled) continue;
+                    layer.paint(g2, this, line, 0, y, getGutterWidth(), lineHeight);
+                }
             }
-        }
 
-        g.setColor(borderColor);
-        g.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
+            g2.setColor(borderColor);
+            g2.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
+        } finally {
+            g2.dispose();
+        }
     }
 
     @Override
