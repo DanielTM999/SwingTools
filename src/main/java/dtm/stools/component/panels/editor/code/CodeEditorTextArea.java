@@ -892,6 +892,13 @@ public class CodeEditorTextArea extends JComponent {
         super.addNotify();
         ensureExecutorsStarted();
         scheduleSelectedTextOccurrencesRefresh();
+        if (isSyntaxHighlightStale()) applySyntaxHighlight();
+    }
+
+    protected boolean isSyntaxHighlightStale() {
+        return syntaxHighlightEnabled
+                && tokenizerProvider != null
+                && !buffer.getText().equals(lastHighlightText);
     }
 
     @Override
