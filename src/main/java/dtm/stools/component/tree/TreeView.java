@@ -571,6 +571,7 @@ public class TreeView<T> extends TreeViewListener {
     public void restoreExpansion(Set<String> ids) {
         if (ids == null) return;
         Set<String> targetIds = new HashSet<>(ids);
+        if (!rootVisible && rootNode != null) targetIds.add(rootNode.getId());
         List<TreeNode<T>> nodes = collectNodes();
 
         for (int i = nodes.size() - 1; i >= 0; i--) {
