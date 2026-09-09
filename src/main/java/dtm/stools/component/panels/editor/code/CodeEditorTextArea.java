@@ -372,6 +372,24 @@ public class CodeEditorTextArea extends JComponent {
 
     @Getter
     @Setter
+    protected int inlayHintsDebounceMs = 300;
+
+    private Timer inlayHintsDebounceTimer;
+
+    @Getter
+    @Setter
+    protected int documentSymbolsDebounceMs = 300;
+
+    private Timer documentSymbolsDebounceTimer;
+
+    @Getter
+    @Setter
+    protected int codeLensesDebounceMs = 500;
+
+    private Timer codeLensesDebounceTimer;
+
+    @Getter
+    @Setter
     protected TokenizerCodeEditorProvider tokenizerProvider = new DefaultTokenizerProvider();
 
     private volatile Collection<Token> lastHighlightTokens;
@@ -874,13 +892,13 @@ public class CodeEditorTextArea extends JComponent {
                     scheduleDiagnosticsRefresh();
                 }
                 if (codeLensesAutoRunEnabled) {
-                    refreshCodeLensesAsync();
+                    scheduleCodeLensesRefresh();
                 }
                 if (inlayHintsEnabled && inlayHintProvider != null) {
-                    refreshInlayHints();
+                    scheduleInlayHintsRefresh();
                 }
                 if (documentSymbolProvider != null) {
-                    refreshDocumentSymbolsAsync();
+                    scheduleDocumentSymbolsRefresh();
                 }
             }
         });
@@ -6393,6 +6411,27 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
+    private static void stopDebounce(Timer timer) {
+        if (timer != null) timer.stop();
+    }
+
+    private static Timer restartDebounce(Timer timer, int delayMs, Runnable action) {
+        if (delayMs <= 0) {
+            action.run();
+            return timer;
+        }
+        Timer target = timer;
+        if (target == null) {
+            target = new Timer(delayMs, e -> action.run());
+            target.setRepeats(false);
+        } else {
+            target.setInitialDelay(delayMs);
+            target.setDelay(delayMs);
+        }
+        target.restart();
+        return target;
+    }
+
     protected void scheduleDiagnosticsRefresh() {
         if (diagnosticsDebounceMs <= 0) {
             refreshDiagnosticsAsync();
@@ -6473,7 +6512,13 @@ public class CodeEditorTextArea extends JComponent {
         refreshCodeLensesAsync();
     }
 
+    protected void scheduleCodeLensesRefresh() {
+        codeLensesDebounceTimer = restartDebounce(codeLensesDebounceTimer, codeLensesDebounceMs,
+                this::refreshCodeLensesAsync);
+    }
+
     public void refreshCodeLensesAsync() {
+        stopDebounce(codeLensesDebounceTimer);
         if (codeLensProvider == null) {
             codeLenses.clear();
             revalidate();
@@ -6607,7 +6652,13 @@ public class CodeEditorTextArea extends JComponent {
         if (provider instanceof GhostTextProvider p) setGhostTextProvider(p);
     }
 
+    protected void scheduleInlayHintsRefresh() {
+        inlayHintsDebounceTimer = restartDebounce(inlayHintsDebounceTimer, inlayHintsDebounceMs,
+                this::refreshInlayHints);
+    }
+
     public void refreshInlayHints() {
+        stopDebounce(inlayHintsDebounceTimer);
         int version = inlayHintVersion.incrementAndGet();
         if (currentInlayHintTask != null && !currentInlayHintTask.isDone()) {
             currentInlayHintTask.cancel(true);
@@ -8635,7 +8686,12 @@ public class CodeEditorTextArea extends JComponent {
         return refreshDocumentSymbolsAsync();
     }
 
+    protected void scheduleDocumentSymbolsRefresh() {
+        documentSymbolsDebounceTimer = restartDebounce(documentSymbolsDebounceTimer, documentSymbolsDebounceMs, this::refreshDocumentSymbolsAsync);
+    }
+
     public CompletableFuture<List<DocumentSymbol>> refreshDocumentSymbolsAsync() {
+        stopDebounce(documentSymbolsDebounceTimer);
         if (documentSymbolProvider == null) {
             documentSymbols.clear();
             return CompletableFuture.completedFuture(Collections.emptyList());
