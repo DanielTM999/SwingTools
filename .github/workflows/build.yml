@@ -1,9 +1,9 @@
 name: Build Multi-Platform JAR
 
+# Disparo APENAS manual: Actions -> "Build Multi-Platform JAR" -> Run workflow.
+# Rodar a partir da branch `main` para que os binarios nativos regerados sejam
+# commitados de volta; a partir de uma tag `v*` para anexar os artefatos a release.
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
   workflow_dispatch:
 
 jobs:
@@ -137,7 +137,7 @@ jobs:
           retention-days: 30
 
       - name: Commit native binaries back to repo
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
