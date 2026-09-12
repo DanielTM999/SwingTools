@@ -33,6 +33,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -43,6 +44,7 @@ import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -977,6 +979,15 @@ public class TreeView<T> extends TreeViewListener {
         });
     }
 
+    private static int menuShortcutMask() {
+        if (!GraphicsEnvironment.isHeadless()) {
+            return Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        }
+        return System.getProperty("os.name", "").toLowerCase().contains("mac")
+                ? InputEvent.META_DOWN_MASK
+                : InputEvent.CTRL_DOWN_MASK;
+    }
+
     protected void installKeyBindings() {
         InputMap input = getInputMap(JComponent.WHEN_FOCUSED);
         ActionMap actions = getActionMap();
@@ -1028,7 +1039,7 @@ public class TreeView<T> extends TreeViewListener {
             }
         });
 
-        int menuMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+        int menuMask = menuShortcutMask();
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, menuMask), "treeview.clipboard.copy");
         actions.put("treeview.clipboard.copy", new AbstractAction() {
