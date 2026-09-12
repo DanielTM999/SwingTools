@@ -15,10 +15,13 @@ jobs:
         include:
           - os: windows-latest
             label: windows
+            nativedir: win
           - os: macos-latest
             label: macos
+            nativedir: mac
           - os: ubuntu-latest
             label: linux
+            nativedir: linux
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -35,11 +38,15 @@ jobs:
         shell: cmd
         run: choco install mingw -y --no-progress
 
-      - name: Install GTK3 (Linux)
+      - name: Install build deps (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev pkg-config
+          sudo apt-get install -y \
+            pkg-config \
+            libgtk-3-dev \
+            libgl1-mesa-dev \
+            libx11-dev
 
       - name: Build native
         run: mvn -B generate-resources
@@ -49,6 +56,25 @@ jobs:
         run: |
           echo "--- src/main/resources/native ---"
           find src/main/resources/native -type f || true
+
+      # Cada leg da matriz so pode publicar o que ELA compilou. Sem isto o
+      # artefato carrega junto os binarios das outras plataformas vindos do
+      # checkout (versoes velhas do git), e o merge do job `package` acaba
+      # sobrescrevendo binarios recem-compilados por copias obsoletas.
+      - name: Keep only this platform's natives
+        shell: bash
+        run: |
+          find src/main/resources/native -mindepth 1 -maxdepth 1 -type d \
+               ! -name "${{ matrix.nativedir }}" -exec rm -rf {} +
+          echo "--- pruned tree (${{ matrix.nativedir }}) ---"
+          find src/main/resources/native -type f
+
+      - name: Check JNI symbol parity
+        shell: bash
+        run: |
+          for d in src/main/resources/native/*/*/; do
+            bash native/check-symbols.sh "$d"
+          done
 
       - name: Upload native artifact
         uses: actions/upload-artifact@v4
@@ -90,6 +116,14 @@ jobs:
           done
           echo "--- merged tree ---"
           find src/main/resources/native -type f
+
+      # Gate: falha o build se algum binario mergeado estiver defasado em
+      # relacao aos metodos `native` declarados no Java.
+      - name: Check JNI symbol parity (merged tree)
+        run: |
+          for d in src/main/resources/native/*/*/; do
+            bash native/check-symbols.sh "$d"
+          done
 
       - name: Build JAR (skip native rebuild)
         run: mvn -B clean package -Dnative.build.skip=true
