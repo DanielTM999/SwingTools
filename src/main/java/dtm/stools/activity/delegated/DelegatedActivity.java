@@ -41,7 +41,7 @@ public abstract class DelegatedActivity<T extends AbstractWindowController<Activ
     @Override
     public void sendEvent(Object eventArgs){
         resolveController();
-        if(controller != null) controller.onReciveEvent(this, eventArgs);
+        if(controller != null) controller.onReceiveEvent(this, eventArgs);
     }
 
     @Override
@@ -74,7 +74,6 @@ public abstract class DelegatedActivity<T extends AbstractWindowController<Activ
 
     @Override
     protected void onSystemTrayClick(MouseEvent event, TrayEventType eventType, Activity currentActivity) {
-        super.onSystemTrayClick(event, eventType, currentActivity);
         resolveController();
         this.controller.onSystemTrayClick(event, eventType, currentActivity);
     }
@@ -93,14 +92,15 @@ public abstract class DelegatedActivity<T extends AbstractWindowController<Activ
         this.controller.applySystemTrayConfiguration(this, systemTrayConfiguration);
     }
 
+    protected final void resolveController(){
+        if(controller == null){
+            onCreateController();
+        }
+    }
+
     private void onCreateController(){
         controller = newController();
         if(controller == null)  throw new DelegatedWindowException("Falha ao obter o controller", new NullPointerException("controller null"));
     }
 
-    private void resolveController(){
-        if(controller == null){
-            onCreateController();
-        }
-    }
 }

@@ -23,15 +23,22 @@ public abstract class AbstractWindowController<T extends IWindow> {
     public void onLoad(T activity) throws Exception{}
     public void onClose(T activity) throws Exception{}
     public void onLostFocus(T activity) throws Exception{}
-    public void onReciveEvent(T activity, Object args){}
-    public void onSystemTrayClick(MouseEvent event, TrayEventType eventType, Activity currentActivity){}
+    public void onReceiveEvent(T activity, Object args){}
     public void onResize(T activity){}
     public void applySystemTrayConfiguration(T activity, SystemTrayConfiguration systemTrayConfiguration) {}
+
     public void sendEvent(T activity, Object args){
         if(activity instanceof DelegatedWindow delegatedWindow){
             delegatedWindow.onReceiveEvent(args);
         }
     }
+
+    public void onSystemTrayClick(MouseEvent event, TrayEventType eventType, Activity currentActivity){
+        if(eventType == TrayEventType.MOUSE_CLICKED && event.getButton() == MouseEvent.BUTTON1){
+            currentActivity.restoreFromTray();
+        }
+    }
+
     public <S extends Component> S findById(@NonNull String id){
         T window = getWindow();
         return (window != null) ? window.findById(id) : null;

@@ -344,7 +344,7 @@ public abstract class Activity extends JFrame implements IWindow {
 
     }
 
-    protected void restoreFromTray() {
+    public void restoreFromTray() {
         if(systemTrayConfiguration.isRemoveOnRestore()) safelyRemoveTrayIcon();
         this.setVisible(true);
         this.toFront();
