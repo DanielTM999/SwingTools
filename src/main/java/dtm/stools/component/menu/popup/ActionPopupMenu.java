@@ -6,8 +6,13 @@ import lombok.Getter;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -389,6 +394,68 @@ public class ActionPopupMenu extends JPopupMenu implements ActionMenuSupport<Act
         }
 
         return this;
+    }
+
+    public void show(MouseEvent event) {
+        SwingUtilities.invokeLater(() -> {
+            JWindow anchor = new JWindow();
+
+            anchor.setSize(1, 1);
+            anchor.setLocation(
+                    event.getXOnScreen(),
+                    event.getYOnScreen()
+            );
+
+            anchor.setAlwaysOnTop(true);
+            anchor.setFocusableWindowState(true);
+            anchor.setAutoRequestFocus(true);
+
+            Runnable close = () -> {
+                if (isVisible()) {
+                    setVisible(false);
+                }
+
+                MenuSelectionManager.defaultManager().clearSelectedPath();
+
+                if (anchor.isDisplayable()) {
+                    anchor.dispose();
+                }
+            };
+
+            addPopupMenuListener(new PopupMenuListener() {
+                @Override
+                public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                }
+
+                @Override
+                public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+                    if (anchor.isDisplayable()) {
+                        anchor.dispose();
+                    }
+                }
+
+                @Override
+                public void popupMenuCanceled(PopupMenuEvent e) {
+                    if (anchor.isDisplayable()) {
+                        anchor.dispose();
+                    }
+                }
+            });
+
+            anchor.addWindowFocusListener(new WindowAdapter() {
+                @Override
+                public void windowLostFocus(WindowEvent e) {
+                    close.run();
+                }
+            });
+
+            anchor.setVisible(true);
+
+            show(anchor.getContentPane(), 0, 0);
+
+            anchor.toFront();
+            anchor.requestFocus();
+        });
     }
 
     public ActionPopupMenu showAt(Component invoker, int x, int y) {

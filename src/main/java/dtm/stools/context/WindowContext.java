@@ -1,10 +1,7 @@
 package dtm.stools.context;
 
 import dtm.stools.internal.wrapper.ConcurrentWeakReferenceDeque;
-import dtm.stools.internal.wrapper.ConcurrentWeakReferenceQueue;
-
 import java.util.Deque;
-import java.util.Queue;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
