@@ -9,6 +9,7 @@ import javax.swing.border.Border;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import java.awt.*;
+import java.awt.event.AWTEventListener;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -21,6 +22,7 @@ public class ActionPopupMenu extends JPopupMenu implements ActionMenuSupport<Act
 
     private Integer preferredPopupWidth;
     private Integer preferredPopupHeight;
+    private PopupSession popupSession;
 
     @Getter
     private ActionMenuStyle actionMenuStyle = new ActionMenuStyle();
@@ -396,78 +398,269 @@ public class ActionPopupMenu extends JPopupMenu implements ActionMenuSupport<Act
         return this;
     }
 
-    public void show(MouseEvent event) {
-        SwingUtilities.invokeLater(() -> {
-            JWindow anchor = new JWindow();
+    public void showAt(MouseEvent event) {
+        Objects.requireNonNull(event, "event não pode ser null");
 
-            anchor.setSize(1, 1);
-            anchor.setLocation(
-                    event.getXOnScreen(),
-                    event.getYOnScreen()
-            );
+        Component component = event.getComponent();
+        int screenX = event.getXOnScreen();
+        int screenY = event.getYOnScreen();
 
-            anchor.setAlwaysOnTop(true);
-            anchor.setFocusableWindowState(true);
-            anchor.setAutoRequestFocus(true);
+        runOnEventDispatchThread(() -> {
+            if (component == null || !component.isShowing()) {
+                showAtScreen(screenX, screenY);
+                return;
+            }
 
-            Runnable close = () -> {
-                if (isVisible()) {
-                    setVisible(false);
-                }
+            Point point = new Point(screenX, screenY);
+            SwingUtilities.convertPointFromScreen(point, component);
 
-                MenuSelectionManager.defaultManager().clearSelectedPath();
-
-                if (anchor.isDisplayable()) {
-                    anchor.dispose();
-                }
-            };
-
-            addPopupMenuListener(new PopupMenuListener() {
-                @Override
-                public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                }
-
-                @Override
-                public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
-                    if (anchor.isDisplayable()) {
-                        anchor.dispose();
-                    }
-                }
-
-                @Override
-                public void popupMenuCanceled(PopupMenuEvent e) {
-                    if (anchor.isDisplayable()) {
-                        anchor.dispose();
-                    }
-                }
-            });
-
-            anchor.addWindowFocusListener(new WindowAdapter() {
-                @Override
-                public void windowLostFocus(WindowEvent e) {
-                    close.run();
-                }
-            });
-
-            anchor.setVisible(true);
-
-            show(anchor.getContentPane(), 0, 0);
-
-            anchor.toFront();
-            anchor.requestFocus();
+            prepareForPresentation();
+            ActionPopupMenu.super.show(component, point.x, point.y);
         });
     }
 
+    public void showAt(int x, int y) {
+        runOnEventDispatchThread(() -> showAtScreen(x, y));
+    }
+
     public ActionPopupMenu showAt(Component invoker, int x, int y) {
-        show(invoker, x, y);
+        prepareForPresentation();
+        ActionPopupMenu.super.show(invoker, x, y);
         return this;
     }
 
     public ActionPopupMenu showAt(Component invoker, Point point) {
         Objects.requireNonNull(point, "point não pode ser null");
 
-        show(invoker, point.x, point.y);
+        prepareForPresentation();
+        ActionPopupMenu.super.show(invoker, point.x, point.y);
         return this;
+    }
+
+    private void showAtScreen(int x, int y) {
+        prepareForPresentation();
+
+        GraphicsConfiguration graphicsConfiguration = graphicsConfigurationAt(x, y);
+        Dimension popupSize = getPreferredSize();
+        Point popupLocation = fitPopupToScreen(x, y, popupSize, graphicsConfiguration);
+        JDialog anchor = new JDialog(
+                (Frame) null,
+                "",
+                false,
+                graphicsConfiguration
+        );
+
+        anchor.setUndecorated(true);
+        anchor.setType(Window.Type.UTILITY);
+        anchor.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        anchor.setSize(
+                Math.max(1, popupSize.width),
+                Math.max(1, popupSize.height)
+        );
+        anchor.setLocation(popupLocation);
+        anchor.setFocusableWindowState(true);
+        anchor.setAutoRequestFocus(true);
+
+        if (anchor.isAlwaysOnTopSupported()) {
+            anchor.setAlwaysOnTop(true);
+        }
+
+        PopupSession session = new PopupSession(anchor, isLightWeightPopupEnabled());
+        popupSession = session;
+
+        session.popupMenuListener = new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent event) {
+                scheduleSessionCleanup(session);
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent event) {
+                scheduleSessionCleanup(session);
+            }
+        };
+
+        session.windowFocusListener = new WindowAdapter() {
+            @Override
+            public void windowLostFocus(WindowEvent event) {
+                closePopupSession(session);
+            }
+        };
+
+        session.awtEventListener = event -> {
+            if (
+                    event instanceof MouseEvent mouseEvent
+                            && mouseEvent.getID() == MouseEvent.MOUSE_PRESSED
+                            && !isPointInsideSelectedMenu(
+                                    mouseEvent.getXOnScreen(),
+                                    mouseEvent.getYOnScreen()
+                            )
+            ) {
+                closePopupSession(session);
+            }
+        };
+
+        addPopupMenuListener(session.popupMenuListener);
+        anchor.addWindowFocusListener(session.windowFocusListener);
+        Toolkit.getDefaultToolkit().addAWTEventListener(
+                session.awtEventListener,
+                AWTEvent.MOUSE_EVENT_MASK
+        );
+
+        setLightWeightPopupEnabled(true);
+
+        try {
+            anchor.setVisible(true);
+            anchor.toFront();
+            anchor.requestFocus();
+            ActionPopupMenu.super.show(anchor.getContentPane(), 0, 0);
+        } catch (RuntimeException | Error exception) {
+            finishPopupSession(session);
+            throw exception;
+        }
+    }
+
+    private void prepareForPresentation() {
+        PopupSession session = popupSession;
+
+        if (session != null) {
+            closePopupSession(session);
+        } else if (isVisible()) {
+            setVisible(false);
+        }
+    }
+
+    private void closePopupSession(PopupSession session) {
+        if (session == null || session.cleaned || popupSession != session) {
+            return;
+        }
+
+        try {
+            if (isVisible()) {
+                setVisible(false);
+            }
+
+            MenuSelectionManager.defaultManager().clearSelectedPath();
+        } finally {
+            finishPopupSession(session);
+        }
+    }
+
+    private void scheduleSessionCleanup(PopupSession session) {
+        SwingUtilities.invokeLater(() -> finishPopupSession(session));
+    }
+
+    private void finishPopupSession(PopupSession session) {
+        if (session == null || session.cleaned) {
+            return;
+        }
+
+        session.cleaned = true;
+
+        if (popupSession == session) {
+            popupSession = null;
+        }
+
+        removePopupMenuListener(session.popupMenuListener);
+        session.anchor.removeWindowFocusListener(session.windowFocusListener);
+        Toolkit.getDefaultToolkit().removeAWTEventListener(session.awtEventListener);
+
+        if (session.anchor.isDisplayable()) {
+            session.anchor.dispose();
+        }
+
+        setLightWeightPopupEnabled(session.lightWeightPopupEnabled);
+    }
+
+    private boolean isPointInsideSelectedMenu(int screenX, int screenY) {
+        Point screenPoint = new Point(screenX, screenY);
+
+        for (MenuElement element : MenuSelectionManager.defaultManager().getSelectedPath()) {
+            Component component = element.getComponent();
+
+            if (component == null || !component.isShowing()) {
+                continue;
+            }
+
+            Point location = component.getLocationOnScreen();
+            Rectangle bounds = new Rectangle(location, component.getSize());
+
+            if (bounds.contains(screenPoint)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private GraphicsConfiguration graphicsConfigurationAt(int x, int y) {
+        Point point = new Point(x, y);
+        GraphicsEnvironment environment = GraphicsEnvironment.getLocalGraphicsEnvironment();
+
+        for (GraphicsDevice device : environment.getScreenDevices()) {
+            GraphicsConfiguration configuration = device.getDefaultConfiguration();
+
+            if (configuration.getBounds().contains(point)) {
+                return configuration;
+            }
+        }
+
+        return environment
+                .getDefaultScreenDevice()
+                .getDefaultConfiguration();
+    }
+
+    private Point fitPopupToScreen(
+            int x,
+            int y,
+            Dimension popupSize,
+            GraphicsConfiguration graphicsConfiguration
+    ) {
+        Rectangle screen = new Rectangle(graphicsConfiguration.getBounds());
+        Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(graphicsConfiguration);
+
+        screen.x += insets.left;
+        screen.y += insets.top;
+        screen.width -= insets.left + insets.right;
+        screen.height -= insets.top + insets.bottom;
+
+        int fittedX = Math.max(
+                screen.x,
+                Math.min(x, screen.x + Math.max(0, screen.width - popupSize.width))
+        );
+        int fittedY = Math.max(
+                screen.y,
+                Math.min(y, screen.y + Math.max(0, screen.height - popupSize.height))
+        );
+
+        return new Point(fittedX, fittedY);
+    }
+
+    private void runOnEventDispatchThread(Runnable runnable) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            runnable.run();
+        } else {
+            SwingUtilities.invokeLater(runnable);
+        }
+    }
+
+    private static final class PopupSession {
+
+        private final JDialog anchor;
+        private final boolean lightWeightPopupEnabled;
+        private PopupMenuListener popupMenuListener;
+        private WindowAdapter windowFocusListener;
+        private AWTEventListener awtEventListener;
+        private boolean cleaned;
+
+        private PopupSession(JDialog anchor, boolean lightWeightPopupEnabled) {
+            this.anchor = anchor;
+            this.lightWeightPopupEnabled = lightWeightPopupEnabled;
+        }
     }
 
     protected void applyStyleToTree() {
