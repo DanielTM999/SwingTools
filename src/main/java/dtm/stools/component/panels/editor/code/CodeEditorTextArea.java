@@ -515,6 +515,12 @@ public class CodeEditorTextArea extends JComponent {
 
     protected final List<DocumentSymbol> documentSymbols = new ArrayList<>();
 
+    protected static final int TEXT_LEFT_MARGIN = 4;
+    protected static final int CARET_WIDTH = 2;
+    protected static final int MAX_REMEASURED_LINES = 64;
+
+    protected final Map<Font, FontMetrics> fontMetricsCache = new HashMap<>();
+
     protected boolean geometryCacheDirty = true;
     protected int[] cachedLineY;
     protected int[] cachedVisibleLines;
@@ -857,6 +863,7 @@ public class CodeEditorTextArea extends JComponent {
         bracketHighlighter.setLineToVisualMapper(this::bufferLineToVisualLine);
         bracketHighlighter.setLineToYMapper(this::yOfBufferLine);
         bracketHighlighter.setLineHiddenPredicate(this::isLineHidden);
+        bracketHighlighter.setColumnToXMapper(this::visualXForColumn);
         setupMoveLineActions();
         installIdeActions();
         documentEditListeners.add(new DocumentEditListener() {
@@ -2579,7 +2586,7 @@ public class CodeEditorTextArea extends JComponent {
 
         int cy = yOfBufferLine(caretLine);
         int extra = hasCodeLens(caretLine) ? lineHeight : 0;
-        Rectangle caretBounds = new Rectangle(cx, cy - extra, 2, lineHeight + extra);
+        Rectangle caretBounds = new Rectangle(cx, cy - extra, CARET_WIDTH, lineHeight + extra);
 
         JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
         if (viewport == null) {
@@ -2931,17 +2938,34 @@ public class CodeEditorTextArea extends JComponent {
             return new int[]{line, inlayHintColumn(transparentHint, lineText)};
         }
 
-        int bestCol = 0;
-        int bestDist = Math.abs(mx - visualXForColumn(line, lineText, 0, fm));
-
-        for (int i = 1; i <= lineText.length(); i++) {
-            int dist = Math.abs(mx - visualXForColumn(line, lineText, i, fm));
-            if (dist < bestDist) {
-                bestDist = dist;
-                bestCol = i;
-            }
+        int[] best = {0, Math.abs(mx - (visualXForColumn(line, lineText, 0, fm)))};
+        int endX = forEachLineRun(
+                line,
+                lineText,
+                lineText.length(),
+                getFont(),
+                fm,
+                true,
+                false,
+                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth) -> {
+                    for (int c = startCol; c <= endCol; c++) {
+                        int cx = (c == startCol)
+                                ? x
+                                : x + runFm.stringWidth(expandTabs(lineText.substring(startCol, c), visualCol));
+                        int dist = Math.abs(mx - (cx + ghostPushWidthBeforeColumn(line, c, fm)));
+                        if (dist < best[1]) {
+                            best[1] = dist;
+                            best[0] = c;
+                        }
+                    }
+                    return true;
+                });
+        int endDist = Math.abs(mx - (endX + ghostPushWidthBeforeColumn(line, lineText.length(), fm)));
+        if (endDist < best[1]) {
+            best[1] = endDist;
+            best[0] = lineText.length();
         }
-        return new int[]{line, bestCol};
+        return new int[]{line, best[0]};
     }
 
     protected String expandTabs(String text, int startColumn) {
@@ -2972,6 +2996,92 @@ public class CodeEditorTextArea extends JComponent {
 
     protected int textWidth(FontMetrics fm, String text, int startColumn) {
         return fm.stringWidth(expandTabs(text, startColumn));
+    }
+
+    protected FontMetrics fontMetricsFor(Font font) {
+        if (fontMetricsCache == null) return getFontMetrics(font);
+        FontMetrics cached = fontMetricsCache.get(font);
+        if (cached != null) return cached;
+        FontMetrics fm = getFontMetrics(font);
+        fontMetricsCache.put(font, fm);
+        return fm;
+    }
+
+    @Override
+    public void setFont(Font font) {
+        if (fontMetricsCache != null) fontMetricsCache.clear();
+        super.setFont(font);
+        invalidateGeometry();
+    }
+
+    int forEachLineRun(int line,
+                       String lineText,
+                       int renderLength,
+                       Font baseFont,
+                       FontMetrics defaultFm,
+                       boolean includeInlayPush,
+                       boolean includeGhostPush,
+                       LineRunVisitor visitor) {
+        int lineOffset = buffer.offsetOfLine(line);
+        int x = TEXT_LEFT_MARGIN;
+        int col = 0;
+        int visualCol = 0;
+
+        List<InlayHint> pushHints = pushInlayHintsForLine(line, defaultFm);
+        int pushHintIndex = 0;
+
+        int ghostPushCol = (line == ghostAnchorLine && isGhostVisibleAtAnchor()) ? ghostAnchorCol : -1;
+        boolean ghostPushApplied = false;
+
+        while (col < renderLength) {
+            while (pushHintIndex < pushHints.size()
+                    && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= col) {
+                if (includeInlayPush) x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
+                pushHintIndex++;
+            }
+            if (ghostPushCol >= 0 && !ghostPushApplied && ghostPushCol <= col) {
+                if (includeGhostPush) x += ghostFirstSegmentWidth(defaultFm);
+                ghostPushApplied = true;
+            }
+
+            TextStyle style = getStyleAt(lineOffset + col);
+            int runEnd = col + 1;
+            while (runEnd < renderLength && getStyleAt(lineOffset + runEnd) == style) {
+                runEnd++;
+            }
+            if (pushHintIndex < pushHints.size()) {
+                int pushCol = inlayHintColumn(pushHints.get(pushHintIndex), lineText);
+                if (pushCol > col && pushCol < runEnd) {
+                    runEnd = pushCol;
+                }
+            }
+            if (ghostPushCol > col && ghostPushCol < runEnd) {
+                runEnd = ghostPushCol;
+            }
+
+            String run = expandTabs(lineText.substring(col, runEnd), visualCol);
+            Font font = deriveFont(baseFont, style);
+            FontMetrics fm = fontMetricsFor(font);
+            int runWidth = fm.stringWidth(run);
+
+            if (!visitor.visit(col, runEnd, visualCol, run, style, font, fm, x, runWidth)) {
+                return x;
+            }
+
+            x += runWidth;
+            visualCol += run.length();
+            col = runEnd;
+        }
+
+        while (pushHintIndex < pushHints.size()
+                && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= renderLength) {
+            if (includeInlayPush) x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
+            pushHintIndex++;
+        }
+        if (includeGhostPush && ghostPushCol >= 0 && !ghostPushApplied && ghostPushCol <= renderLength) {
+            x += ghostFirstSegmentWidth(defaultFm);
+        }
+        return x;
     }
 
     protected String getIndentString() {
@@ -3991,13 +4101,50 @@ public class CodeEditorTextArea extends JComponent {
     protected int getMaxLineWidth() {
         ensureGeometry();
         if (cachedMaxLineWidth >= 0) return cachedMaxLineWidth;
-        FontMetrics fm = getFontMetrics(getFont());
-        int max = 0;
+        FontMetrics fm = fontMetricsFor(getFont());
         int n = buffer.lineCount();
+        int[] approximate = new int[n];
+        int maxApproximate = 0;
         for (int i = 0; i < n; i++) {
-            int w = textWidth(fm, buffer.lineAt(i), 0) + pushedInlayWidthForLine(i, fm);
+            approximate[i] = textWidth(fm, buffer.lineAt(i), 0) + pushedInlayWidthForLine(i, fm);
+            if (approximate[i] > maxApproximate) maxApproximate = approximate[i];
+        }
+
+        if (styledRanges.isEmpty() && (!inlayHintsEnabled || inlayHints.isEmpty()) && !hasGhostText()) {
+            cachedMaxLineWidth = maxApproximate + TEXT_LEFT_MARGIN;
+            return cachedMaxLineWidth;
+        }
+
+        int candidateThreshold = maxApproximate - maxApproximate / 4;
+        int[] candidates = new int[Math.min(n, MAX_REMEASURED_LINES)];
+        int candidateCount = 0;
+        for (int i = 0; i < n; i++) {
+            if (approximate[i] < candidateThreshold) continue;
+            if (candidateCount < candidates.length) {
+                int at = candidateCount++;
+                while (at > 0 && approximate[candidates[at - 1]] < approximate[i]) {
+                    candidates[at] = candidates[at - 1];
+                    at--;
+                }
+                candidates[at] = i;
+            } else if (approximate[i] > approximate[candidates[candidateCount - 1]]) {
+                int at = candidateCount - 1;
+                while (at > 0 && approximate[candidates[at - 1]] < approximate[i]) {
+                    candidates[at] = candidates[at - 1];
+                    at--;
+                }
+                candidates[at] = i;
+            }
+        }
+
+        int max = maxApproximate + TEXT_LEFT_MARGIN;
+        for (int c = 0; c < candidateCount; c++) {
+            int i = candidates[c];
+            String lineText = buffer.lineAt(i);
+            int w = baseVisualXForColumn(i, lineText, lineText.length(), fm);
             if (w > max) max = w;
         }
+
         cachedMaxLineWidth = max;
         return max;
     }
@@ -4171,10 +4318,8 @@ public class CodeEditorTextArea extends JComponent {
             if (hasCodeLens(i)) {
                 paintCodeLensRow(g2, defaultFm, baseFont, i, yOfCodeLensRow(i), lineHeight);
             }
-            int lineOffset = buffer.offsetOfLine(i);
             String lineText = buffer.lineAt(i);
             int ly = yOfBufferLine(i);
-            int x = 4;
 
             int renderLength = lineText.length();
             if (shouldHideTrailingOpenForFold(i)) {
@@ -4183,75 +4328,37 @@ public class CodeEditorTextArea extends JComponent {
                 if (idx >= 0) renderLength = idx;
             }
 
-            int col = 0;
-            int visualCol = 0;
-            List<InlayHint> pushHints = pushInlayHintsForLine(i, defaultFm);
-            int pushHintIndex = 0;
+            final int lineIndex = i;
+            int x = forEachLineRun(
+                    i,
+                    lineText,
+                    renderLength,
+                    baseFont,
+                    defaultFm,
+                    true,
+                    true,
+                    (startCol, endCol, visualCol, run, style, font, fm, runX, runWidth) -> {
+                        g2.setFont(font);
 
-            int ghostPushCol = (i == ghostAnchorLine && isGhostVisibleAtAnchor()) ? ghostAnchorCol : -1;
-            boolean ghostPushApplied = false;
-            while (col < renderLength) {
-                while (pushHintIndex < pushHints.size() && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= col) {
-                    x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
-                    pushHintIndex++;
-                }
-                if (ghostPushCol >= 0 && !ghostPushApplied && ghostPushCol <= col) {
-                    x += ghostFirstSegmentWidth(defaultFm);
-                    ghostPushApplied = true;
-                }
+                        if (style.getBackground() != null && style.getBackground() != defaultStyle.getBackground()) {
+                            g2.setColor(style.getBackground());
+                            g2.fillRect(runX, ly, runWidth, lineHeight);
+                        }
 
-                TextStyle style = getStyleAt(lineOffset + col);
-                int runEnd = col + 1;
-                while (runEnd < renderLength && getStyleAt(lineOffset + runEnd) == style) {
-                    runEnd++;
-                }
-                if (pushHintIndex < pushHints.size()) {
-                    int pushCol = inlayHintColumn(pushHints.get(pushHintIndex), lineText);
-                    if (pushCol > col && pushCol < runEnd) {
-                        runEnd = pushCol;
-                    }
-                }
+                        LineColorInfoInternal lineInfo = lineColors.get(lineIndex);
+                        Color fg = style.getForeground();
+                        if (lineInfo != null && lineInfo.foreground != null) {
+                            fg = lineInfo.foreground;
+                        }
+                        g2.setColor(fg);
+                        g2.drawString(run, runX, ly + fm.getAscent());
 
-                if (ghostPushCol > col && ghostPushCol < runEnd) {
-                    runEnd = ghostPushCol;
-                }
-
-                String run = expandTabs(lineText.substring(col, runEnd), visualCol);
-                Font font = deriveFont(baseFont, style);
-                g2.setFont(font);
-                FontMetrics fm = g2.getFontMetrics(font);
-                int runWidth = fm.stringWidth(run);
-
-                if (style.getBackground() != null && style.getBackground() != defaultStyle.getBackground()) {
-                    g2.setColor(style.getBackground());
-                    g2.fillRect(x, ly, runWidth, lineHeight);
-                }
-
-                LineColorInfoInternal lineInfo = lineColors.get(i);
-                Color fg = style.getForeground();
-                if (lineInfo != null && lineInfo.foreground != null) {
-                    fg = lineInfo.foreground;
-                }
-                g2.setColor(fg);
-                g2.drawString(run, x, ly + fm.getAscent());
-
-                if (style.isUnderline()) {
-                    int uy = ly + fm.getAscent() + 1;
-                    g2.drawLine(x, uy, x + runWidth, uy);
-                }
-
-                x += runWidth;
-                visualCol += run.length();
-                col = runEnd;
-            }
-            while (pushHintIndex < pushHints.size() && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= renderLength) {
-                x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
-                pushHintIndex++;
-            }
-            if (ghostPushCol >= 0 && !ghostPushApplied && ghostPushCol <= renderLength) {
-                x += ghostFirstSegmentWidth(defaultFm);
-                ghostPushApplied = true;
-            }
+                        if (style.isUnderline()) {
+                            int uy = ly + fm.getAscent() + 1;
+                            g2.drawLine(runX, uy, runX + runWidth, uy);
+                        }
+                        return true;
+                    });
 
             if (isFoldAnchor(i)) {
                 g2.setFont(baseFont);
@@ -4399,8 +4506,8 @@ public class CodeEditorTextArea extends JComponent {
             int colStart = (i == startLine) ? startOff - lineOffset : 0;
             int colEnd = (i == endLine) ? endOff - lineOffset : lineText.length();
 
-            int x1 = 4 + textWidth(fm, lineText.substring(0, colStart), 0);
-            int x2 = 4 + textWidth(fm, lineText.substring(0, colEnd), 0);
+            int x1 = baseVisualXForColumn(i, lineText, colStart, fm);
+            int x2 = baseVisualXForColumn(i, lineText, colEnd, fm);
 
             if (i != endLine && colEnd == lineText.length()) {
                 x2 += fm.charWidth(' ');
@@ -4434,7 +4541,7 @@ public class CodeEditorTextArea extends JComponent {
         String[] segments = ghostText.split("\n", -1);
         for (int i = 0; i < segments.length; i++) {
             String seg = segments[i];
-            int x = (i == 0) ? startX : 4;
+            int x = (i == 0) ? startX : TEXT_LEFT_MARGIN;
             int segY = y + i * lineHeight;
             if (!seg.isEmpty()) {
                 g2.drawString(seg, x, segY + ascent);
@@ -4459,7 +4566,7 @@ public class CodeEditorTextArea extends JComponent {
             g2.fillRect(cx, cy, charW, lineHeight);
             g2.setComposite(original);
         } else {
-            g2.fillRect(cx, cy, 2, lineHeight);
+            g2.fillRect(cx, cy, CARET_WIDTH, lineHeight);
         }
     }
 
@@ -4472,7 +4579,7 @@ public class CodeEditorTextArea extends JComponent {
         int bottomPadding = lineHeight * 5;
 
         return new Dimension(
-                width + caretScrollRightMargin + 8,
+                width + CARET_WIDTH + caretScrollRightMargin,
                 totalContentHeight() + bottomPadding
         );
     }
@@ -5276,7 +5383,7 @@ public class CodeEditorTextArea extends JComponent {
             int yTop = yOfBufferLine(i);
 
             for (int level = 0; level < levels; level++) {
-                int guideX = 4 + level * unit * charWidth;
+                int guideX = TEXT_LEFT_MARGIN + level * unit * charWidth;
                 drawGuide(g2, guideX, yTop, lineHeight, guideColor);
             }
         }
@@ -5909,7 +6016,7 @@ public class CodeEditorTextArea extends JComponent {
             if (idx >= 0) renderedLineText = lineText.substring(0, idx);
         }
         int hPad = 6;
-        int lineEndX = 4 + textWidth(fm, renderedLineText, 0);
+        int lineEndX = baseVisualXForColumn(line, renderedLineText, renderedLineText.length(), fm);
         int pillStart = lineEndX + 6;
         int pillEnd = pillStart + fm.stringWidth(pillText) + hPad * 2;
         return mouseX >= pillStart && mouseX <= pillEnd;
@@ -6932,7 +7039,7 @@ public class CodeEditorTextArea extends JComponent {
         int safeLine = Math.max(0, Math.min(caretLine, buffer.lineCount() - 1));
         String lineText = buffer.lineAt(safeLine);
         int safeCol = Math.min(caretCol, lineText.length());
-        int x = 4 + textWidth(fm, lineText.substring(0, safeCol), 0);
+        int x = baseVisualXForColumn(safeLine, lineText, safeCol, fm);
         int yTop = yOfBufferLine(safeLine);
         int yBottom = yTop + lineHeight;
         SignatureHelpPopup popup = getOrCreateSignatureHelpPopup();
@@ -7325,7 +7432,7 @@ public class CodeEditorTextArea extends JComponent {
             String lineText = buffer.lineAt(c.line);
             int cx = baseVisualXForColumn(c.line, lineText, c.col, fm);
             int cy = yOfBufferLine(c.line);
-            g2.fillRect(cx, cy, 2, lineHeight);
+            g2.fillRect(cx, cy, CARET_WIDTH, lineHeight);
         }
     }
 
@@ -7343,8 +7450,8 @@ public class CodeEditorTextArea extends JComponent {
                 int colStart = (line == startLine) ? Math.max(0, d.startCol()) : 0;
                 int colEnd = (line == endLine) ? Math.max(colStart, Math.min(d.endCol(), lineText.length())) : lineText.length();
                 if (colEnd <= colStart) colEnd = Math.min(colStart + 1, lineText.length());
-                int x1 = 4 + textWidth(fm, lineText.substring(0, Math.min(colStart, lineText.length())), 0);
-                int x2 = 4 + textWidth(fm, lineText.substring(0, Math.min(colEnd, lineText.length())), 0);
+                int x1 = baseVisualXForColumn(line, lineText, colStart, fm);
+                int x2 = baseVisualXForColumn(line, lineText, colEnd, fm);
                 if (x2 <= x1) x2 = x1 + fm.charWidth(' ');
                 int ly = yOfBufferLine(line) + fm.getAscent() + 1;
                 g2.setColor(d.effectiveColor());
@@ -7371,11 +7478,11 @@ public class CodeEditorTextArea extends JComponent {
         CodeLens lens = aboveCodeLensAtLine(bufferLine);
         if (lens == null) return;
 
-        int xStart = 4;
+        int xStart = TEXT_LEFT_MARGIN;
         if (lens.col() > 0) {
             String lineText = buffer.lineAt(bufferLine);
             int safeCol = Math.min(lens.col(), lineText.length());
-            xStart = 4 + textWidth(defaultFm, lineText.substring(0, safeCol), 0);
+            xStart = baseVisualXForColumn(bufferLine, lineText, safeCol, defaultFm);
         }
 
         paintCodeLensItems(g2, baseFont, lens, xStart, yTop, lineHeight);
@@ -7396,11 +7503,11 @@ public class CodeEditorTextArea extends JComponent {
         int xStart;
         boolean atOrPastEnd;
         if (lens.col() < 0) {
-            xStart = 4 + textWidth(defaultFm, renderedLineText, 0);
+            xStart = baseVisualXForColumn(bufferLine, renderedLineText, renderedLineText.length(), defaultFm);
             atOrPastEnd = true;
         } else {
             int safeCol = Math.min(lens.col(), renderedLineText.length());
-            xStart = 4 + textWidth(defaultFm, renderedLineText.substring(0, safeCol), 0);
+            xStart = baseVisualXForColumn(bufferLine, renderedLineText, safeCol, defaultFm);
             atOrPastEnd = safeCol >= lineText.length();
         }
 
@@ -7489,7 +7596,7 @@ public class CodeEditorTextArea extends JComponent {
             if (isLineHidden(line)) continue;
             String lineText = buffer.lineAt(line);
             int col = inlayHintColumn(hint, lineText);
-            int baseX = 4 + textWidth(fm, lineText.substring(0, col), 0)
+            int baseX = glyphVisualXForColumn(line, lineText, col, fm)
                     + pushedWidthByLine.getOrDefault(line, 0);
             int ly = yOfBufferLine(line);
             int padL = inlayHintPaddingLeft(hint);
@@ -7601,14 +7708,41 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected int baseVisualXForColumn(int line, String lineText, int col, FontMetrics fm) {
+        return measureVisualX(line, lineText, col, fm, true);
+    }
+
+    protected int glyphVisualXForColumn(int line, String lineText, int col, FontMetrics fm) {
+        return measureVisualX(line, lineText, col, fm, false);
+    }
+
+    protected int measureVisualX(int line, String lineText, int col, FontMetrics fm, boolean includeInlayPush) {
         int safeCol = Math.min(Math.max(0, col), lineText.length());
-        int x = 4 + textWidth(fm, lineText.substring(0, safeCol), 0);
-        for (InlayHint hint : pushInlayHintsForLine(line, fm)) {
-            if (inlayHintColumn(hint, lineText) <= safeCol) {
-                x += inlayHintWidth(fm, hint);
-            }
-        }
-        return x;
+        int[] resolved = {-1};
+        int endX = forEachLineRun(
+                line,
+                lineText,
+                lineText.length(),
+                getFont(),
+                fm,
+                includeInlayPush,
+                false,
+                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth) -> {
+                    if (safeCol >= endCol) return true;
+                    if (safeCol <= startCol) {
+                        resolved[0] = x;
+                        return false;
+                    }
+                    String prefix = expandTabs(lineText.substring(startCol, safeCol), visualCol);
+                    resolved[0] = x + runFm.stringWidth(prefix);
+                    return false;
+                });
+        return resolved[0] >= 0 ? resolved[0] : endX;
+    }
+
+    public int visualXForColumn(int line, int col) {
+        int safeLine = Math.max(0, Math.min(line, buffer.lineCount() - 1));
+        String lineText = buffer.lineAt(safeLine);
+        return visualXForColumn(safeLine, lineText, col, fontMetricsFor(getFont()));
     }
 
     protected int ghostPushWidthBeforeColumn(int line, int col, FontMetrics fm) {
@@ -7638,7 +7772,7 @@ public class CodeEditorTextArea extends JComponent {
         for (InlayHint hint : sortedVisibleInlayHints()) {
             if (hint.line() != line) continue;
             int col = inlayHintColumn(hint, lineText);
-            int x = 4 + textWidth(fm, lineText.substring(0, col), 0) + pushedWidth;
+            int x = glyphVisualXForColumn(line, lineText, col, fm) + pushedWidth;
             int w = inlayHintWidth(fm, hint);
             if (hint.mouseTransparent() && mouseX >= x && mouseX <= x + w) {
                 return hint;
@@ -7669,8 +7803,8 @@ public class CodeEditorTextArea extends JComponent {
                 String lineText = buffer.lineAt(line);
                 int colStart = (line == startLine) ? match.startOffset() - lineOff : 0;
                 int colEnd = (line == endLine) ? match.endOffset() - lineOff : lineText.length();
-                int x1 = 4 + textWidth(fm, lineText.substring(0, Math.min(colStart, lineText.length())), 0);
-                int x2 = 4 + textWidth(fm, lineText.substring(0, Math.min(colEnd, lineText.length())), 0);
+                int x1 = baseVisualXForColumn(line, lineText, colStart, fm);
+                int x2 = baseVisualXForColumn(line, lineText, colEnd, fm);
                 int ly = yOfBufferLine(line);
                 g2.fillRect(x1, ly, Math.max(1, x2 - x1), lineHeight);
             }

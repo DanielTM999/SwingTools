@@ -5,6 +5,7 @@ import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
+import java.util.function.IntBinaryOperator;
 import java.util.function.IntPredicate;
 import java.util.function.IntUnaryOperator;
 
@@ -24,6 +25,7 @@ public class BracketHighlighter {
     private IntUnaryOperator lineToVisualMapper = i -> i;
     private IntUnaryOperator lineToYMapper;
     private IntPredicate lineHiddenPredicate = i -> false;
+    private IntBinaryOperator columnToXMapper;
 
     public BracketHighlighter(TextBuffer buffer) {
         this.buffer = buffer;
@@ -35,6 +37,10 @@ public class BracketHighlighter {
 
     public void setLineToYMapper(IntUnaryOperator mapper) {
         this.lineToYMapper = mapper;
+    }
+
+    public void setColumnToXMapper(IntBinaryOperator mapper) {
+        this.columnToXMapper = mapper;
     }
 
     public void setLineHiddenPredicate(IntPredicate predicate) {
@@ -116,15 +122,24 @@ public class BracketHighlighter {
         int col = offset - buffer.offsetOfLine(line);
 
         String text = buffer.lineAt(line);
-        String before = text.substring(0, Math.min(col, text.length()));
+        int safeCol = Math.min(col, text.length());
 
-        int x = 4 + fm.stringWidth(before);
+        int x;
+        int width;
+        if (columnToXMapper != null) {
+            x = columnToXMapper.applyAsInt(line, safeCol);
+            width = Math.max(1, columnToXMapper.applyAsInt(line, safeCol + 1) - x);
+        } else {
+            x = 4 + fm.stringWidth(text.substring(0, safeCol));
+            width = fm.charWidth('(');
+        }
+
         int y = lineToYMapper != null
                 ? lineToYMapper.applyAsInt(line)
                 : lineToVisualMapper.applyAsInt(line) * lineHeight;
 
         g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 120));
-        g2.fillRect(x, y, fm.charWidth('('), lineHeight);
+        g2.fillRect(x, y, width, lineHeight);
     }
 
     private int findRelevantChar(int caret) {
