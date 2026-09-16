@@ -5,6 +5,7 @@ import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticSeverity;
 import dtm.stools.component.panels.editor.code.diagnostics.InspectionWidgetClickEvent;
 import dtm.stools.component.panels.editor.code.diagnostics.InspectionWidgetClickListener;
 import dtm.stools.component.panels.editor.code.listeners.DiagnosticsChangeListener;
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,6 +18,10 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CodeEditorInspectionWidget extends JComponent {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(CodeEditorInspectionWidget.class, key, defaultValue);
+    }
 
     public enum CleanMode {
 
@@ -200,8 +205,10 @@ public class CodeEditorInspectionWidget extends JComponent {
 
     @Override
     public String getToolTipText(MouseEvent e) {
-        if (isClean()) return "Sem erros ou warnings";
-        return errorCount + " erro(s), " + warningCount + " warning(s)";
+        if (isClean()) return text("tooltip.clean", "No errors or warnings");
+        return text("tooltip.counts", "{errors} error(s), {warnings} warning(s)")
+                .replace("{errors}", String.valueOf(errorCount))
+                .replace("{warnings}", String.valueOf(warningCount));
     }
 
     protected void inheritStateFrom(CodeEditorInspectionWidget previous) {

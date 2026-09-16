@@ -4,6 +4,7 @@ import dtm.stools.component.panels.editor.code.diagnostics.Diagnostic;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticSeverity;
 import dtm.stools.component.panels.editor.code.diagnostics.ErrorStripeClickEvent;
 import dtm.stools.component.panels.editor.code.diagnostics.ErrorStripeClickListener;
+import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,6 +16,10 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class CodeEditorErrorStripe extends JComponent {
+
+    private static String text(String key, String defaultValue) {
+        return I18n.getText(CodeEditorErrorStripe.class, key, defaultValue);
+    }
 
     private final CodeEditorTextArea textArea;
     private final JScrollPane scrollPane;
@@ -177,7 +182,10 @@ public class CodeEditorErrorStripe extends JComponent {
         if (d == null) return null;
         int line = Math.max(0, d.startLine()) + 1;
         String msg = d.message() != null ? d.message() : "";
-        return "<html><b>" + d.severity() + "</b> (linha " + line + ")<br>" + escape(msg) + "</html>";
+        return text("tooltip.marker", "<html><b>{severity}</b> (line {line})<br>{message}</html>")
+                .replace("{severity}", String.valueOf(d.severity()))
+                .replace("{line}", String.valueOf(line))
+                .replace("{message}", escape(msg));
     }
 
     private static String escape(String s) {

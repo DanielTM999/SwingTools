@@ -2605,10 +2605,6 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
-    /**
-     * Keeps the viewport still while the caret remains inside its navigation margins.
-     * This prevents ordinary arrow-key movement from also behaving like a scroll command.
-     */
     protected Point calculateCaretScrollPosition(Point viewPosition,
                                                  Dimension extentSize,
                                                  Rectangle caretBounds) {
@@ -5866,6 +5862,11 @@ public class CodeEditorTextArea extends JComponent {
             setForeground(fg);
         }
 
+        private String hiddenExtraText() {
+            return text("fold.preview.moreLines", "… (+{lines} more lines)")
+                    .replace("{lines}", String.valueOf(hiddenExtra));
+        }
+
         private String prepareLine(int absoluteLine) {
             String text = buffer.lineAt(absoluteLine);
             if (commonIndent > 0 && text.length() >= commonIndent) {
@@ -5891,7 +5892,7 @@ public class CodeEditorTextArea extends JComponent {
                 maxWidth = Math.max(maxWidth, fm.stringWidth(text));
             }
             if (hiddenExtra > 0) {
-                maxWidth = Math.max(maxWidth, fm.stringWidth("… (+" + hiddenExtra + " more lines)"));
+                maxWidth = Math.max(maxWidth, fm.stringWidth(hiddenExtraText()));
             }
             int width = maxWidth + padX * 2;
             int height = rows * lineHeight + padY * 2;
@@ -5925,7 +5926,7 @@ public class CodeEditorTextArea extends JComponent {
                     Color disabled = UIManager.getColor("Label.disabledForeground");
                     g2.setColor(disabled != null ? disabled : new Color(previewFg.getRed(),
                             previewFg.getGreen(), previewFg.getBlue(), 140));
-                    g2.drawString("… (+" + hiddenExtra + " more lines)", padX, y + ascent);
+                    g2.drawString(hiddenExtraText(), padX, y + ascent);
                 }
             } finally {
                 g2.dispose();

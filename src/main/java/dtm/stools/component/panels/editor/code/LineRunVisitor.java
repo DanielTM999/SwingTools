@@ -6,14 +6,5 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 
 interface LineRunVisitor {
-
-    boolean visit(int startCol,
-                  int endCol,
-                  int visualCol,
-                  String expandedRun,
-                  TextStyle style,
-                  Font font,
-                  FontMetrics fontMetrics,
-                  int x,
-                  int runWidth);
+    boolean visit(int startCol, int endCol, int visualCol, String expandedRun, TextStyle style, Font font, FontMetrics fontMetrics, int x, int runWidth);
 }
