@@ -75,6 +75,7 @@ import dtm.stools.component.panels.editor.code.search.SearchMatch;
 import dtm.stools.component.panels.editor.code.search.SearchOptions;
 import dtm.stools.component.panels.editor.code.search.SearchPanel;
 import dtm.stools.component.panels.editor.code.utils.BracketHighlighter;
+import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
@@ -662,7 +663,11 @@ public class CodeEditorTextArea extends JComponent {
     protected int foldPreviewMaxColumns = 120;
 
     protected JWindow foldPreviewWindow;
+    protected Window foldPreviewOwnerWindow;
     protected int foldPreviewLine = -1;
+
+    protected JPopupMenu activeContextMenu;
+    protected final AtomicInteger contextMenuVersion = new AtomicInteger();
 
     public record NavigationEntry(int line, int col) {}
 
@@ -859,6 +864,13 @@ public class CodeEditorTextArea extends JComponent {
         addMouseMotionListener((MouseMotionListener) mh);
         addFocusListener(createFocusHandler());
         setupHover();
+        addHierarchyListener(e -> {
+            long flags = e.getChangeFlags();
+            if ((flags & (HierarchyEvent.SHOWING_CHANGED | HierarchyEvent.DISPLAYABILITY_CHANGED)) == 0) return;
+            if (!isShowing() || !isDisplayable()) {
+                dismissTransientUi();
+            }
+        });
         bracketHighlighter = createBracketHighlighter(buffer);
         bracketHighlighter.setLineToVisualMapper(this::bufferLineToVisualLine);
         bracketHighlighter.setLineToYMapper(this::yOfBufferLine);
@@ -918,6 +930,7 @@ public class CodeEditorTextArea extends JComponent {
         ensureExecutorsStarted();
         scheduleSelectedTextOccurrencesRefresh();
         if (isSyntaxHighlightStale()) applySyntaxHighlight();
+        hideActiveContextMenu();
     }
 
     protected boolean isSyntaxHighlightStale() {
@@ -930,6 +943,7 @@ public class CodeEditorTextArea extends JComponent {
     public void removeNotify() {
         cancelAsyncWork();
         shutdownExecutors();
+        disposeTransientWindows();
         super.removeNotify();
     }
 
@@ -973,10 +987,63 @@ public class CodeEditorTextArea extends JComponent {
         if (hoverTimer != null) hoverTimer.stop();
         if (hoverDocumentationHideTimer != null) hoverDocumentationHideTimer.stop();
 
+        dismissTransientUi();
+    }
+
+    public void dismissTransientUi() {
+        if (!hasTransientUiVisible()) {
+            hoverLine = -1;
+            hoverCol = -1;
+            return;
+        }
+        hoverDocumentationVersion.incrementAndGet();
+        signatureHelpVersion.incrementAndGet();
+        autoCompleteVersion.incrementAndGet();
+        ghostTextVersion.incrementAndGet();
+        contextMenuVersion.incrementAndGet();
+        if (hoverTimer != null) hoverTimer.stop();
+        if (hoverDocumentationHideTimer != null) hoverDocumentationHideTimer.stop();
+        if (ghostTextIdleTimer != null) ghostTextIdleTimer.stop();
+        hoverLine = -1;
+        hoverCol = -1;
+        hideActiveContextMenu();
         hideAutoCompletePopup();
-        clearGhostText();
         hideHoverDocumentation();
         hideSignatureHelp();
+        hideFoldPreview();
+        clearGhostText();
+    }
+
+    protected boolean hasTransientUiVisible() {
+        return (autoCompletePopup != null && autoCompletePopup.isVisible())
+                || (hoverDocumentationPopup != null && hoverDocumentationPopup.isVisible())
+                || (signatureHelpPopup != null && signatureHelpPopup.isVisible())
+                || (foldPreviewWindow != null && foldPreviewWindow.isVisible())
+                || (activeContextMenu != null && activeContextMenu.isVisible())
+                || hasGhostText();
+    }
+
+    protected void hideActiveContextMenu() {
+        JPopupMenu menu = activeContextMenu;
+        activeContextMenu = null;
+        if (menu != null && menu.isVisible()) {
+            menu.setVisible(false);
+        }
+    }
+
+    protected void disposeTransientWindows() {
+        foldPreviewLine = -1;
+        if (foldPreviewWindow != null) {
+            foldPreviewWindow.getContentPane().removeAll();
+            foldPreviewWindow.dispose();
+            foldPreviewWindow = null;
+        }
+        foldPreviewOwnerWindow = null;
+        if (hoverDocumentationPopup != null) hoverDocumentationPopup.dispose();
+    }
+
+    public boolean canShowPopups() {
+        return PopupOwnerGuard.canShow(this);
     }
 
     private void cancelFuture(Future<?> future) {
@@ -5739,6 +5806,10 @@ public class CodeEditorTextArea extends JComponent {
             hideFoldPreview();
             return;
         }
+        if (!canShowPopups()) {
+            hideFoldPreview();
+            return;
+        }
         FoldRegion region = getFoldRegionStartingAt(line);
         if (region == null || !region.folded()) {
             hideFoldPreview();
@@ -5775,8 +5846,13 @@ public class CodeEditorTextArea extends JComponent {
         content.setBorder(BorderFactory.createLineBorder(borderColor, 1));
         content.add(preview, BorderLayout.CENTER);
 
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        if (foldPreviewWindow != null && foldPreviewOwnerWindow != owner) {
+            foldPreviewWindow.dispose();
+            foldPreviewWindow = null;
+        }
         if (foldPreviewWindow == null) {
-            Window owner = SwingUtilities.getWindowAncestor(this);
+            foldPreviewOwnerWindow = owner;
             foldPreviewWindow = new JWindow(owner);
             foldPreviewWindow.setFocusable(false);
             foldPreviewWindow.setAlwaysOnTop(true);
@@ -6148,9 +6224,12 @@ public class CodeEditorTextArea extends JComponent {
     protected boolean handlePopupTrigger(MouseEvent e) {
         if (!e.isPopupTrigger()) return false;
         if (!contextMenuEnabled) return false;
+        int version = contextMenuVersion.incrementAndGet();
         if (contextMenuProvider == null) {
             JPopupMenu menu = createDefaultContextMenu();
             if (menu == null) return false;
+            if (!canShowPopups()) return false;
+            activeContextMenu = menu;
             menu.show(this, e.getX(), e.getY());
             return true;
         }
@@ -6166,7 +6245,12 @@ public class CodeEditorTextArea extends JComponent {
             }
             final JPopupMenu popup = menu;
             if (popup != null) {
-                SwingUtilities.invokeLater(() -> popup.show(this, x, y));
+                SwingUtilities.invokeLater(() -> {
+                    if (version != contextMenuVersion.get()) return;
+                    if (!canShowPopups()) return;
+                    activeContextMenu = popup;
+                    popup.show(this, x, y);
+                });
             }
         });
         return true;
@@ -6864,6 +6948,10 @@ public class CodeEditorTextArea extends JComponent {
             hideHoverDocumentation();
             return;
         }
+        if (!canShowPopups()) {
+            hideHoverDocumentation();
+            return;
+        }
         FontMetrics fm = getFontMetrics(getFont());
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(line);
@@ -7032,6 +7120,10 @@ public class CodeEditorTextArea extends JComponent {
     protected void showSignatureHelpResult(int version, SignatureHelp help) {
         if (version != signatureHelpVersion.get()) return;
         if (help == null || help.isEmpty()) {
+            hideSignatureHelp();
+            return;
+        }
+        if (!canShowPopups()) {
             hideSignatureHelp();
             return;
         }
@@ -8371,6 +8463,7 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected void showCodeActionsPopup(List<CodeAction> actions) {
+        if (!canShowPopups()) return;
         JPopupMenu menu = new JPopupMenu();
         for (CodeAction action : actions) {
             JMenuItem item = new JMenuItem(action.title());
@@ -8381,9 +8474,9 @@ public class CodeEditorTextArea extends JComponent {
             }
             menu.add(item);
         }
-        if (!isShowing()) return;
         Point p = caretScreenPoint();
         if (p == null) p = new Point(0, 0);
+        activeContextMenu = menu;
         menu.show(this, p.x, p.y);
     }
 

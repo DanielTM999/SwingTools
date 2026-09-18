@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code.autocomplete;
 
+import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import dtm.stools.i18n.I18n;
 import lombok.Getter;
 
@@ -217,7 +218,7 @@ public class AutoCompletePopup {
     }
 
     private boolean canShowOnOwner() {
-        return owner != null && owner.isShowing();
+        return PopupOwnerGuard.canShow(owner);
     }
 
     public void hide() {

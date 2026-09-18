@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code.signature;
 
+import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
@@ -79,6 +80,10 @@ public class SignatureHelpPopup {
 
     public void show(SignatureHelp help, int x, int anchorTopY, int anchorBottomY) {
         if (help == null || help.isEmpty()) {
+            hide();
+            return;
+        }
+        if (!PopupOwnerGuard.canShow(owner)) {
             hide();
             return;
         }

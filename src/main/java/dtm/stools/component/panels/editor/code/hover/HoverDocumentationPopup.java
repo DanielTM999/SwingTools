@@ -1,6 +1,7 @@
 package dtm.stools.component.panels.editor.code.hover;
 
 import dtm.stools.component.panels.editor.code.CodeEditorScrollPane;
+import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
@@ -116,6 +117,10 @@ public class HoverDocumentationPopup {
             hide();
             return;
         }
+        if (!PopupOwnerGuard.canShow(owner)) {
+            hide();
+            return;
+        }
         currentInfo = info;
         applyTheme();
         contentPane.setText(renderHtml(info));
@@ -183,6 +188,16 @@ public class HoverDocumentationPopup {
         currentInfo = null;
         contentPane.select(0, 0);
         if (window != null) window.setVisible(false);
+    }
+
+    public void dispose() {
+        hide();
+        if (window != null) {
+            window.getContentPane().removeAll();
+            window.dispose();
+            window = null;
+        }
+        ownerWindow = null;
     }
 
     public boolean isVisible() {

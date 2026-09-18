@@ -6,6 +6,7 @@ import dtm.stools.component.panels.editor.code.listeners.DocumentEditListener;
 import dtm.stools.component.panels.editor.code.prototype.LineColorInfo;
 import dtm.stools.component.panels.editor.code.prototype.styles.StyledRange;
 import dtm.stools.component.panels.editor.code.prototype.styles.TextStyle;
+import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -92,6 +93,7 @@ public class CodeEditorMinimap extends JComponent {
 
     private int hoverY = -1;
     private JWindow previewWindow;
+    private Window previewOwnerWindow;
 
     public CodeEditorMinimap(CodeEditorTextArea textArea, JScrollPane scrollPane) {
         this.textArea = textArea;
@@ -134,6 +136,15 @@ public class CodeEditorMinimap extends JComponent {
         };
         addMouseListener(mouseHandler);
         addMouseMotionListener(mouseHandler);
+
+        addHierarchyListener(e -> {
+            long flags = e.getChangeFlags();
+            if ((flags & (HierarchyEvent.SHOWING_CHANGED | HierarchyEvent.DISPLAYABILITY_CHANGED)) == 0) return;
+            if (!isShowing() || !isDisplayable()) {
+                hoverY = -1;
+                hidePreview();
+            }
+        });
 
         textArea.addDocumentEditListener(new DocumentEditListener() {
             @Override public void onInsert(int offset, String text) {}
@@ -302,6 +313,10 @@ public class CodeEditorMinimap extends JComponent {
     }
 
     private void showPreviewAt(int centerLine, Component anchor, int anchorY) {
+        if (!PopupOwnerGuard.canShow(anchor)) {
+            hidePreview();
+            return;
+        }
         int halfLines = hoverPreviewLines / 2;
         int startLine = Math.max(0, centerLine - halfLines);
         int endLine = Math.min(textArea.getBuffer().lineCount() - 1, centerLine + halfLines);
@@ -413,8 +428,13 @@ public class CodeEditorMinimap extends JComponent {
         g2.drawRect(0, 0, previewWidth - 1, previewHeight - 1);
         g2.dispose();
 
+        Window owner = SwingUtilities.getWindowAncestor(anchor);
+        if (previewWindow != null && previewOwnerWindow != owner) {
+            previewWindow.dispose();
+            previewWindow = null;
+        }
         if (previewWindow == null) {
-            Window owner = SwingUtilities.getWindowAncestor(anchor);
+            previewOwnerWindow = owner;
             previewWindow = new JWindow(owner);
             previewWindow.setAlwaysOnTop(true);
         }
@@ -442,6 +462,23 @@ public class CodeEditorMinimap extends JComponent {
         if (previewWindow != null) {
             previewWindow.setVisible(false);
         }
+    }
+
+    @Override
+    public void removeNotify() {
+        hoverY = -1;
+        hidePreview();
+        disposePreviewWindow();
+        super.removeNotify();
+    }
+
+    private void disposePreviewWindow() {
+        if (previewWindow != null) {
+            previewWindow.getContentPane().removeAll();
+            previewWindow.dispose();
+            previewWindow = null;
+        }
+        previewOwnerWindow = null;
     }
 
     @Override
