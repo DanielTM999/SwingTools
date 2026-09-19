@@ -29,6 +29,7 @@ public class MaskedTextField extends JTextFieldListener {
 
     @Getter
     private boolean readOnly = false;
+    
     private Border originalBorder;
     private Border readOnlyBorder;
     private String placeholderText;
@@ -180,7 +181,7 @@ public class MaskedTextField extends JTextFieldListener {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        if (getText().isEmpty() && !hasFocus()) {
+        if (getCleanText().isEmpty()) {
             String hint = (placeholderText != null && !placeholderText.isEmpty())
                     ? placeholderText
                     : maskHint;
