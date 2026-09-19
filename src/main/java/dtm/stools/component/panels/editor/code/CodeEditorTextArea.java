@@ -94,6 +94,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class CodeEditorTextArea extends JComponent {
 
@@ -513,6 +515,8 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected final List<CodeLensItemBounds> codeLensItemBounds = new ArrayList<>();
+
+    protected static final Logger CODE_LENS_LOG = Logger.getLogger(CodeEditorTextArea.class.getName());
 
     protected final List<DocumentSymbol> documentSymbols = new ArrayList<>();
 
@@ -4106,17 +4110,17 @@ public class CodeEditorTextArea extends JComponent {
         int n = buffer.lineCount();
 
         BitSet hidden = computeHiddenLines(n);
-        Map<Integer, CodeLens> aboveMap = new HashMap<>();
-        Map<Integer, CodeLens> inlineMap = new HashMap<>();
+        Map<Integer, CodeLens> aboveMap = new LinkedHashMap<>();
+        Map<Integer, CodeLens> inlineMap = new LinkedHashMap<>();
         if (codeLensesEnabled && !codeLenses.isEmpty()) {
             for (CodeLens lens : codeLenses) {
                 int line = lens.line();
                 if (line < 0 || line >= n) continue;
                 if (lens.items().isEmpty()) continue;
                 if (lens.placement() == CodeLensPlacement.ABOVE) {
-                    aboveMap.putIfAbsent(line, lens);
+                    aboveMap.merge(line, lens, CodeEditorTextArea::mergeCodeLenses);
                 } else if (lens.placement() == CodeLensPlacement.INLINE) {
-                    inlineMap.putIfAbsent(line, lens);
+                    inlineMap.merge(line, lens, CodeEditorTextArea::mergeCodeLenses);
                 }
             }
         }
@@ -4222,6 +4226,13 @@ public class CodeEditorTextArea extends JComponent {
             for (int i = from; i <= to; i++) set.set(i);
         }
         return set;
+    }
+
+    protected static CodeLens mergeCodeLenses(CodeLens first, CodeLens second) {
+        List<CodeLensItem> items = new ArrayList<>(first.items());
+        items.addAll(second.items());
+        return new CodeLens(first.line(), first.col() >= 0 ? first.col() : second.col(),
+                first.placement(), items);
     }
 
     public boolean hasCodeLens(int bufferLine) {
@@ -5713,12 +5724,13 @@ public class CodeEditorTextArea extends JComponent {
     protected boolean codeLensCursorActive;
 
     protected void updateCodeLensHover(int mx, int my) {
-        if (!codeLensesEnabled || codeLensItemBounds.isEmpty()) {
+        List<CodeLensItemBounds> candidates = codeLensBoundsAtY(my);
+        if (candidates.isEmpty()) {
             restoreCodeLensCursor();
             setToolTipText(null);
             return;
         }
-        for (CodeLensItemBounds b : codeLensItemBounds) {
+        for (CodeLensItemBounds b : candidates) {
             if (mx < b.x || mx > b.x + b.w || my < b.y || my > b.y + b.h) continue;
             if (b.itemIndex >= b.lens.items().size()) break;
             CodeLensItem item = b.lens.items().get(b.itemIndex);
@@ -5750,22 +5762,20 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected boolean handleCodeLensClick(MouseEvent e) {
-        if (!codeLensesEnabled || codeLensItemBounds.isEmpty()) {
-            return false;
-        }
-        if (e.getButton() != MouseEvent.BUTTON1) {
+        if (!codeLensesEnabled || e.getButton() != MouseEvent.BUTTON1) {
             return false;
         }
         int mx = e.getX();
         int my = e.getY();
-        for (CodeLensItemBounds b : codeLensItemBounds) {
+        for (CodeLensItemBounds b : codeLensBoundsAtY(my)) {
             if (mx < b.x || mx > b.x + b.w || my < b.y || my > b.y + b.h) continue;
             if (b.itemIndex >= b.lens.items().size()) return false;
             CodeLensItem item = b.lens.items().get(b.itemIndex);
             if (item.getOnClick() == null) return false;
             try {
                 item.getOnClick().accept(new CodeLensClickEvent(b.lens, item, b.lens.line(), e));
-            } catch (Exception ignored) {
+            } catch (Exception failure) {
+                CODE_LENS_LOG.log(Level.WARNING, "code lens click failed", failure);
             }
             e.consume();
             return true;
@@ -6744,7 +6754,9 @@ public class CodeEditorTextArea extends JComponent {
                     repaint();
                 });
 
-            } catch (Exception ignored) {}
+            } catch (Exception failure) {
+                CODE_LENS_LOG.log(Level.WARNING, "code lens provider failed", failure);
+            }
         });
     }
 
@@ -7570,22 +7582,26 @@ public class CodeEditorTextArea extends JComponent {
                                     int bufferLine, int yTop, int lineHeight) {
         CodeLens lens = aboveCodeLensAtLine(bufferLine);
         if (lens == null) return;
+        paintCodeLensItems(g2, baseFont, lens,
+                aboveCodeLensXStart(lens, bufferLine, defaultFm), yTop, lineHeight);
+    }
 
-        int xStart = TEXT_LEFT_MARGIN;
-        if (lens.col() > 0) {
-            String lineText = buffer.lineAt(bufferLine);
-            int safeCol = Math.min(lens.col(), lineText.length());
-            xStart = baseVisualXForColumn(bufferLine, lineText, safeCol, defaultFm);
-        }
-
-        paintCodeLensItems(g2, baseFont, lens, xStart, yTop, lineHeight);
+    protected int aboveCodeLensXStart(CodeLens lens, int bufferLine, FontMetrics defaultFm) {
+        if (lens.col() <= 0) return TEXT_LEFT_MARGIN;
+        String lineText = buffer.lineAt(bufferLine);
+        int safeCol = Math.min(lens.col(), lineText.length());
+        return baseVisualXForColumn(bufferLine, lineText, safeCol, defaultFm);
     }
 
     protected void paintInlineCodeLens(Graphics2D g2, FontMetrics defaultFm, Font baseFont,
                                        int bufferLine, int yTop, int lineHeight) {
         CodeLens lens = inlineCodeLensAtLine(bufferLine);
         if (lens == null) return;
+        paintCodeLensItems(g2, baseFont, lens,
+                inlineCodeLensXStart(lens, bufferLine, defaultFm), yTop, lineHeight);
+    }
 
+    protected int inlineCodeLensXStart(CodeLens lens, int bufferLine, FontMetrics defaultFm) {
         String lineText = buffer.lineAt(bufferLine);
         String renderedLineText = lineText;
         if (shouldHideTrailingOpenForFold(bufferLine)) {
@@ -7620,59 +7636,105 @@ public class CodeEditorTextArea extends JComponent {
             xStart += codeLensItemSpacing;
         }
 
-        paintCodeLensItems(g2, baseFont, lens, xStart, yTop, lineHeight);
+        return xStart;
+    }
+
+    protected Font codeLensFont(Font baseFont) {
+        return baseFont.deriveFont(Math.max(8f, baseFont.getSize2D() * codeLensFontScale));
+    }
+
+    protected Font codeLensItemFont(Font baseLensFont, CodeLensItem item) {
+        int fontStyle = Font.PLAIN;
+        if (item.isBold()) fontStyle |= Font.BOLD;
+        if (item.isItalic()) fontStyle |= Font.ITALIC;
+        return fontStyle == Font.PLAIN ? baseLensFont : baseLensFont.deriveFont(fontStyle);
+    }
+
+    protected List<CodeLensItemBounds> layoutCodeLensItems(CodeLens lens, Font baseFont,
+                                                          int xStart, int yTop, int lineHeight) {
+        if (lens == null || lens.items().isEmpty()) return List.of();
+        Font baseLensFont = codeLensFont(baseFont);
+        List<CodeLensItemBounds> bounds = new ArrayList<>(lens.items().size());
+        int x = xStart;
+        for (int idx = 0; idx < lens.items().size(); idx++) {
+            CodeLensItem item = lens.items().get(idx);
+            if (item.getText() == null || item.getText().isEmpty()) continue;
+            int w = fontMetricsFor(codeLensItemFont(baseLensFont, item)).stringWidth(item.getText());
+            bounds.add(new CodeLensItemBounds(lens, idx, x, yTop, w, lineHeight));
+            x += w;
+            if (idx < lens.items().size() - 1) {
+                x += codeLensItemSpacing;
+            }
+        }
+        return bounds;
     }
 
     protected void paintCodeLensItems(Graphics2D g2, Font baseFont, CodeLens lens,
                                       int xStart, int yTop, int lineHeight) {
-        if (lens.items().isEmpty()) return;
+        List<CodeLensItemBounds> bounds = layoutCodeLensItems(lens, baseFont, xStart, yTop, lineHeight);
+        if (bounds.isEmpty()) return;
 
-        float lensFontSize = Math.max(8f, baseFont.getSize2D() * codeLensFontScale);
-        Font baseLensFont = baseFont.deriveFont(lensFontSize);
-        FontMetrics fm = g2.getFontMetrics(baseLensFont);
+        Font baseLensFont = codeLensFont(baseFont);
+        FontMetrics fm = fontMetricsFor(baseLensFont);
 
         Color baseFg = defaultStyle.getForeground();
         Color defaultFg = codeLensForeground != null
                 ? codeLensForeground
                 : new Color(baseFg.getRed(), baseFg.getGreen(), baseFg.getBlue(), 150);
 
-        int x = xStart;
         int yBaseline = yTop + (lineHeight - fm.getHeight()) / 2 + fm.getAscent();
 
-        for (int idx = 0; idx < lens.items().size(); idx++) {
-            CodeLensItem item = lens.items().get(idx);
-            if (item.getText() == null || item.getText().isEmpty()) continue;
-
-            int fontStyle = Font.PLAIN;
-            if (item.isBold()) fontStyle |= Font.BOLD;
-            if (item.isItalic()) fontStyle |= Font.ITALIC;
-            Font itemFont = baseLensFont.deriveFont(fontStyle);
-            FontMetrics ifm = g2.getFontMetrics(itemFont);
-            g2.setFont(itemFont);
+        for (int i = 0; i < bounds.size(); i++) {
+            CodeLensItemBounds b = bounds.get(i);
+            CodeLensItem item = lens.items().get(b.itemIndex);
+            g2.setFont(codeLensItemFont(baseLensFont, item));
 
             Color fg = item.getForeground() != null ? item.getForeground() : defaultFg;
             g2.setColor(fg);
-            g2.drawString(item.getText(), x, yBaseline);
+            g2.drawString(item.getText(), b.x, yBaseline);
 
-            int w = ifm.stringWidth(item.getText());
             if (item.isUnderline()) {
                 int uy = yBaseline + 1;
-                g2.drawLine(x, uy, x + w, uy);
+                g2.drawLine(b.x, uy, b.x + b.w, uy);
             }
 
-            codeLensItemBounds.add(new CodeLensItemBounds(lens, idx, x, yTop, w, lineHeight));
-
-            x += w;
-            if (idx < lens.items().size() - 1) {
+            if (i < bounds.size() - 1) {
                 int sep = Math.max(4, codeLensItemSpacing / 2);
                 int sepY = yTop + lineHeight / 2;
+                int sepX = b.x + b.w + sep;
                 g2.setColor(new Color(baseFg.getRed(), baseFg.getGreen(), baseFg.getBlue(), 60));
-                g2.drawLine(x + sep, sepY - 3, x + sep, sepY + 3);
-                x += codeLensItemSpacing;
+                g2.drawLine(sepX, sepY - 3, sepX, sepY + 3);
             }
         }
 
+        codeLensItemBounds.addAll(bounds);
         g2.setFont(baseFont);
+    }
+
+    protected List<CodeLensItemBounds> codeLensBoundsAtY(int yMouse) {
+        if (!codeLensesEnabled || yMouse < 0) return List.of();
+        ensureGeometry();
+        int line = bufferLineAtY(yMouse);
+        if (line < 0 || line >= buffer.lineCount() || isLineHidden(line)) return List.of();
+        CodeLens above = aboveCodeLensAtLine(line);
+        CodeLens inline = inlineCodeLensAtLine(line);
+        if (above == null && inline == null) return List.of();
+
+        Font baseFont = getFont();
+        FontMetrics defaultFm = fontMetricsFor(baseFont);
+        int lineHeight = defaultFm.getHeight();
+        List<CodeLensItemBounds> bounds = new ArrayList<>();
+        if (above != null) {
+            bounds.addAll(layoutCodeLensItems(above, baseFont,
+                    aboveCodeLensXStart(above, line, defaultFm),
+                    yOfCodeLensRow(line), lineHeight));
+        }
+        if (inline != null) {
+            bounds.addAll(layoutCodeLensItems(inline, baseFont,
+                    inlineCodeLensXStart(inline, line, defaultFm),
+                    yOfBufferLine(line), lineHeight));
+        }
+        return bounds;
     }
 
     protected void paintInlayHints(Graphics2D g2, FontMetrics fm) {
