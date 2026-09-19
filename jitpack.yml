@@ -4,6 +4,8 @@ jdk:
 before_install:
   - sdk install java 25-open
   - sdk use java 25-open
+  - sdk install maven 3.9.9
+  - sdk use maven 3.9.9
 
 install:
-  - mvn -B install -DskipTests -Dnative.build.skip=true
+  - $HOME/.sdkman/candidates/maven/current/bin/mvn -B install -DskipTests -Dnative.build.skip=true
