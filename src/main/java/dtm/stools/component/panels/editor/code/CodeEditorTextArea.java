@@ -20,6 +20,7 @@ import dtm.stools.component.panels.editor.code.api.TextEdit;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteEditApplier;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteItem;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopup;
+import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopupFactory;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteProvider;
 import dtm.stools.component.panels.editor.code.autocomplete.CompletionContext;
 import dtm.stools.component.panels.editor.code.autocomplete.SnippetExpansion;
@@ -84,6 +85,7 @@ import javax.swing.Timer;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.event.*;
+import java.awt.font.FontRenderContext;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -524,7 +526,9 @@ public class CodeEditorTextArea extends JComponent {
     protected static final int CARET_WIDTH = 2;
     protected static final int MAX_REMEASURED_LINES = 64;
 
-    protected final Map<Font, FontMetrics> fontMetricsCache = new HashMap<>();
+    private transient Graphics2D activePaintGraphics;
+    private transient Map<Font, FontMetrics> activePaintFontMetrics;
+    private FontRenderContext lastPaintFontRenderContext;
 
     protected boolean geometryCacheDirty = true;
     protected int[] cachedLineY;
@@ -931,6 +935,8 @@ public class CodeEditorTextArea extends JComponent {
     @Override
     public void addNotify() {
         super.addNotify();
+        lastPaintFontRenderContext = null;
+        invalidateGeometry();
         ensureExecutorsStarted();
         scheduleSelectedTextOccurrencesRefresh();
         if (isSyntaxHighlightStale()) applySyntaxHighlight();
@@ -1228,10 +1234,12 @@ public class CodeEditorTextArea extends JComponent {
         return autoCompletePopup;
     }
 
-    public void setAutoCompletePopup(AutoCompletePopup popup) {
+    public void setAutoCompletePopupFactory(AutoCompletePopupFactory factory) {
+        Objects.requireNonNull(factory, "factory");
+        AutoCompletePopup popup = Objects.requireNonNull(factory.create(this), "factory returned null");
         if (this.autoCompletePopup != null) this.autoCompletePopup.hide();
         this.autoCompletePopup = popup;
-        configureAutoCompletePopup(this.autoCompletePopup);
+        configureAutoCompletePopup(popup);
     }
 
     protected void configureAutoCompletePopup(AutoCompletePopup popup) {
@@ -1361,7 +1369,7 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected Point caretScreenPoint() {
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(caretLine);
         int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
@@ -2643,7 +2651,7 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected void scrollToCaret() {
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int lineHeight = fm.getHeight();
 
         String lineText = buffer.lineAt(caretLine);
@@ -2997,7 +3005,7 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected int[] positionFromPoint(int mx, int my) {
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int line = bufferLineAtY(my);
         String lineText = buffer.lineAt(line);
         InlayHint transparentHint = mouseTransparentInlayHintAt(line, mx, fm);
@@ -3066,18 +3074,18 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected FontMetrics fontMetricsFor(Font font) {
-        if (fontMetricsCache == null) return getFontMetrics(font);
-        FontMetrics cached = fontMetricsCache.get(font);
-        if (cached != null) return cached;
-        FontMetrics fm = getFontMetrics(font);
-        fontMetricsCache.put(font, fm);
-        return fm;
+        Graphics2D graphics = activePaintGraphics;
+        Map<Font, FontMetrics> paintMetrics = activePaintFontMetrics;
+        if (graphics != null && paintMetrics != null) {
+            return paintMetrics.computeIfAbsent(font, graphics::getFontMetrics);
+        }
+        return getFontMetrics(font);
     }
 
     @Override
     public void setFont(Font font) {
-        if (fontMetricsCache != null) fontMetricsCache.clear();
         super.setFont(font);
+        lastPaintFontRenderContext = null;
         invalidateGeometry();
     }
 
@@ -3166,7 +3174,7 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected int getVisibleLines() {
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         Container parent = getParent();
         int height = (parent instanceof JViewport) ? parent.getHeight() : getHeight();
         return Math.max(1, height / fm.getHeight());
@@ -4097,7 +4105,7 @@ public class CodeEditorTextArea extends JComponent {
 
     protected void ensureGeometry() {
         if (!geometryCacheDirty) {
-            int currentLh = getFontMetrics(getFont()).getHeight();
+            int currentLh = fontMetricsFor(getFont()).getHeight();
             if (currentLh == cachedLineHeight && cachedLineCount == buffer.lineCount()) {
                 return;
             }
@@ -4106,7 +4114,7 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     protected void rebuildGeometryCache() {
-        int lh = getFontMetrics(getFont()).getHeight();
+        int lh = fontMetricsFor(getFont()).getHeight();
         int n = buffer.lineCount();
 
         BitSet hidden = computeHiddenLines(n);
@@ -4318,17 +4326,32 @@ public class CodeEditorTextArea extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        g.setColor(defaultStyle.getBackground());
-        g.fillRect(0, 0, getWidth(), getHeight());
+        Graphics2D g2 = (Graphics2D) g.create();
+        Graphics2D previousPaintGraphics = activePaintGraphics;
+        Map<Font, FontMetrics> previousPaintFontMetrics = activePaintFontMetrics;
+        try {
+            activePaintGraphics = g2;
+            activePaintFontMetrics = new HashMap<>();
+            paintEditor(g2);
+        } finally {
+            activePaintGraphics = previousPaintGraphics;
+            activePaintFontMetrics = previousPaintFontMetrics;
+            g2.dispose();
+        }
+    }
 
-        Graphics2D g2 = (Graphics2D) g;
+    private void paintEditor(Graphics2D g2) {
         g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        updatePaintFontRenderContext(g2.getFontRenderContext());
+
+        g2.setColor(defaultStyle.getBackground());
+        g2.fillRect(0, 0, getWidth(), getHeight());
 
         Font baseFont = getFont();
         FontMetrics defaultFm = g2.getFontMetrics(baseFont);
         int lineHeight = defaultFm.getHeight();
 
-        Rectangle clip = g.getClipBounds();
+        Rectangle clip = g2.getClipBounds();
         int clipMinY = clip != null ? clip.y : 0;
         int clipMaxY = clip != null ? clip.y + clip.height : getHeight();
         int firstVisibleLine = clip != null ? bufferLineAtY(clipMinY) : 0;
@@ -4493,6 +4516,13 @@ public class CodeEditorTextArea extends JComponent {
         }
     }
 
+    private void updatePaintFontRenderContext(FontRenderContext currentContext) {
+        if (currentContext.equals(lastPaintFontRenderContext)) return;
+        lastPaintFontRenderContext = currentContext;
+        invalidateGeometry();
+        revalidate();
+    }
+
     protected void paintSelection(Graphics2D g2, FontMetrics fm, int lineHeight) {
         if (hasSelection()) {
             paintSelectionRange(g2, fm, lineHeight, getSelectionStart(), getSelectionEnd());
@@ -4646,7 +4676,7 @@ public class CodeEditorTextArea extends JComponent {
 
     @Override
     public Dimension getPreferredSize() {
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int lineHeight = fm.getHeight();
 
         int width = getMaxLineWidth();
@@ -6086,7 +6116,7 @@ public class CodeEditorTextArea extends JComponent {
     protected boolean isFoldPlaceholderAt(int mouseX, int mouseY) {
         if (!foldingEnabled) return false;
         if (isInCodeLensRow(mouseY)) return false;
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int line = bufferLineAtY(mouseY);
         if (!isFoldAnchor(line)) return false;
         String lineText = buffer.lineAt(line);
@@ -6964,7 +6994,7 @@ public class CodeEditorTextArea extends JComponent {
             hideHoverDocumentation();
             return;
         }
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(line);
         int safeCol = Math.min(col, lineText.length());
@@ -7139,7 +7169,7 @@ public class CodeEditorTextArea extends JComponent {
             hideSignatureHelp();
             return;
         }
-        FontMetrics fm = getFontMetrics(getFont());
+        FontMetrics fm = fontMetricsFor(getFont());
         int lineHeight = fm.getHeight();
         int safeLine = Math.max(0, Math.min(caretLine, buffer.lineCount() - 1));
         String lineText = buffer.lineAt(safeLine);

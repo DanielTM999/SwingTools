@@ -209,6 +209,7 @@ public final class Dialogs {
         private Color accentColor;
         private boolean draggable;
         private boolean showIcon = true;
+        private boolean limitToScreen = true;
         private final java.util.List<Option> options = new java.util.ArrayList<>();
 
         private Builder() {}
@@ -248,6 +249,11 @@ public final class Dialogs {
             return this;
         }
 
+        public Builder limitToScreen(boolean limitToScreen) {
+            this.limitToScreen = limitToScreen;
+            return this;
+        }
+
         public Builder option(String text, int value) {
             options.add(new Option(text, value, null, null));
             return this;
@@ -270,7 +276,8 @@ public final class Dialogs {
                         .message(message)
                         .type(type)
                         .draggable(draggable)
-                        .showIcon(showIcon);
+                        .showIcon(showIcon)
+                        .limitToScreen(limitToScreen);
 
                 if (accentColor != null) {
                     modernDialogBuilder.accentColor(accentColor);

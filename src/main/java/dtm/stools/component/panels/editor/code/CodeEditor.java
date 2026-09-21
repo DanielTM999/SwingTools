@@ -8,7 +8,7 @@ import dtm.stools.component.panels.editor.code.gutter.layer.FoldingLayer;
 import dtm.stools.component.panels.editor.code.gutter.layer.GutterLayer;
 import dtm.stools.component.panels.editor.code.gutter.layer.LineMarkerLayer;
 import dtm.stools.component.panels.editor.code.gutter.layer.LineNumberLayer;
-import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopup;
+import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopupFactory;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationPopup;
 import dtm.stools.component.panels.editor.code.provider.*;
 import dtm.stools.component.panels.editor.code.signature.SignatureHelpPopup;
@@ -1204,8 +1204,8 @@ public class CodeEditor extends BlockingPanel {
         textArea.clearSnippetSession();
     }
 
-    public void setAutoCompletePopup(AutoCompletePopup popup) {
-        textArea.setAutoCompletePopup(popup);
+    public void setAutoCompletePopupFactory(AutoCompletePopupFactory factory) {
+        textArea.setAutoCompletePopupFactory(factory);
     }
 
     public void addAutoCompleteAcceptKeyStroke(KeyStroke ks) {

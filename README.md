@@ -1175,10 +1175,11 @@ String nome = Dialogs.input("Informe o nome");
 Builder:
 
 ```java
-int result = Dialogs.modernDialogBuilder()
+int result = Dialogs.builder()
         .title("Remover")
         .message("Remover item selecionado?")
         .type(ModernDialog.Type.QUESTION)
+        .limitToScreen(true) // true por padrao; mensagens extensas recebem rolagem
         .option("Cancelar", 0)
         .option("Remover", 1, Color.RED, Color.WHITE)
         .show();

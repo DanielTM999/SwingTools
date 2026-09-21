@@ -11,6 +11,8 @@ import java.util.List;
 
 public final class ModernDialog {
 
+    private static final int SCREEN_MARGIN = 16;
+
     public enum Type { SUCCESS, ERROR, INFO, QUESTION }
 
     public static ModernDialogBuilder builder() {
@@ -107,6 +109,7 @@ public final class ModernDialog {
         private boolean closeOnEsc = true;
         private boolean showTypeLabel = true;
         private boolean showIcon = true;
+        private boolean limitToScreen = true;
 
         private final List<Btn> buttons = new ArrayList<>();
 
@@ -157,6 +160,11 @@ public final class ModernDialog {
 
         public ModernDialogBuilder showIcon(boolean showIcon) {
             this.showIcon = showIcon;
+            return this;
+        }
+
+        public ModernDialogBuilder limitToScreen(boolean limitToScreen) {
+            this.limitToScreen = limitToScreen;
             return this;
         }
 
@@ -307,8 +315,16 @@ public final class ModernDialog {
             msgLbl.setForeground(fgSecondary);
             msgLbl.setFont(font(12, Font.PLAIN));
 
+            JScrollPane messageScroll = new JScrollPane(msgLbl);
+            messageScroll.setBorder(null);
+            messageScroll.setOpaque(false);
+            messageScroll.getViewport().setOpaque(false);
+            messageScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            messageScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+            messageScroll.getVerticalScrollBar().setUnitIncrement(12);
+
             textBlock.add(titleLbl);
-            textBlock.add(msgLbl);
+            textBlock.add(messageScroll);
             body.add(textBlock, BorderLayout.CENTER);
 
             JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
@@ -339,6 +355,10 @@ public final class ModernDialog {
 
             dialog.setContentPane(root);
             dialog.pack();
+
+            if (limitToScreen) {
+                constrainToScreen(dialog, messageScroll);
+            }
             dialog.setShape(new RoundRectangle2D.Float(
                     0, 0, dialog.getWidth(), dialog.getHeight(), 14, 14
             ));
@@ -368,6 +388,23 @@ public final class ModernDialog {
         }
 
         public ModernDialogBuilder draggable(boolean d) { this.draggable = d; return this; }
+
+        private void constrainToScreen(JDialog dialog, JScrollPane messageScroll) {
+            Rectangle usableBounds = usableScreenBounds(dialog.getGraphicsConfiguration());
+            Dimension naturalSize = dialog.getSize();
+            Dimension constrainedSize = constrainedSize(naturalSize, usableBounds);
+
+            if (naturalSize.height > constrainedSize.height) {
+                Dimension messageSize = messageScroll.getPreferredSize();
+                int overflow = naturalSize.height - constrainedSize.height;
+                int messageHeight = Math.max(1, messageSize.height - overflow);
+                messageScroll.setPreferredSize(new Dimension(messageSize.width, messageHeight));
+                dialog.pack();
+            }
+
+            dialog.setSize(constrainedSize(dialog.getSize(), usableBounds));
+            messageScroll.getViewport().setViewPosition(new Point(0, 0));
+        }
 
         private JButton buildButton(Btn b, Color normalBg, Color hoverBg, Color fg, JDialog dialog, int[] result) {
             JButton btn = new JButton(b.text) {
@@ -536,5 +573,31 @@ public final class ModernDialog {
                 }
             };
         }
+    }
+
+    static Dimension constrainedSize(Dimension preferredSize, Rectangle usableBounds) {
+        int maxWidth = Math.max(1, usableBounds.width - SCREEN_MARGIN * 2);
+        int maxHeight = Math.max(1, usableBounds.height - SCREEN_MARGIN * 2);
+        return new Dimension(
+                Math.min(preferredSize.width, maxWidth),
+                Math.min(preferredSize.height, maxHeight)
+        );
+    }
+
+    private static Rectangle usableScreenBounds(GraphicsConfiguration configuration) {
+        GraphicsConfiguration screen = configuration;
+        if (screen == null) {
+            screen = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                    .getDefaultScreenDevice()
+                    .getDefaultConfiguration();
+        }
+
+        Rectangle bounds = new Rectangle(screen.getBounds());
+        Insets insets = Toolkit.getDefaultToolkit().getScreenInsets(screen);
+        bounds.x += insets.left;
+        bounds.y += insets.top;
+        bounds.width = Math.max(1, bounds.width - insets.left - insets.right);
+        bounds.height = Math.max(1, bounds.height - insets.top - insets.bottom);
+        return bounds;
     }
 }

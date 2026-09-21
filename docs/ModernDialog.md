@@ -21,6 +21,53 @@ int result = ModernDialog.modernDialogBuilder()
         .show();
 ```
 
+## Mensagem extensa com limite de tela
+
+O limite ja vem ativado. Portanto, basta informar a mensagem longa; quando necessario,
+o conteudo recebe rolagem vertical e o cabecalho e os botoes continuam visiveis.
+
+```java
+String longMessage = ("Uma linha extensa da mensagem.<br>").repeat(200);
+
+int result = ModernDialog.builder()
+        .title("Relatorio")
+        .message(longMessage)
+        .type(ModernDialog.Type.INFO)
+        .limitToScreen(true) // opcional: true ja e o padrao
+        .option("Fechar", JOptionPane.CLOSED_OPTION)
+        .parent(frame)
+        .show();
+```
+
+A mesma opcao esta disponivel na fachada `Dialogs`:
+
+```java
+int result = Dialogs.builder()
+        .title("Detalhes")
+        .message(longMessage)
+        .limitToScreen(true)
+        .parent(frame)
+        .show();
+```
+
+## Desativando o limite
+
+Use apenas quando o tamanho natural do dialog for desejado, mesmo que possa ultrapassar a tela:
+
+```java
+ModernDialog.builder()
+        .title("Conteudo sem limite")
+        .message(longMessage)
+        .limitToScreen(false)
+        .parent(frame)
+        .show();
+```
+
+## Exemplo executavel
+
+Veja [ModernDialogScreenLimitExample.java](../src/test/java/dtm/stools/examples/ModernDialogScreenLimitExample.java)
+para alternar a flag em tempo de execucao e comparar as APIs `ModernDialog` e `Dialogs`.
+
 ## Builder
 
 | Metodo | Uso |
@@ -37,9 +84,11 @@ int result = ModernDialog.modernDialogBuilder()
 | `option(String, int, Color, Color)` | Botao com background e foreground |
 | `draggable(boolean)` | Permite arrastar |
 | `closeOnEsc(boolean)` | Fecha ao pressionar `Esc` (padrao: `true`) |
+| `limitToScreen(boolean)` | Impede que o dialog ultrapasse a area util da tela e adiciona rolagem a mensagens extensas (padrao: `true`) |
 | `show()` / `show(Component)` | Exibe e retorna valor |
 
 ## Cuidados
 
 - Use constantes de `JOptionPane` ou codigos proprios como retorno.
 - Use `parent(frame).show()` ou `show(parent)` para centralizar em relacao a janela correta.
+- Para permitir que o dialog use seu tamanho natural mesmo quando ultrapassar a tela, configure `limitToScreen(false)`.
