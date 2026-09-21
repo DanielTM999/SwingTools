@@ -24,6 +24,7 @@ import javax.swing.event.TreeExpansionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeWillExpandListener;
+import javax.swing.plaf.basic.BasicTreeUI;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.TreePath;
@@ -205,6 +206,11 @@ public class TreeView<T> extends TreeViewListener {
     protected final Set<String> expandedIds = new HashSet<>();
     protected final List<PendingNodeUpdate<T>> pendingNodeUpdates = new ArrayList<>();
 
+    protected Integer configuredLevelIndent;
+    protected int defaultLeftChildIndent;
+    protected int defaultRightChildIndent;
+    protected boolean levelIndentDefaultsCaptured;
+
     public TreeView() {
         this(new TreeNode<>(null, "root"));
     }
@@ -234,6 +240,76 @@ public class TreeView<T> extends TreeViewListener {
 
         installListeners();
         installKeyBindings();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        captureLevelIndentDefaults();
+        applyConfiguredLevelIndent();
+    }
+
+    /**
+     * Returns the configured horizontal indent per tree level, or {@code -1}
+     * when the current Look & Feel default is being used.
+     */
+    public int getLevelIndent() {
+        return configuredLevelIndent == null ? -1 : configuredLevelIndent;
+    }
+
+    /**
+     * Configures the horizontal indent added for each tree level.
+     * Use {@code -1} to restore the current Look & Feel default.
+     *
+     * @param pixels indent per level, or {@code -1} for the visual default
+     * @throws IllegalArgumentException when the value is less than {@code -1}
+     */
+    public void setLevelIndent(int pixels) {
+        if (pixels < -1) throw new IllegalArgumentException();
+        updateLevelIndent(pixels);
+    }
+
+    private void updateLevelIndent(int pixels) {
+        Integer nextValue = pixels == -1 ? null : pixels;
+        if (Objects.equals(configuredLevelIndent, nextValue)) return;
+        configuredLevelIndent = nextValue;
+        if (configuredLevelIndent == null) restoreLevelIndentDefaults();
+        else applyConfiguredLevelIndent();
+    }
+
+    private void captureLevelIndentDefaults() {
+        levelIndentDefaultsCaptured = false;
+        if (getUI() instanceof BasicTreeUI treeUI) {
+            defaultLeftChildIndent = treeUI.getLeftChildIndent();
+            defaultRightChildIndent = treeUI.getRightChildIndent();
+            levelIndentDefaultsCaptured = true;
+        }
+    }
+
+    private void applyConfiguredLevelIndent() {
+        if (configuredLevelIndent == null || !levelIndentDefaultsCaptured
+                || !(getUI() instanceof BasicTreeUI treeUI)) return;
+        int leftIndent = proportionalLeftIndent(configuredLevelIndent);
+        treeUI.setLeftChildIndent(leftIndent);
+        treeUI.setRightChildIndent(configuredLevelIndent - leftIndent);
+        revalidate();
+        repaint();
+    }
+
+    private void restoreLevelIndentDefaults() {
+        if (!levelIndentDefaultsCaptured || !(getUI() instanceof BasicTreeUI treeUI)) return;
+        treeUI.setLeftChildIndent(defaultLeftChildIndent);
+        treeUI.setRightChildIndent(defaultRightChildIndent);
+        revalidate();
+        repaint();
+    }
+
+    private int proportionalLeftIndent(int totalIndent) {
+        int left = Math.max(0, defaultLeftChildIndent);
+        int right = Math.max(0, defaultRightChildIndent);
+        int defaultTotal = left + right;
+        if (defaultTotal == 0) return totalIndent / 2;
+        return (int) Math.round((double) totalIndent * left / defaultTotal);
     }
 
     protected TreeNodeRenderer createDefaultRenderer() {

@@ -419,6 +419,18 @@ public class CodeEditorTextArea extends JComponent {
     @Setter
     protected boolean syntaxHighlightEnabled = true;
 
+    @Getter
+    @Setter
+    protected int syntaxHighlightDebounceMs = 75;
+
+    private Timer syntaxHighlightDebounceTimer;
+
+    @Getter
+    @Setter
+    protected int foldingDebounceMs = 120;
+
+    private Timer foldingDebounceTimer;
+
     protected volatile Future<?> currentHighlightTask;
 
     protected volatile Future<?> currentDiagnosticsTask;
@@ -891,7 +903,6 @@ public class CodeEditorTextArea extends JComponent {
             public void onInsert(int offset, String text) {
                 clearGhostText();
                 suppressHoverWhileEditing();
-                shiftStyledRangesForEdit(offset, 0, text.length());
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, 0, text);
                 pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
@@ -901,7 +912,6 @@ public class CodeEditorTextArea extends JComponent {
             public void onDelete(int offset, String removed) {
                 clearGhostText();
                 suppressHoverWhileEditing();
-                shiftStyledRangesForEdit(offset, removed.length(), 0);
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, removed.length(), "");
                 pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
@@ -913,7 +923,7 @@ public class CodeEditorTextArea extends JComponent {
                 scheduleSelectedTextOccurrencesRefresh();
                 selectionChainCache = Collections.emptyList();
                 selectionChainIndex = -1;
-                applySyntaxHighlight();
+                scheduleSyntaxHighlight();
                 invalidateGeometry();
                 if (diagnosticsAutoRunEnabled) {
                     scheduleDiagnosticsRefresh();
@@ -993,6 +1003,8 @@ public class CodeEditorTextArea extends JComponent {
         }
 
         if (diagnosticsDebounceTimer != null) diagnosticsDebounceTimer.stop();
+        if (syntaxHighlightDebounceTimer != null) syntaxHighlightDebounceTimer.stop();
+        if (foldingDebounceTimer != null) foldingDebounceTimer.stop();
         if (ghostTextIdleTimer != null) ghostTextIdleTimer.stop();
         if (hoverTimer != null) hoverTimer.stop();
         if (hoverDocumentationHideTimer != null) hoverDocumentationHideTimer.stop();
@@ -2472,7 +2484,6 @@ public class CodeEditorTextArea extends JComponent {
     protected void insertText(int offset, String text) {
         if (readOnly || text == null || text.isEmpty()) return;
         text = text.replace("\r\n", "\n").replace("\r", "\n");
-        List<int[]> oldFoldedAnchors = (foldingEnabled && !suppressFoldRestore) ? captureFoldedAnchorOffsets() : null;
         int linesBefore = buffer.lineCount();
         int lineAtInsert = buffer.lineOfOffset(Math.min(offset, buffer.length()));
         buffer.insert(offset, text);
@@ -2485,17 +2496,11 @@ public class CodeEditorTextArea extends JComponent {
         if (addedLines > 0) {
             fireLinesInserted(lineAtInsert + 1, addedLines);
         }
-        if (foldingEnabled) {
-            recomputeFoldRegions(suppressFoldRestore);
-            if (!suppressFoldRestore) {
-                restoreFoldedByOffsets(oldFoldedAnchors, offset, 0, text.length());
-            }
-        }
+        scheduleFoldRefresh();
     }
 
     protected void deleteText(int start, int end) {
         if (readOnly || start >= end) return;
-        List<int[]> oldFoldedAnchors = (foldingEnabled && !suppressFoldRestore) ? captureFoldedAnchorOffsets() : null;
         String removed = buffer.substring(start, end);
         int linesBefore = buffer.lineCount();
         int lineAtDelete = buffer.lineOfOffset(Math.min(start, buffer.length()));
@@ -2508,12 +2513,7 @@ public class CodeEditorTextArea extends JComponent {
         if (removedLines > 0) {
             fireLinesRemoved(lineAtDelete + 1, removedLines);
         }
-        if (foldingEnabled) {
-            recomputeFoldRegions(suppressFoldRestore);
-            if (!suppressFoldRestore) {
-                restoreFoldedByOffsets(oldFoldedAnchors, start, end - start, 0);
-            }
-        }
+        scheduleFoldRefresh();
     }
 
     protected List<int[]> captureFoldedAnchorOffsets() {
@@ -3947,6 +3947,16 @@ public class CodeEditorTextArea extends JComponent {
             }
         }
         foldRegions = newRegions;
+    }
+
+    protected void scheduleFoldRefresh() {
+        if (!foldingEnabled) return;
+        foldingDebounceTimer = restartDebounce(foldingDebounceTimer, foldingDebounceMs, () -> {
+            recomputeFoldRegions(!suppressFoldRestore);
+            invalidateGeometry();
+            revalidate();
+            repaint();
+        });
     }
 
     protected void computeRegionsForRule(FoldRule rule, int lineCount, List<FoldRegion> out) {
@@ -6796,7 +6806,22 @@ public class CodeEditorTextArea extends JComponent {
                 || tokenColorProvider == null || tokenRenderProvider == null) {
             return;
         }
+        stopDebounce(syntaxHighlightDebounceTimer);
+        applySyntaxHighlight(highlightVersion.incrementAndGet());
+    }
+
+    protected void scheduleSyntaxHighlight() {
         final int version = highlightVersion.incrementAndGet();
+        syntaxHighlightDebounceTimer = restartDebounce(syntaxHighlightDebounceTimer,
+                syntaxHighlightDebounceMs, () -> applySyntaxHighlight(version));
+    }
+
+    private void applySyntaxHighlight(int version) {
+        if (!syntaxHighlightEnabled || version != highlightVersion.get()) return;
+        if (tokenizerProvider == null || tokenClassifierProvider == null
+                || tokenColorProvider == null || tokenRenderProvider == null) {
+            return;
+        }
         final String textSnapshot = buffer.getText();
         final TokenizerCodeEditorProvider tokenizer = tokenizerProvider;
         final TokenClassifierCodeEditorProvider classifier = tokenClassifierProvider;
@@ -6827,13 +6852,10 @@ public class CodeEditorTextArea extends JComponent {
                 }
                 if (tokens == null) tokens = Collections.emptyList();
                 final Collection<Token> snapshot = List.copyOf(tokens);
-                SwingUtilities.invokeLater(() -> {
-                    if (version != highlightVersion.get()) return;
-                    if (!buffer.getText().equals(textSnapshot)) return;
-                    lastHighlightTokens = snapshot;
-                    lastHighlightText = textSnapshot;
-                    renderer.render(snapshot, colorProvider, CodeEditorTextArea.this);
-                });
+                if (version != highlightVersion.get()) return;
+                lastHighlightTokens = snapshot;
+                lastHighlightText = textSnapshot;
+                renderer.render(snapshot, colorProvider, CodeEditorTextArea.this);
             } catch (Exception ignored) {
             }
         });

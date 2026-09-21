@@ -949,6 +949,7 @@ Configurações relevantes:
 | `removeSelectedOnDelete` | Remove com Delete |
 | `activateOnEnter` | Ativa com Enter |
 | `toggleCheckOnSpace` | Alterna checkbox com Space |
+| `levelIndent` | Recuo horizontal em pixels por nível; `-1` usa o padrão visual |
 | `dragAndDropEnabled` | Habilita drag/drop interno |
 | `externalDropEnabled` | Habilita drop externo |
 

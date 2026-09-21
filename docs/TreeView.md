@@ -52,6 +52,14 @@ Use `TreeViewMode.SINGLE`, `MULTIPLE` ou `DISCONTIGUOUS` conforme a necessidade.
 
 APIs principais: `selectNode`, `selectNodes`, `getSelectedNode`, `getSelectedNodes`, `revealNode`, `expandParents`, `expandAll`, `collapseAll`, `expandToDepth`, `expandTo`, `snapshotExpansion` e `restoreExpansion`.
 
+Para árvores profundas, reduza o crescimento horizontal configurando o recuo aplicado a cada nível:
+
+```java
+tree.setLevelIndent(10);
+```
+
+Use `setLevelIndent(-1)` para restaurar o recuo definido pelo Look & Feel.
+
 ## Busca, filtro e atualizacao
 
 ```java
