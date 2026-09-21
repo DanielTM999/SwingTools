@@ -6852,10 +6852,13 @@ public class CodeEditorTextArea extends JComponent {
                 }
                 if (tokens == null) tokens = Collections.emptyList();
                 final Collection<Token> snapshot = List.copyOf(tokens);
-                if (version != highlightVersion.get()) return;
-                lastHighlightTokens = snapshot;
-                lastHighlightText = textSnapshot;
-                renderer.render(snapshot, colorProvider, CodeEditorTextArea.this);
+                SwingUtilities.invokeLater(() -> {
+                    if (version != highlightVersion.get()) return;
+                    if (!buffer.getText().equals(textSnapshot)) return;
+                    lastHighlightTokens = snapshot;
+                    lastHighlightText = textSnapshot;
+                    renderer.render(snapshot, colorProvider, CodeEditorTextArea.this);
+                });
             } catch (Exception ignored) {
             }
         });
