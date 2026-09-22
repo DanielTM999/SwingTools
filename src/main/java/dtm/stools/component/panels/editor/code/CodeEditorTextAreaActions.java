@@ -462,6 +462,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         for (CodeEditorStateListener listener : stateListeners) {
             listener.onStateChanged(state);
         }
+        onLinkedRenameCaretMoved(state.caretOffset());
         if (lastWordCaretChangeOffset != state.caretOffset()) {
             lastWordCaretChangeOffset = state.caretOffset();
             scheduleDocumentHighlightsRefresh();
@@ -926,36 +927,9 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         }
     }
 
-    public void triggerRename() {
-        if (readOnly) return;
-        if (renameProvider == null) return;
-        String current = currentWordAtCaret();
-        String prompt = (current == null || current.isEmpty())
-                ? text("rename.prompt.empty", "Rename to:")
-                : text("rename.prompt.current", "Rename '{current}' to:")
-                        .replace("{current}", current);
-        String newName = JOptionPane.showInputDialog(this, prompt, current);
-        if (newName == null) return;
-        newName = newName.trim();
-        if (newName.isEmpty()) return;
-        RenameProvider provider = renameProvider;
-        String textSnapshot = buffer.getText();
-        RenameContext ctx = new RenameContext(textSnapshot,
-                new Position(caretLine, caretCol), caretOffset(), newName);
-        getProviderExecutor().submit(() -> {
-            List<TextEdit> edits;
-            try {
-                edits = provider.computeRenameEdits(ctx);
-            } catch (Exception ex) {
-                edits = Collections.emptyList();
-            }
-            final List<TextEdit> snapshot = edits != null ? List.copyOf(edits) : List.of();
-            SwingUtilities.invokeLater(() -> {
-                if (!buffer.getText().equals(textSnapshot)) return;
-                if (!snapshot.isEmpty()) applyEdits(snapshot);
-            });
-        });
-    }
+    public abstract void triggerRename();
+
+    protected abstract void onLinkedRenameCaretMoved(int offset);
 
     public void triggerCodeActions() {
         if (codeActionProvider == null) return;

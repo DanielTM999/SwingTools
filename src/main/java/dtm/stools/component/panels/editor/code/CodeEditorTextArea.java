@@ -10,7 +10,7 @@ import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.util.*;
 
-public class CodeEditorTextArea extends CodeEditorTextAreaActions {
+public class CodeEditorTextArea extends CodeEditorTextAreaRename {
 
     public CodeEditorTextArea() {
         this(new TextBuffer());

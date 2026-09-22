@@ -1,5 +1,7 @@
 package dtm.stools.component.panels.editor.code;
 
+import dtm.stools.component.panels.editor.code.rename.RenamePresenter;
+import dtm.stools.component.panels.editor.code.rename.RenameStyle;
 import dtm.stools.component.panels.BlockingPanel;
 import dtm.stools.component.panels.editor.code.gutter.CodeEditorGutter;
 import dtm.stools.component.panels.editor.code.gutter.layer.BookmarkLayer;
@@ -1452,6 +1454,30 @@ public class CodeEditor extends BlockingPanel {
 
     public RenameProvider getRenameProvider() {
         return textArea.getRenameProvider();
+    }
+
+    public void setRenamePresenter(RenamePresenter presenter) {
+        textArea.setRenamePresenter(presenter);
+    }
+
+    public RenamePresenter getRenamePresenter() {
+        return textArea.getRenamePresenter();
+    }
+
+    public void setRenameStyle(RenameStyle style) {
+        textArea.setRenameStyle(style);
+    }
+
+    public boolean hasActiveLinkedRename() {
+        return textArea.hasActiveLinkedRename();
+    }
+
+    public boolean commitLinkedRename() {
+        return textArea.commitLinkedRename();
+    }
+
+    public void cancelLinkedRename() {
+        textArea.cancelLinkedRename();
     }
 
     public void setCodeActionProvider(CodeActionProvider p) {

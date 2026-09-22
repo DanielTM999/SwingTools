@@ -164,6 +164,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
 
         paintDocumentHighlights(g2, defaultFm, lineHeight);
         paintSelectedTextOccurrences(g2, defaultFm, lineHeight);
+        paintLinkedRename(g2, defaultFm, lineHeight);
 
         if (hasSelection() || hasExtraSelections()) {
             paintSelection(g2, defaultFm, lineHeight);
@@ -1018,6 +1019,8 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
     }
 
     protected abstract int caretOffset();
+
+    protected abstract void paintLinkedRename(Graphics2D g2, FontMetrics fm, int lineHeight);
 
     public abstract boolean hasSelection();
 

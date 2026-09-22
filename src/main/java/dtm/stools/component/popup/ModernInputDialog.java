@@ -9,6 +9,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.util.function.Supplier;
 
 public final class ModernInputDialog {
 
@@ -48,6 +49,8 @@ public final class ModernInputDialog {
         private Color cancelButtonForeground = null;
 
         private JComponent inputComponent = null;
+        private Supplier<String> valueSupplier = null;
+        private JTextComponent validationSource = null;
         private Component parent = null;
 
         private String confirmText = text("button.confirm", "Confirmar");
@@ -113,6 +116,16 @@ public final class ModernInputDialog {
 
         public ModernInputDialogBuilder input(JComponent component) {
             this.inputComponent = component;
+            return this;
+        }
+
+        public ModernInputDialogBuilder valueSupplier(Supplier<String> supplier) {
+            this.valueSupplier = supplier;
+            return this;
+        }
+
+        public ModernInputDialogBuilder validationSource(JTextComponent source) {
+            this.validationSource = source;
             return this;
         }
 
@@ -336,7 +349,7 @@ public final class ModernInputDialog {
             final JButton[] confirmBtnRef = new JButton[1];
 
             JButton confirmBtn = buildBtn(confirmText, confirmBg, confirmHover, confirmFg, () -> {
-                String value = getInputValue(finalField, inputComponent);
+                String value = resolveValue(finalField, inputComponent);
 
                 try {
                     if (validationHandler != null && isBlank(value)) {
@@ -365,7 +378,7 @@ public final class ModernInputDialog {
             confirmBtnRef[0] = confirmBtn;
 
             if (disableConfirmWhenInvalid && validationHandler != null) {
-                confirmBtn.setEnabled(!isBlank(getInputValue(finalField, inputComponent)));
+                confirmBtn.setEnabled(!isBlank(resolveValue(finalField, inputComponent)));
             }
 
             installRealtimeValidation(
@@ -402,7 +415,8 @@ public final class ModernInputDialog {
 
             ModernPopupSupport.installCloseOnEsc(dialog.getRootPane(), closeOnEsc, dialog::dispose);
 
-            SwingUtilities.invokeLater(inputComponent::requestFocusInWindow);
+            JComponent focusTarget = validationSource != null ? validationSource : inputComponent;
+            SwingUtilities.invokeLater(focusTarget::requestFocusInWindow);
 
             dialog.setVisible(true);
 
@@ -424,6 +438,8 @@ public final class ModernInputDialog {
 
             if (finalField != null) {
                 textComponent = finalField;
+            } else if (validationSource != null) {
+                textComponent = validationSource;
             } else if (inputComponent instanceof JTextComponent component) {
                 textComponent = component;
             }
@@ -435,7 +451,7 @@ public final class ModernInputDialog {
             JTextComponent finalTextComponent = textComponent;
 
             Timer validationTimer = new Timer(validationDelayMs, e -> {
-                String value = finalTextComponent.getText();
+                String value = valueSupplier != null ? valueSupplier.get() : finalTextComponent.getText();
 
                 if (isBlank(value)) {
                     setEmptyState(dialog, errorLbl, confirmBtn);
@@ -469,6 +485,14 @@ public final class ModernInputDialog {
                     restartValidation(validationTimer);
                 }
             });
+        }
+
+        private String resolveValue(JTextField defaultField, JComponent component) {
+            if (valueSupplier != null) {
+                String value = valueSupplier.get();
+                return value == null ? "" : value;
+            }
+            return getInputValue(defaultField, component);
         }
 
         private void restartValidation(Timer timer) {

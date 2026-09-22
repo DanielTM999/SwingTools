@@ -155,6 +155,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         if (readOnly) {
             hideAutoCompletePopup();
             clearSnippetSession();
+            abortLinkedRename();
             overwriteMode = false;
         }
         fireStateChangedIfNeeded();
@@ -168,6 +169,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         int lineAtInsert = buffer.lineOfOffset(Math.min(offset, buffer.length()));
         buffer.insert(offset, text);
         onSnippetInsert(offset, text.length());
+        onLinkedRenameInsert(offset, text.length());
         final String textFinal = text;
         documentEditListeners.forEach(l -> l.onInsert(offset, textFinal));
         documentEditListeners.forEach(DocumentEditListener::onTextChanged);
@@ -186,6 +188,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         int lineAtDelete = buffer.lineOfOffset(Math.min(start, buffer.length()));
         buffer.delete(start, end);
         onSnippetDelete(start, end);
+        onLinkedRenameDelete(start, end);
         documentEditListeners.forEach(l -> l.onDelete(start, removed));
         documentEditListeners.forEach(DocumentEditListener::onTextChanged);
         fireStateChangedIfNeeded();
@@ -486,6 +489,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
 
     protected void performUndo() {
         if (readOnly) return;
+        abortLinkedRename();
         int linesBefore = buffer.lineCount();
         TextBuffer.EditResult result = buffer.undoEdit();
         if (result.caretOffset() >= 0) {
@@ -505,6 +509,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
 
     protected void performRedo() {
         if (readOnly) return;
+        abortLinkedRename();
         int linesBefore = buffer.lineCount();
         TextBuffer.EditResult result = buffer.redoEdit();
         if (result.caretOffset() >= 0) {
@@ -526,6 +531,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         String newText = text == null ? "" : text.replace("\r\n", "\n").replace("\r", "\n");
         String oldText = buffer.getText();
         int oldLineCount = buffer.lineCount();
+        abortLinkedRename();
         buffer.setText(newText);
         setCaretFromOffset(0);
         clearSelection();
@@ -1294,6 +1300,12 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     protected abstract void onSnippetInsert(int offset, int insertedLen);
 
     protected abstract void onSnippetDelete(int start, int end);
+
+    protected abstract void onLinkedRenameInsert(int offset, int insertedLen);
+
+    protected abstract void onLinkedRenameDelete(int start, int end);
+
+    protected abstract void abortLinkedRename();
 
     protected abstract void hideAutoCompletePopup();
 

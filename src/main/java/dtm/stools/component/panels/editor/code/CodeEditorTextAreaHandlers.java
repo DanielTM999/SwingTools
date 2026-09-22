@@ -112,6 +112,11 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             boolean ctrl = e.isControlDown() || e.isMetaDown();
             boolean shift = e.isShiftDown();
 
+            if (handleLinkedRenameKey(e)) {
+                repaint();
+                return;
+            }
+
             if (isNavigationKey(e.getKeyCode())) {
                 clearInlayInteraction();
                 clearGhostText();
@@ -949,6 +954,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
 
         @Override
         public void focusLost(FocusEvent e) {
+            onLinkedRenameFocusLost(e);
             caretVisible = false;
             caretTimer.stop();
             stopGhostIdleTimer();
@@ -1038,4 +1044,8 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
         foldPreviewWindow.setLocation(px, py);
         foldPreviewWindow.setVisible(true);
     }
+
+    protected abstract boolean handleLinkedRenameKey(KeyEvent e);
+
+    protected abstract void onLinkedRenameFocusLost(FocusEvent e);
 }

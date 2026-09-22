@@ -55,6 +55,8 @@ import dtm.stools.component.panels.editor.code.search.SearchMatch;
 import dtm.stools.component.panels.editor.code.search.SearchOptions;
 import dtm.stools.component.panels.editor.code.search.SearchPanel;
 import dtm.stools.component.panels.editor.code.utils.BracketHighlighter;
+import dtm.stools.component.panels.editor.code.rename.InlineRenamePresenter;
+import dtm.stools.component.panels.editor.code.rename.RenamePresenter;
 import dtm.stools.i18n.I18n;
 import lombok.Getter;
 import lombok.Setter;
@@ -838,6 +840,9 @@ public abstract class CodeEditorTextAreaState extends JComponent {
 
     @Getter @Setter
     protected RenameProvider renameProvider;
+
+    @Getter @Setter
+    protected RenamePresenter renamePresenter = new InlineRenamePresenter();
 
     @Getter @Setter
     protected CodeActionProvider codeActionProvider;
