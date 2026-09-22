@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code;
 
+import dtm.stools.component.panels.editor.code.rename.LinkedRenamePopupFactory;
 import dtm.stools.component.panels.editor.code.rename.RenamePresenter;
 import dtm.stools.component.panels.editor.code.rename.RenameStyle;
 import dtm.stools.component.panels.BlockingPanel;
@@ -1466,6 +1467,14 @@ public class CodeEditor extends BlockingPanel {
 
     public void setRenameStyle(RenameStyle style) {
         textArea.setRenameStyle(style);
+    }
+
+    public void setLinkedRenamePopupFactory(LinkedRenamePopupFactory factory) {
+        textArea.setLinkedRenamePopupFactory(factory);
+    }
+
+    public LinkedRenamePopupFactory getLinkedRenamePopupFactory() {
+        return textArea.getLinkedRenamePopupFactory();
     }
 
     public boolean hasActiveLinkedRename() {

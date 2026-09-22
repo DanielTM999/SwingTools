@@ -9,8 +9,10 @@ import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlig
 import dtm.stools.component.panels.editor.code.provider.RenameContext;
 import dtm.stools.component.panels.editor.code.provider.RenameProvider;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
+import dtm.stools.component.panels.editor.code.rename.DefaultLinkedRenamePopupFactory;
 import dtm.stools.component.panels.editor.code.rename.InlineRenamePresenter;
-import dtm.stools.component.panels.editor.code.rename.RenameOption;
+import dtm.stools.component.panels.editor.code.rename.LinkedRenamePopupContext;
+import dtm.stools.component.panels.editor.code.rename.LinkedRenamePopupFactory;
 import dtm.stools.component.panels.editor.code.rename.RenamePrepareContext;
 import dtm.stools.component.panels.editor.code.rename.RenamePreparation;
 import dtm.stools.component.panels.editor.code.rename.RenamePresenter;
@@ -19,7 +21,11 @@ import dtm.stools.component.panels.editor.code.rename.RenameStyle;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.FocusEvent;
+import java.awt.event.HierarchyBoundsListener;
+import java.awt.event.HierarchyEvent;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,9 +53,12 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     protected JWindow linkedRenameWindow;
     protected JWindow renameHintWindow;
     protected Timer renameHintTimer;
+    protected boolean linkedRepositionScheduled;
+    protected LinkedRenamePopupFactory linkedRenamePopupFactory = new DefaultLinkedRenamePopupFactory();
 
     protected CodeEditorTextAreaRename(TextBuffer buffer) {
         super(buffer);
+        installLinkedRenameTracking();
     }
 
     public void setRenameStyle(RenameStyle style) {
@@ -700,79 +709,147 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         return color;
     }
 
+    public LinkedRenamePopupFactory getLinkedRenamePopupFactory() {
+        return linkedRenamePopupFactory;
+    }
+
+    public void setLinkedRenamePopupFactory(LinkedRenamePopupFactory factory) {
+        this.linkedRenamePopupFactory = factory == null ? new DefaultLinkedRenamePopupFactory() : factory;
+        if (hasActiveLinkedRename()) {
+            hideLinkedRenameWindow();
+            showLinkedRenameWindow();
+        }
+    }
+
+    protected void installLinkedRenameTracking() {
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                onLinkedRenameGeometryChanged();
+            }
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+                onLinkedRenameGeometryChanged();
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                hideLinkedRenameWindowTemporarily();
+            }
+        });
+        addHierarchyBoundsListener(new HierarchyBoundsListener() {
+            @Override
+            public void ancestorMoved(HierarchyEvent e) {
+                onLinkedRenameGeometryChanged();
+            }
+
+            @Override
+            public void ancestorResized(HierarchyEvent e) {
+                onLinkedRenameGeometryChanged();
+            }
+        });
+        addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) == 0) return;
+            if (isShowing()) onLinkedRenameGeometryChanged();
+            else hideLinkedRenameWindowTemporarily();
+        });
+    }
+
+    protected void onLinkedRenameGeometryChanged() {
+        hideRenameHint();
+        if (!hasActiveLinkedRename()) return;
+        if (linkedRepositionScheduled) return;
+        linkedRepositionScheduled = true;
+        SwingUtilities.invokeLater(() -> {
+            linkedRepositionScheduled = false;
+            if (hasActiveLinkedRename()) positionLinkedRenameWindow();
+        });
+    }
+
+    protected void hideLinkedRenameWindowTemporarily() {
+        if (linkedRenameWindow != null) linkedRenameWindow.setVisible(false);
+    }
+
     protected void showLinkedRenameWindow() {
         if (!hasActiveLinkedRename() || !canShowPopups()) return;
         Window owner = SwingUtilities.getWindowAncestor(this);
         if (owner == null) return;
         if (linkedRenameWindow == null || linkedRenameWindow.getOwner() != owner) {
             hideLinkedRenameWindow();
+            JComponent content = buildLinkedRenamePanel();
+            if (content == null) return;
             linkedRenameWindow = new JWindow(owner);
             linkedRenameWindow.setFocusableWindowState(false);
-            linkedRenameWindow.setContentPane(buildLinkedRenamePanel());
+            linkedRenameWindow.setContentPane(content);
             linkedRenameWindow.pack();
+        }
+        positionLinkedRenameWindow();
+    }
+
+    protected void positionLinkedRenameWindow() {
+        JWindow window = linkedRenameWindow;
+        if (window == null || !hasActiveLinkedRename()) return;
+        if (!isShowing() || !canShowPopups()) {
+            window.setVisible(false);
+            return;
         }
         int[] primary = linkedRanges.get(linkedPrimary);
         FontMetrics fm = fontMetricsFor(getFont());
-        int line = buffer.lineOfOffset(clampOffset(primary[0]));
+        int offset = clampOffset(primary[0]);
+        int line = buffer.lineOfOffset(offset);
+        if (isLineHidden(line)) {
+            window.setVisible(false);
+            return;
+        }
         String lineText = buffer.lineAt(line);
-        int x = baseVisualXForColumn(line, lineText, clampOffset(primary[0]) - buffer.offsetOfLine(line), fm);
-        int y = yOfBufferLine(line) + fm.getHeight() + 2;
+        int x = baseVisualXForColumn(line, lineText, offset - buffer.offsetOfLine(line), fm);
+        int endOffset = clampOffset(primary[0] + primary[1]);
+        int endX = buffer.lineOfOffset(endOffset) == line
+                ? baseVisualXForColumn(line, lineText, endOffset - buffer.offsetOfLine(line), fm)
+                : x;
+        int y = yOfBufferLine(line);
+        int height = fm.getHeight();
+        Rectangle visible = getVisibleRect();
+        if (y + height <= visible.y || y >= visible.y + visible.height
+                || x > visible.x + visible.width || Math.max(endX, x + 1) < visible.x) {
+            window.setVisible(false);
+            return;
+        }
         Point screen;
         try {
             screen = getLocationOnScreen();
         } catch (IllegalComponentStateException ex) {
+            window.setVisible(false);
             return;
         }
-        Rectangle visible = getVisibleRect();
-        if (y < visible.y || y > visible.y + visible.height) {
-            linkedRenameWindow.setVisible(false);
-            return;
-        }
-        linkedRenameWindow.setLocation(screen.x + x, screen.y + y);
-        if (!linkedRenameWindow.isVisible()) linkedRenameWindow.setVisible(true);
+        Rectangle anchor = new Rectangle(screen.x + x, screen.y + y, Math.max(1, endX - x), height);
+        LinkedRenamePopupFactory factory = linkedRenamePopupFactory != null
+                ? linkedRenamePopupFactory
+                : new DefaultLinkedRenamePopupFactory();
+        Point location = factory.locate(anchor, window.getSize());
+        if (location == null) location = new Point(anchor.x, anchor.y + anchor.height + 2);
+        window.setLocation(location);
+        if (!window.isVisible()) window.setVisible(true);
     }
 
     protected JComponent buildLinkedRenamePanel() {
-        Color bg = UIManager.getColor("ToolTip.background");
-        if (bg == null) bg = UIManager.getColor("Panel.background");
-        Color fg = UIManager.getColor("ToolTip.foreground");
-        if (fg == null) fg = UIManager.getColor("Label.foreground");
-        Color border = UIManager.getColor("Component.borderColor");
-        if (border == null) border = linkedRenameAccent();
-
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(bg);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(border),
-                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
-
-        RenameSession session = linkedSession;
-        if (session != null) {
-            JLabel title = new JLabel(session.displayTitle());
-            title.setForeground(fg);
-            title.setFont(title.getFont().deriveFont(Font.BOLD));
-            title.setAlignmentX(Component.LEFT_ALIGNMENT);
-            panel.add(title);
-            for (RenameOption option : session.options()) {
-                JCheckBox checkBox = new JCheckBox(option.label(), linkedOptionValues.getOrDefault(option.id(), option.defaultValue()));
-                checkBox.setOpaque(false);
-                checkBox.setFocusable(false);
-                checkBox.setForeground(fg);
-                checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
-                checkBox.addActionListener(ev -> {
-                    linkedOptionValues.put(option.id(), checkBox.isSelected());
-                    requestFocusInWindow();
-                });
-                panel.add(checkBox);
-            }
+        LinkedRenamePopupFactory factory = linkedRenamePopupFactory != null
+                ? linkedRenamePopupFactory
+                : new DefaultLinkedRenamePopupFactory();
+        LinkedRenamePopupContext context = new LinkedRenamePopupContext(
+                this,
+                linkedSession,
+                new LinkedHashMap<>(linkedOptionValues),
+                (id, value) -> linkedOptionValues.put(id, value),
+                this::requestFocusInWindow,
+                text("rename.hint.inline", "Enter to rename, Esc to cancel")
+        );
+        try {
+            return factory.createContent(context);
+        } catch (Exception ex) {
+            return new DefaultLinkedRenamePopupFactory().createContent(context);
         }
-        JLabel hint = new JLabel(text("rename.hint.inline", "Enter to rename, Esc to cancel"));
-        hint.setForeground(fg);
-        hint.setFont(hint.getFont().deriveFont(hint.getFont().getSize2D() - 1f));
-        hint.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(hint);
-        return panel;
     }
 
     protected void hideLinkedRenameWindow() {
