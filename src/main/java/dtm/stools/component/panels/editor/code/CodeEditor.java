@@ -1469,6 +1469,14 @@ public class CodeEditor extends BlockingPanel {
         textArea.setRenameStyle(style);
     }
 
+    public void setLinkedRenamePopupEnabled(boolean enabled) {
+        textArea.setLinkedRenamePopupEnabled(enabled);
+    }
+
+    public boolean isLinkedRenamePopupEnabled() {
+        return textArea.isLinkedRenamePopupEnabled();
+    }
+
     public void setLinkedRenamePopupFactory(LinkedRenamePopupFactory factory) {
         textArea.setLinkedRenamePopupFactory(factory);
     }

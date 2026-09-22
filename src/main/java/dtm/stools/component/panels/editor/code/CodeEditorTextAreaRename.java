@@ -54,6 +54,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     protected JWindow renameHintWindow;
     protected Timer renameHintTimer;
     protected boolean linkedRepositionScheduled;
+    protected boolean linkedRenamePopupEnabled = true;
     protected LinkedRenamePopupFactory linkedRenamePopupFactory = new DefaultLinkedRenamePopupFactory();
 
     protected CodeEditorTextAreaRename(TextBuffer buffer) {
@@ -709,6 +710,20 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         return color;
     }
 
+    public boolean isLinkedRenamePopupEnabled() {
+        return linkedRenamePopupEnabled;
+    }
+
+    public void setLinkedRenamePopupEnabled(boolean enabled) {
+        if (linkedRenamePopupEnabled == enabled) return;
+        linkedRenamePopupEnabled = enabled;
+        if (!enabled) {
+            hideLinkedRenameWindow();
+        } else if (hasActiveLinkedRename()) {
+            showLinkedRenameWindow();
+        }
+    }
+
     public LinkedRenamePopupFactory getLinkedRenamePopupFactory() {
         return linkedRenamePopupFactory;
     }
@@ -763,7 +778,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         linkedRepositionScheduled = true;
         SwingUtilities.invokeLater(() -> {
             linkedRepositionScheduled = false;
-            if (hasActiveLinkedRename()) positionLinkedRenameWindow();
+            if (hasActiveLinkedRename() && linkedRenamePopupEnabled) positionLinkedRenameWindow();
         });
     }
 
@@ -772,6 +787,10 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     }
 
     protected void showLinkedRenameWindow() {
+        if (!linkedRenamePopupEnabled) {
+            hideLinkedRenameWindow();
+            return;
+        }
         if (!hasActiveLinkedRename() || !canShowPopups()) return;
         Window owner = SwingUtilities.getWindowAncestor(this);
         if (owner == null) return;
