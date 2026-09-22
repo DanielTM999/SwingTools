@@ -93,6 +93,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
@@ -399,7 +402,7 @@ public class CodeEditorTextArea extends JComponent {
 
     private volatile Collection<Token> lastHighlightTokens;
     private volatile String lastHighlightText;
-    private PendingHighlightEdit pendingHighlightEdit;
+    private int highlightValidBefore = Integer.MAX_VALUE;
 
     private record PendingHighlightEdit(int offset, int removedLength, String insertedText) {}
 
@@ -904,8 +907,8 @@ public class CodeEditorTextArea extends JComponent {
                 clearGhostText();
                 suppressHoverWhileEditing();
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, 0, text);
-                pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
+                invalidateSyntaxHighlightFrom(offset);
             }
 
             @Override
@@ -913,8 +916,8 @@ public class CodeEditorTextArea extends JComponent {
                 clearGhostText();
                 suppressHoverWhileEditing();
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, removed.length(), "");
-                pendingHighlightEdit = edit;
                 pendingDiagnosticsEdit = edit;
+                invalidateSyntaxHighlightFrom(offset);
             }
 
             @Override
@@ -1128,11 +1131,14 @@ public class CodeEditorTextArea extends JComponent {
     }
 
     private ExecutorService createHighlightExecutor() {
-        return Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "CodeEditorTextArea-Highlight");
-            t.setDaemon(true);
-            return t;
-        });
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                1, 1, 0L, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(1), r -> {
+                    Thread t = new Thread(r, "CodeEditorTextArea-Highlight");
+                    t.setDaemon(true);
+                    return t;
+                }, new ThreadPoolExecutor.DiscardOldestPolicy());
+        return executor;
     }
 
     private ExecutorService createDiagnosticsExecutor() {
@@ -2097,6 +2103,7 @@ public class CodeEditorTextArea extends JComponent {
 
     public void clearStyledRanges() {
         styledRanges.clear();
+        highlightValidBefore = Integer.MAX_VALUE;
         invalidateStyledRangesIndex();
         repaint();
     }
@@ -2104,7 +2111,16 @@ public class CodeEditorTextArea extends JComponent {
     public void replaceStyledRanges(Collection<StyledRange> ranges) {
         styledRanges.clear();
         if (ranges != null) styledRanges.addAll(ranges);
+        highlightValidBefore = Integer.MAX_VALUE;
         invalidateStyledRangesIndex();
+        repaint();
+    }
+
+    protected void invalidateSyntaxHighlightFrom(int offset) {
+        int safeOffset = Math.max(0, Math.min(offset, buffer.length()));
+        int line = buffer.lineOfOffset(safeOffset);
+        int lineStart = buffer.offsetOfLine(line);
+        highlightValidBefore = Math.min(highlightValidBefore, lineStart);
         repaint();
     }
 
@@ -3243,6 +3259,7 @@ public class CodeEditorTextArea extends JComponent {
 
     public TextStyle getStyleAt(int offset) {
         offset = clampOffset(offset);
+        if (offset >= highlightValidBefore) return defaultStyle;
         if (styledRanges.isEmpty()) return defaultStyle;
         ensureStyledRangesIndex();
         StyledRange[] arr = sortedStyledRanges;
@@ -6667,6 +6684,10 @@ public class CodeEditorTextArea extends JComponent {
             target = new Timer(delayMs, e -> action.run());
             target.setRepeats(false);
         } else {
+            for (ActionListener listener : target.getActionListeners()) {
+                target.removeActionListener(listener);
+            }
+            target.addActionListener(e -> action.run());
             target.setInitialDelay(delayMs);
             target.setDelay(delayMs);
         }
@@ -6828,10 +6849,10 @@ public class CodeEditorTextArea extends JComponent {
         final TokenColorProvider colorProvider = tokenColorProvider;
         final TokenRenderCodeEditorProvider renderer = tokenRenderProvider;
 
-        final PendingHighlightEdit edit = pendingHighlightEdit;
-        pendingHighlightEdit = null;
         final Collection<Token> prevTokens = lastHighlightTokens;
         final String prevText = lastHighlightText;
+        final TokenizeChange change = coalescedHighlightChange(prevText, textSnapshot, prevTokens);
+        final TokenRenderSnapshot renderSnapshot = new TokenRenderSnapshot(textSnapshot, defaultStyle);
 
         if (currentHighlightTask != null && !currentHighlightTask.isDone()) {
             currentHighlightTask.cancel(true);
@@ -6840,28 +6861,66 @@ public class CodeEditorTextArea extends JComponent {
             try {
                 Collection<Token> tokens;
                 if (tokenizer.supportsIncremental()
-                        && isConsistentEdit(edit, prevText, textSnapshot)
-                        && prevTokens != null) {
-                    TokenizeChange change = new TokenizeChange(
-                            prevText, textSnapshot,
-                            edit.offset(), edit.removedLength(), edit.insertedText(),
-                            prevTokens);
+                        && change != null) {
                     tokens = tokenizer.tokenize(change, classifier);
                 } else {
                     tokens = tokenizer.tokenize(textSnapshot, classifier);
                 }
                 if (tokens == null) tokens = Collections.emptyList();
                 final Collection<Token> snapshot = List.copyOf(tokens);
+                final PreparedTokenRenderCodeEditorProvider preparedRenderer =
+                        renderer instanceof PreparedTokenRenderCodeEditorProvider prepared
+                                ? prepared : null;
+                final Collection<StyledRange> preparedRanges;
+                if (preparedRenderer == null) {
+                    preparedRanges = null;
+                } else {
+                    Collection<StyledRange> ranges =
+                            preparedRenderer.prepare(snapshot, colorProvider, renderSnapshot);
+                    preparedRanges = ranges == null ? List.of() : List.copyOf(ranges);
+                }
                 SwingUtilities.invokeLater(() -> {
                     if (version != highlightVersion.get()) return;
                     if (!buffer.getText().equals(textSnapshot)) return;
                     lastHighlightTokens = snapshot;
                     lastHighlightText = textSnapshot;
-                    renderer.render(snapshot, colorProvider, CodeEditorTextArea.this);
+                    if (preparedRenderer != null) {
+                        replaceStyledRanges(preparedRanges);
+                        preparedRenderer.afterApply(CodeEditorTextArea.this);
+                    } else {
+                        renderer.render(snapshot, colorProvider, CodeEditorTextArea.this);
+                    }
                 });
-            } catch (Exception ignored) {
+            } catch (Exception failure) {
+                CODE_LENS_LOG.log(Level.WARNING, "syntax highlight provider failed", failure);
             }
         });
+    }
+
+    private static TokenizeChange coalescedHighlightChange(
+            String oldText, String newText, Collection<Token> previousTokens) {
+        if (oldText == null || newText == null || previousTokens == null
+                || oldText.equals(newText)) {
+            return null;
+        }
+        int prefix = 0;
+        int commonLength = Math.min(oldText.length(), newText.length());
+        while (prefix < commonLength && oldText.charAt(prefix) == newText.charAt(prefix)) {
+            prefix++;
+        }
+        int suffix = 0;
+        int oldRemaining = oldText.length() - prefix;
+        int newRemaining = newText.length() - prefix;
+        int maxSuffix = Math.min(oldRemaining, newRemaining);
+        while (suffix < maxSuffix
+                && oldText.charAt(oldText.length() - 1 - suffix)
+                == newText.charAt(newText.length() - 1 - suffix)) {
+            suffix++;
+        }
+        int removedLength = oldText.length() - prefix - suffix;
+        String insertedText = newText.substring(prefix, newText.length() - suffix);
+        return new TokenizeChange(
+                oldText, newText, prefix, removedLength, insertedText, previousTokens);
     }
 
     private static boolean isConsistentEdit(PendingHighlightEdit edit, String prevText, String newText) {
