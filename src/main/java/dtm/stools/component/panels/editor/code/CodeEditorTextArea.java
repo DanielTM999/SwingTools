@@ -401,7 +401,7 @@ public class CodeEditorTextArea extends JComponent {
     protected boolean documentHighlightsEnabled = true;
 
     @Getter
-    protected int documentHighlightDebounceMs = 300;
+    protected int documentHighlightDebounceMs = 200;
 
     @Getter
     protected DocumentHighlightPalette documentHighlightPalette = DocumentHighlightPalette.defaults();
