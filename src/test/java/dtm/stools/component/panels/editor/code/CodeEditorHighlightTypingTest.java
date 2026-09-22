@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CodeEditorHighlightTypingTest {
 
     @Test
-    void hidesStaleStylesFromTheEditedLineWithoutRebuildingTheRangeList() throws Exception {
+    void preservesAndRebasesStylesWhileTheReplacementHighlightIsPending() throws Exception {
         TestEditor editor = new TestEditor();
         TextStyle firstLine = TextStyle.builder().foreground(Color.BLUE).build();
         TextStyle secondLine = TextStyle.builder().foreground(Color.GREEN).build();
@@ -44,7 +44,8 @@ class CodeEditorHighlightTypingTest {
             editor.type(editor.getBuffer().getText().indexOf('n'), "ew");
 
             assertSame(firstLine, editor.getStyleAt(0));
-            assertSame(editor.getDefaultStyle(), editor.getStyleAt(10));
+            assertSame(secondLine, editor.getStyleAt(10));
+            assertSame(secondLine, editor.getStyleAt(11));
             assertEquals(rangeCount, editor.getStyledRanges().size());
         });
     }

@@ -430,8 +430,6 @@ public class CodeEditorTextArea extends JComponent {
 
     private volatile Collection<Token> lastHighlightTokens;
     private volatile String lastHighlightText;
-    private int highlightValidBefore = Integer.MAX_VALUE;
-
     private record PendingHighlightEdit(int offset, int removedLength, String insertedText) {}
 
     @Getter
@@ -936,7 +934,7 @@ public class CodeEditorTextArea extends JComponent {
                 suppressHoverWhileEditing();
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, 0, text);
                 pendingDiagnosticsEdit = edit;
-                invalidateSyntaxHighlightFrom(offset);
+                shiftStyledRangesForEdit(offset, 0, text.length());
             }
 
             @Override
@@ -945,7 +943,7 @@ public class CodeEditorTextArea extends JComponent {
                 suppressHoverWhileEditing();
                 PendingHighlightEdit edit = new PendingHighlightEdit(offset, removed.length(), "");
                 pendingDiagnosticsEdit = edit;
-                invalidateSyntaxHighlightFrom(offset);
+                shiftStyledRangesForEdit(offset, removed.length(), 0);
             }
 
             @Override
@@ -2139,7 +2137,6 @@ public class CodeEditorTextArea extends JComponent {
 
     public void clearStyledRanges() {
         styledRanges.clear();
-        highlightValidBefore = Integer.MAX_VALUE;
         invalidateStyledRangesIndex();
         repaint();
     }
@@ -2147,16 +2144,7 @@ public class CodeEditorTextArea extends JComponent {
     public void replaceStyledRanges(Collection<StyledRange> ranges) {
         styledRanges.clear();
         if (ranges != null) styledRanges.addAll(ranges);
-        highlightValidBefore = Integer.MAX_VALUE;
         invalidateStyledRangesIndex();
-        repaint();
-    }
-
-    protected void invalidateSyntaxHighlightFrom(int offset) {
-        int safeOffset = Math.max(0, Math.min(offset, buffer.length()));
-        int line = buffer.lineOfOffset(safeOffset);
-        int lineStart = buffer.offsetOfLine(line);
-        highlightValidBefore = Math.min(highlightValidBefore, lineStart);
         repaint();
     }
 
@@ -3296,7 +3284,6 @@ public class CodeEditorTextArea extends JComponent {
 
     public TextStyle getStyleAt(int offset) {
         offset = clampOffset(offset);
-        if (offset >= highlightValidBefore) return defaultStyle;
         if (styledRanges.isEmpty()) return defaultStyle;
         ensureStyledRangesIndex();
         StyledRange[] arr = sortedStyledRanges;
