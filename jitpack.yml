@@ -2,10 +2,11 @@ jdk:
   - openjdk21
 
 before_install:
+  - sdk update || true
   - sdk install java 25-open
   - sdk use java 25-open
-  - sdk install maven 3.9.9
-  - sdk use maven 3.9.9
+  - sdk install maven 3.9.9 || sdk install maven 3.9.9 || true
+  - sdk use maven 3.9.9 || true
 
 install:
-  - $HOME/.sdkman/candidates/maven/current/bin/mvn -B install -DskipTests -Dnative.build.skip=true
+  - MVN="$HOME/.sdkman/candidates/maven/current/bin/mvn"; [ -x "$MVN" ] || MVN="$(command -v mvn)"; "$MVN" -v; "$MVN" -B install -DskipTests -Dnative.build.skip=true
