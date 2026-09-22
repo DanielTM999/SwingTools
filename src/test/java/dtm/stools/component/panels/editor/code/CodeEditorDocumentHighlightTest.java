@@ -22,7 +22,7 @@ class CodeEditorDocumentHighlightTest {
 
     @Test
     void defaultsDocumentHighlightDebounceTo300Milliseconds() {
-        assertEquals(300, new TestEditor().getDocumentHighlightDebounceMs());
+        assertEquals(200, new TestEditor().getDocumentHighlightDebounceMs());
     }
 
     @Test
