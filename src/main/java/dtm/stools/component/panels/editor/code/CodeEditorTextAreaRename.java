@@ -549,9 +549,94 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
                 return true;
             }
             default -> {
+                if (isAutoCompleteVisible()) return false;
+                return handleLinkedRenameNavigation(e);
+            }
+        }
+    }
+
+    protected boolean handleLinkedRenameNavigation(KeyEvent e) {
+        if (e.isAltDown()) return false;
+        int[] primary = linkedRanges.get(linkedPrimary);
+        int start = primary[0];
+        int end = primary[0] + primary[1];
+        int caret = caretOffset();
+        if (caret < start || caret > end) return false;
+        boolean ctrl = e.isControlDown() || e.isMetaDown();
+        boolean shift = e.isShiftDown();
+        boolean selection = hasSelection();
+        int selectionStart = selection ? getSelectionStart() : caret;
+        int selectionEnd = selection ? getSelectionEnd() : caret;
+
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT -> {
+                int target;
+                if (ctrl) target = start;
+                else if (selection && !shift) target = selectionStart;
+                else target = caret - 1;
+                moveLinkedCaret(target, shift, start, end);
+            }
+            case KeyEvent.VK_RIGHT -> {
+                int target;
+                if (ctrl) target = end;
+                else if (selection && !shift) target = selectionEnd;
+                else target = caret + 1;
+                moveLinkedCaret(target, shift, start, end);
+            }
+            case KeyEvent.VK_HOME -> {
+                if (ctrl) return false;
+                moveLinkedCaret(start, shift, start, end);
+            }
+            case KeyEvent.VK_END -> {
+                if (ctrl) return false;
+                moveLinkedCaret(end, shift, start, end);
+            }
+            case KeyEvent.VK_BACK_SPACE -> {
+                if (selection) return false;
+                if (caret <= start) break;
+                if (!ctrl) return false;
+                deleteText(start, caret);
+                setCaretFromOffset(start);
+            }
+            case KeyEvent.VK_DELETE -> {
+                if (selection) return false;
+                if (caret >= end) break;
+                if (!ctrl) return false;
+                deleteText(caret, end);
+                setCaretFromOffset(caret);
+            }
+            case KeyEvent.VK_A -> {
+                if (!ctrl || shift) return false;
+                moveLinkedCaret(start, false, start, end);
+                moveLinkedCaret(end, true, start, end);
+            }
+            default -> {
                 return false;
             }
         }
+        e.consume();
+        fireStateChangedIfNeeded();
+        scrollToCaret();
+        resetCaretBlink();
+        repaint();
+        return true;
+    }
+
+    protected void moveLinkedCaret(int target, boolean extend, int start, int end) {
+        int clamped = Math.max(start, Math.min(end, target));
+        int caret = caretOffset();
+        int anchor = caret;
+        if (hasSelection()) {
+            anchor = caret == getSelectionStart() ? getSelectionEnd() : getSelectionStart();
+        }
+        if (extend && anchor != clamped) {
+            Position anchorPosition = positionOf(anchor);
+            Position targetPosition = positionOf(clamped);
+            setSelection(anchorPosition.line(), anchorPosition.col(), targetPosition.line(), targetPosition.col());
+            return;
+        }
+        setCaretFromOffset(clamped);
+        clearSelection();
     }
 
     @Override
