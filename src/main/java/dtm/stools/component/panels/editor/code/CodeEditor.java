@@ -45,6 +45,8 @@ import dtm.stools.component.panels.editor.code.search.SearchPanel;
 import dtm.stools.component.panels.editor.code.api.CodeEditorState;
 import dtm.stools.component.panels.editor.code.diagnostics.ErrorStripeClickListener;
 import dtm.stools.component.panels.editor.code.diagnostics.InspectionWidgetClickListener;
+import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlightPalette;
+import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlightProvider;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -584,6 +586,42 @@ public class CodeEditor extends BlockingPanel {
 
     public void addProvider(CodeEditorProvider provider) {
         textArea.addProvider(provider);
+    }
+
+    public void setDocumentHighlightProvider(DocumentHighlightProvider provider) {
+        textArea.setDocumentHighlightProvider(provider);
+    }
+
+    public DocumentHighlightProvider getDocumentHighlightProvider() {
+        return textArea.getDocumentHighlightProvider();
+    }
+
+    public void setDocumentHighlightsEnabled(boolean enabled) {
+        textArea.setDocumentHighlightsEnabled(enabled);
+    }
+
+    public boolean isDocumentHighlightsEnabled() {
+        return textArea.isDocumentHighlightsEnabled();
+    }
+
+    public void setDocumentHighlightDebounceMs(int debounceMs) {
+        textArea.setDocumentHighlightDebounceMs(debounceMs);
+    }
+
+    public int getDocumentHighlightDebounceMs() {
+        return textArea.getDocumentHighlightDebounceMs();
+    }
+
+    public void setDocumentHighlightPalette(DocumentHighlightPalette palette) {
+        textArea.setDocumentHighlightPalette(palette);
+    }
+
+    public DocumentHighlightPalette getDocumentHighlightPalette() {
+        return textArea.getDocumentHighlightPalette();
+    }
+
+    public void refreshDocumentHighlights() {
+        textArea.refreshDocumentHighlights();
     }
 
     public int getCaretLine() {

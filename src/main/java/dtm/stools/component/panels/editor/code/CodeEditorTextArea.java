@@ -37,6 +37,10 @@ import dtm.stools.component.panels.editor.code.diagnostics.Diagnostic;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticsChange;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticsContext;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticsProvider;
+import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlight;
+import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlightContext;
+import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlightPalette;
+import dtm.stools.component.panels.editor.code.documenthighlight.DocumentHighlightProvider;
 import dtm.stools.component.panels.editor.code.format.CodeFormatter;
 import dtm.stools.component.panels.editor.code.format.FormatContext;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationContext;
@@ -389,6 +393,30 @@ public class CodeEditorTextArea extends JComponent {
     protected int documentSymbolsDebounceMs = 300;
 
     private Timer documentSymbolsDebounceTimer;
+
+    @Getter
+    protected DocumentHighlightProvider documentHighlightProvider;
+
+    @Getter
+    protected boolean documentHighlightsEnabled = true;
+
+    @Getter
+    protected int documentHighlightDebounceMs = 300;
+
+    @Getter
+    protected DocumentHighlightPalette documentHighlightPalette = DocumentHighlightPalette.defaults();
+
+    private Timer documentHighlightDebounceTimer;
+    protected volatile Future<?> currentDocumentHighlightTask;
+    protected final AtomicInteger documentHighlightVersion = new AtomicInteger();
+    protected volatile List<ResolvedDocumentHighlight> resolvedDocumentHighlights = List.of();
+
+    protected record ResolvedDocumentHighlight(
+            int startOffset,
+            int endOffset,
+            DocumentHighlight.Kind kind
+    ) {
+    }
 
     @Getter
     @Setter
@@ -924,6 +952,7 @@ public class CodeEditorTextArea extends JComponent {
             public void onTextChanged() {
                 refreshSearchOnTextChange();
                 scheduleSelectedTextOccurrencesRefresh();
+                scheduleDocumentHighlightsRefresh();
                 selectionChainCache = Collections.emptyList();
                 selectionChainIndex = -1;
                 scheduleSyntaxHighlight();
@@ -952,6 +981,7 @@ public class CodeEditorTextArea extends JComponent {
         invalidateGeometry();
         ensureExecutorsStarted();
         scheduleSelectedTextOccurrencesRefresh();
+        scheduleDocumentHighlightsRefresh();
         if (isSyntaxHighlightStale()) applySyntaxHighlight();
         hideActiveContextMenu();
     }
@@ -987,6 +1017,7 @@ public class CodeEditorTextArea extends JComponent {
         inlayHintVersion.incrementAndGet();
         hoverDocumentationVersion.incrementAndGet();
         documentSymbolVersion.incrementAndGet();
+        documentHighlightVersion.incrementAndGet();
         autoCompleteVersion.incrementAndGet();
         ghostTextVersion.incrementAndGet();
         signatureHelpVersion.incrementAndGet();
@@ -996,10 +1027,15 @@ public class CodeEditorTextArea extends JComponent {
         cancelFuture(currentDiagnosticsTask);
         cancelFuture(currentInlayHintTask);
         cancelFuture(currentCodeLensTask);
+        cancelFuture(currentDocumentHighlightTask);
         cancelFuture(currentSelectedTextOccurrencesTask);
         if (selectedTextOccurrencesTimer != null) {
             selectedTextOccurrencesTimer.stop();
         }
+        if (documentHighlightDebounceTimer != null) {
+            documentHighlightDebounceTimer.stop();
+        }
+        resolvedDocumentHighlights = List.of();
         CompletableFuture<List<AutoCompleteItem>> autoCompleteTask = currentAutoCompleteTask;
         if (autoCompleteTask != null && !autoCompleteTask.isDone()) {
             autoCompleteTask.cancel(true);
@@ -2357,6 +2393,7 @@ public class CodeEditorTextArea extends JComponent {
         }
         if (lastWordCaretChangeOffset != state.caretOffset()) {
             lastWordCaretChangeOffset = state.caretOffset();
+            scheduleDocumentHighlightsRefresh();
             fireWordCaretChangeEvent(state.caretLine(), state.caretCol());
         }
     }
@@ -4416,6 +4453,7 @@ public class CodeEditorTextArea extends JComponent {
             g2.fillRect(0, ly, getWidth(), lineHeight);
         }
 
+        paintDocumentHighlights(g2, defaultFm, lineHeight);
         paintSelectedTextOccurrences(g2, defaultFm, lineHeight);
 
         if (hasSelection() || hasExtraSelections()) {
@@ -4605,6 +4643,36 @@ public class CodeEditorTextArea extends JComponent {
                     start,
                     offsets[i + 1],
                     color);
+        }
+    }
+
+    protected void paintDocumentHighlights(Graphics2D g2, FontMetrics fm, int lineHeight) {
+        List<ResolvedDocumentHighlight> highlights = resolvedDocumentHighlights;
+        if (!documentHighlightsEnabled || highlights.isEmpty()) return;
+
+        Rectangle clip = g2.getClipBounds();
+        int firstVisibleLine = clip != null ? bufferLineAtY(clip.y) : 0;
+        int lastVisibleLine = clip != null
+                ? bufferLineAtY(clip.y + clip.height)
+                : buffer.lineCount() - 1;
+        firstVisibleLine = Math.max(0, firstVisibleLine);
+        lastVisibleLine = Math.min(buffer.lineCount() - 1, lastVisibleLine);
+        int visibleStartOffset = buffer.offsetOfLine(firstVisibleLine);
+        int visibleEndOffset = lastVisibleLine + 1 < buffer.lineCount()
+                ? buffer.offsetOfLine(lastVisibleLine + 1)
+                : buffer.length();
+
+        DocumentHighlightPalette palette = documentHighlightPalette;
+        for (ResolvedDocumentHighlight highlight : highlights) {
+            if (highlight.endOffset() <= visibleStartOffset) continue;
+            if (highlight.startOffset() >= visibleEndOffset) break;
+            paintSelectionRange(
+                    g2,
+                    fm,
+                    lineHeight,
+                    highlight.startOffset(),
+                    highlight.endOffset(),
+                    palette.colorFor(highlight.kind()));
         }
     }
 
@@ -6968,6 +7036,124 @@ public class CodeEditorTextArea extends JComponent {
         if (provider instanceof BracketMatcher p) setBracketMatcher(p);
         if (provider instanceof WordDetector p) setWordDetector(p);
         if (provider instanceof GhostTextProvider p) setGhostTextProvider(p);
+        if (provider instanceof DocumentHighlightProvider p) setDocumentHighlightProvider(p);
+    }
+
+    public void setDocumentHighlightProvider(DocumentHighlightProvider provider) {
+        if (documentHighlightProvider == provider) return;
+        documentHighlightProvider = provider;
+        scheduleDocumentHighlightsRefresh();
+    }
+
+    public void setDocumentHighlightsEnabled(boolean enabled) {
+        if (documentHighlightsEnabled == enabled) return;
+        documentHighlightsEnabled = enabled;
+        scheduleDocumentHighlightsRefresh();
+    }
+
+    public void setDocumentHighlightDebounceMs(int debounceMs) {
+        documentHighlightDebounceMs = Math.max(0, debounceMs);
+        scheduleDocumentHighlightsRefresh();
+    }
+
+    public void setDocumentHighlightPalette(DocumentHighlightPalette palette) {
+        documentHighlightPalette = palette == null ? DocumentHighlightPalette.defaults() : palette;
+        repaint();
+    }
+
+    protected void scheduleDocumentHighlightsRefresh() {
+        documentHighlightVersion.incrementAndGet();
+        cancelFuture(currentDocumentHighlightTask);
+        currentDocumentHighlightTask = null;
+        stopDebounce(documentHighlightDebounceTimer);
+
+        if (!documentHighlightsEnabled || documentHighlightProvider == null
+                || findWordSpan(caretLine, caretCol) == null) {
+            clearDocumentHighlights();
+            return;
+        }
+
+        documentHighlightDebounceTimer = restartDebounce(
+                documentHighlightDebounceTimer,
+                documentHighlightDebounceMs,
+                this::refreshDocumentHighlights);
+    }
+
+    public void refreshDocumentHighlights() {
+        stopDebounce(documentHighlightDebounceTimer);
+        int version = documentHighlightVersion.incrementAndGet();
+        cancelFuture(currentDocumentHighlightTask);
+        currentDocumentHighlightTask = null;
+
+        DocumentHighlightProvider provider = documentHighlightProvider;
+        if (!documentHighlightsEnabled || provider == null
+                || findWordSpan(caretLine, caretCol) == null) {
+            clearDocumentHighlights();
+            return;
+        }
+
+        int line = caretLine;
+        int col = caretCol;
+        int offset = caretOffset();
+        String textSnapshot = buffer.getText();
+        TextBuffer bufferSnapshot = new TextBuffer(textSnapshot);
+        DocumentHighlightContext context = new DocumentHighlightContext(
+                bufferSnapshot,
+                line,
+                col,
+                offset);
+
+        currentDocumentHighlightTask = getProviderExecutor().submit(() -> {
+            List<DocumentHighlight> provided;
+            try {
+                provided = provider.getDocumentHighlights(context);
+            } catch (Exception ignored) {
+                provided = List.of();
+            }
+            List<ResolvedDocumentHighlight> resolved = resolveDocumentHighlights(provided, bufferSnapshot);
+            SwingUtilities.invokeLater(() -> {
+                if (version != documentHighlightVersion.get()) return;
+                if (!documentHighlightsEnabled || provider != documentHighlightProvider) return;
+                if (offset != caretOffset() || !textSnapshot.equals(buffer.getText())) return;
+                resolvedDocumentHighlights = resolved;
+                repaint();
+            });
+        });
+    }
+
+    protected List<ResolvedDocumentHighlight> resolveDocumentHighlights(
+            List<DocumentHighlight> highlights,
+            TextBuffer snapshot
+    ) {
+        if (highlights == null || highlights.isEmpty() || snapshot == null) return List.of();
+        List<ResolvedDocumentHighlight> resolved = new ArrayList<>(highlights.size());
+        for (DocumentHighlight highlight : highlights) {
+            if (highlight == null || highlight.range() == null
+                    || highlight.range().start() == null || highlight.range().end() == null) {
+                continue;
+            }
+            int start = documentHighlightOffset(snapshot, highlight.range().start());
+            int end = documentHighlightOffset(snapshot, highlight.range().end());
+            if (start < 0 || end <= start) continue;
+            resolved.add(new ResolvedDocumentHighlight(start, end, highlight.kind()));
+        }
+        resolved.sort(Comparator.comparingInt(ResolvedDocumentHighlight::startOffset));
+        return List.copyOf(resolved);
+    }
+
+    private static int documentHighlightOffset(TextBuffer snapshot, Position position) {
+        int line = position.line();
+        int col = position.col();
+        if (line < 0 || line >= snapshot.lineCount() || col < 0) return -1;
+        String lineText = snapshot.lineAt(line);
+        if (col > lineText.length()) return -1;
+        return snapshot.offsetOfLine(line) + col;
+    }
+
+    private void clearDocumentHighlights() {
+        if (resolvedDocumentHighlights.isEmpty()) return;
+        resolvedDocumentHighlights = List.of();
+        repaint();
     }
 
     protected void scheduleInlayHintsRefresh() {
