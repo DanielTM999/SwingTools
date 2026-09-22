@@ -1394,6 +1394,10 @@ public class CodeEditor extends BlockingPanel {
         textArea.applySyntaxHighlight();
     }
 
+    public void reapplySyntaxHighlightStyles() {
+        textArea.reapplySyntaxHighlightStyles();
+    }
+
     public void setDiagnosticsAutoRunEnabled(boolean enabled) {
         textArea.setDiagnosticsAutoRunEnabled(enabled);
     }

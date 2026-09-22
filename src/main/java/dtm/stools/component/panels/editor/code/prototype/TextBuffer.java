@@ -27,7 +27,19 @@ public class TextBuffer {
 
     private record UndoEntry(int offset, String oldText, String newText) {}
     private record Transaction(List<UndoEntry> entries, Object beforeState, Object afterState) {}
-    public record EditResult(int caretOffset, Object state) {}
+
+    public record AppliedChange(int offset, String removedText, String insertedText) {}
+
+    public record EditResult(int caretOffset, Object state, List<AppliedChange> changes) {
+
+        public EditResult {
+            changes = changes == null ? List.of() : List.copyOf(changes);
+        }
+
+        public EditResult(int caretOffset, Object state) {
+            this(caretOffset, state, List.of());
+        }
+    }
 
     public TextBuffer() {
         this.content = new StringBuilder();
@@ -150,18 +162,21 @@ public class TextBuffer {
         redoStack.push(tx);
         int caret = -1;
         List<UndoEntry> entries = tx.entries();
+        List<AppliedChange> applied = new ArrayList<>(entries.size() * 2);
         for (int i = entries.size() - 1; i >= 0; i--) {
             UndoEntry entry = entries.get(i);
             if (!entry.newText.isEmpty()) {
                 content.delete(entry.offset, entry.offset + entry.newText.length());
+                applied.add(new AppliedChange(entry.offset, entry.newText, ""));
             }
             if (!entry.oldText.isEmpty()) {
                 content.insert(entry.offset, entry.oldText);
+                applied.add(new AppliedChange(entry.offset, "", entry.oldText));
             }
             caret = entry.offset + entry.oldText.length();
         }
         version++;
-        return new EditResult(caret, tx.beforeState());
+        return new EditResult(caret, tx.beforeState(), applied);
     }
 
     public int redo() {
@@ -173,17 +188,21 @@ public class TextBuffer {
         Transaction tx = redoStack.pop();
         undoStack.push(tx);
         int caret = -1;
-        for (UndoEntry entry : tx.entries()) {
+        List<UndoEntry> entries = tx.entries();
+        List<AppliedChange> applied = new ArrayList<>(entries.size() * 2);
+        for (UndoEntry entry : entries) {
             if (!entry.oldText.isEmpty()) {
                 content.delete(entry.offset, entry.offset + entry.oldText.length());
+                applied.add(new AppliedChange(entry.offset, entry.oldText, ""));
             }
             if (!entry.newText.isEmpty()) {
                 content.insert(entry.offset, entry.newText);
+                applied.add(new AppliedChange(entry.offset, "", entry.newText));
             }
             caret = entry.offset + entry.newText.length();
         }
         version++;
-        return new EditResult(caret, tx.afterState());
+        return new EditResult(caret, tx.afterState(), applied);
     }
 
     public boolean canUndo() { return !undoStack.isEmpty(); }

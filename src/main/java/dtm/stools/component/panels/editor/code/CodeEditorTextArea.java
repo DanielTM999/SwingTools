@@ -454,6 +454,12 @@ public class CodeEditorTextArea extends JComponent {
 
     private Timer syntaxHighlightDebounceTimer;
 
+    protected static final int MAX_SYNTAX_HIGHLIGHT_RESCUES = 3;
+
+    private Timer syntaxHighlightWatchdogTimer;
+
+    protected int syntaxHighlightRescueAttempts;
+
     @Getter
     @Setter
     protected int foldingDebounceMs = 120;
@@ -1041,6 +1047,7 @@ public class CodeEditorTextArea extends JComponent {
 
         if (diagnosticsDebounceTimer != null) diagnosticsDebounceTimer.stop();
         if (syntaxHighlightDebounceTimer != null) syntaxHighlightDebounceTimer.stop();
+        if (syntaxHighlightWatchdogTimer != null) syntaxHighlightWatchdogTimer.stop();
         if (foldingDebounceTimer != null) foldingDebounceTimer.stop();
         if (ghostTextIdleTimer != null) ghostTextIdleTimer.stop();
         if (hoverTimer != null) hoverTimer.stop();
@@ -2172,6 +2179,25 @@ public class CodeEditorTextArea extends JComponent {
         invalidateStyledRangesIndex();
     }
 
+    protected void replayHistoryStyledRanges(List<TextBuffer.AppliedChange> changes) {
+        if (changes == null || changes.isEmpty()) {
+            return;
+        }
+
+        for (TextBuffer.AppliedChange change : changes) {
+            int removedLength = change.removedText() == null ? 0 : change.removedText().length();
+            int insertedLength = change.insertedText() == null ? 0 : change.insertedText().length();
+            if (removedLength == 0 && insertedLength == 0) {
+                continue;
+            }
+            shiftStyledRangesForEdit(change.offset(), removedLength, insertedLength);
+        }
+
+        clearGhostText();
+        suppressHoverWhileEditing();
+        invalidateStyledRangesIndex();
+    }
+
     protected StyledRange[] sortedStyledRanges;
     protected boolean styledRangesIndexDirty = true;
 
@@ -2991,6 +3017,7 @@ public class CodeEditorTextArea extends JComponent {
         TextBuffer.EditResult result = buffer.undoEdit();
         if (result.caretOffset() >= 0) {
             restoreEditorState(result.state(), result.caretOffset());
+            replayHistoryStyledRanges(result.changes());
             documentEditListeners.forEach(DocumentEditListener::onTextChanged);
             fireStateChangedIfNeeded();
             int delta = buffer.lineCount() - linesBefore;
@@ -3009,6 +3036,7 @@ public class CodeEditorTextArea extends JComponent {
         TextBuffer.EditResult result = buffer.redoEdit();
         if (result.caretOffset() >= 0) {
             restoreEditorState(result.state(), result.caretOffset());
+            replayHistoryStyledRanges(result.changes());
             documentEditListeners.forEach(DocumentEditListener::onTextChanged);
             fireStateChangedIfNeeded();
             int delta = buffer.lineCount() - linesBefore;
@@ -3040,6 +3068,12 @@ public class CodeEditorTextArea extends JComponent {
             else if (delta < 0) fireLinesRemoved(0, -delta);
         }
         markClean();
+        if (!oldText.equals(newText)) {
+            lastHighlightTokens = null;
+            lastHighlightText = null;
+            syntaxHighlightRescueAttempts = 0;
+            applySyntaxHighlight();
+        }
         fireStateChangedIfNeeded();
         revalidate();
         repaint();
@@ -6884,12 +6918,77 @@ public class CodeEditorTextArea extends JComponent {
         }
         stopDebounce(syntaxHighlightDebounceTimer);
         applySyntaxHighlight(highlightVersion.incrementAndGet());
+        scheduleSyntaxHighlightWatchdog();
+    }
+
+    public void reapplySyntaxHighlightStyles() {
+        if (!syntaxHighlightEnabled) return;
+        if (tokenColorProvider == null || tokenRenderProvider == null) {
+            return;
+        }
+        if (!(tokenRenderProvider instanceof PreparedTokenRenderCodeEditorProvider preparedRenderer)) {
+            applySyntaxHighlight();
+            return;
+        }
+
+        final Collection<Token> tokens = lastHighlightTokens;
+        final String textSnapshot = lastHighlightText;
+        if (tokens == null || textSnapshot == null || !buffer.getText().equals(textSnapshot)) {
+            applySyntaxHighlight();
+            return;
+        }
+
+        final int version = highlightVersion.incrementAndGet();
+        final TokenColorProvider colorProvider = tokenColorProvider;
+        final TokenRenderSnapshot renderSnapshot = new TokenRenderSnapshot(textSnapshot, defaultStyle);
+
+        getHighlightExecutor().submit(() -> {
+            try {
+                Collection<StyledRange> ranges =
+                        preparedRenderer.prepare(tokens, colorProvider, renderSnapshot);
+                final Collection<StyledRange> preparedRanges =
+                        ranges == null ? List.of() : List.copyOf(ranges);
+                SwingUtilities.invokeLater(() -> {
+                    if (version != highlightVersion.get()) return;
+                    if (!buffer.getText().equals(textSnapshot)) return;
+                    replaceStyledRanges(preparedRanges);
+                });
+            } catch (Exception failure) {
+                CODE_LENS_LOG.log(Level.WARNING, "syntax highlight restyle failed", failure);
+            }
+        });
     }
 
     protected void scheduleSyntaxHighlight() {
         final int version = highlightVersion.incrementAndGet();
         syntaxHighlightDebounceTimer = restartDebounce(syntaxHighlightDebounceTimer,
                 syntaxHighlightDebounceMs, () -> applySyntaxHighlight(version));
+        scheduleSyntaxHighlightWatchdog();
+    }
+
+    protected void scheduleSyntaxHighlightWatchdog() {
+        int delay = Math.max(400, syntaxHighlightDebounceMs * 4);
+        syntaxHighlightWatchdogTimer = restartDebounce(syntaxHighlightWatchdogTimer,
+                delay, this::runSyntaxHighlightWatchdog);
+    }
+
+    protected void runSyntaxHighlightWatchdog() {
+        if (!isSyntaxHighlightStale()) {
+            syntaxHighlightRescueAttempts = 0;
+            return;
+        }
+        if (syntaxHighlightDebounceTimer != null && syntaxHighlightDebounceTimer.isRunning()) {
+            return;
+        }
+        if (currentHighlightTask != null && !currentHighlightTask.isDone()) {
+            scheduleSyntaxHighlightWatchdog();
+            return;
+        }
+        if (syntaxHighlightRescueAttempts >= MAX_SYNTAX_HIGHLIGHT_RESCUES) {
+            return;
+        }
+        syntaxHighlightRescueAttempts++;
+        applySyntaxHighlight();
     }
 
     private void applySyntaxHighlight(int version) {
@@ -6939,6 +7038,7 @@ public class CodeEditorTextArea extends JComponent {
                     if (!buffer.getText().equals(textSnapshot)) return;
                     lastHighlightTokens = snapshot;
                     lastHighlightText = textSnapshot;
+                    syntaxHighlightRescueAttempts = 0;
                     if (preparedRenderer != null) {
                         replaceStyledRanges(preparedRanges);
                         preparedRenderer.afterApply(CodeEditorTextArea.this);
