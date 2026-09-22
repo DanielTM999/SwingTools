@@ -19,6 +19,9 @@ import java.util.function.Supplier;
 
 public final class I18n {
 
+    private static final String INTERNAL_LANGUAGES_PATH = "META-INF/swingtools/languages";
+    private static final String APPLICATION_LANGUAGES_PATH = "languages";
+
     private static final AtomicReference<I18nLoadStrategy> LOAD_STRATEGY_REF = new AtomicReference<>(I18nLoadStrategy.KEEP_LAST);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Set<I18nElement> REQUESTED_ELEMENTS = ConcurrentHashMap.newKeySet();
@@ -27,7 +30,7 @@ public final class I18n {
     private static final AtomicReference<Locale> LOCALE_REF = new AtomicReference<>(Locale.getDefault());
 
     static {
-        load(I18n.class);
+        loadInternalCatalogs();
     }
 
     private I18n() {
@@ -48,7 +51,7 @@ public final class I18n {
 
     public static void load(Class<?> loaderClass, Consumer<Throwable> exceptionHandler){
         try{
-            ResourceUtils.walkResources(loaderClass, "languages", false, url -> {
+            ResourceUtils.walkResources(loaderClass, APPLICATION_LANGUAGES_PATH, false, url -> {
                 try{
                     loadFromURL(url);
                 }catch (Exception e){
@@ -95,7 +98,7 @@ public final class I18n {
 
     public static void load(ClassLoader loader, Consumer<Throwable> exceptionHandler) {
         try{
-            ResourceUtils.walkResources(loader, "languages", false, url -> {
+            ResourceUtils.walkResources(loader, APPLICATION_LANGUAGES_PATH, false, url -> {
                 try{
                     loadFromURL(url);
                 }catch (Exception e){
@@ -122,6 +125,18 @@ public final class I18n {
 
         LOCALE_REF.set(locale);
         return true;
+    }
+
+    private static void loadInternalCatalogs() {
+        try {
+            ResourceUtils.walkResources(I18n.class, INTERNAL_LANGUAGES_PATH, false, url -> {
+                try {
+                    loadFromURL(url);
+                } catch (Exception ignored) {
+                }
+            });
+        } catch (Exception ignored) {
+        }
     }
 
     public static Locale getLocale(){

@@ -1785,8 +1785,15 @@ public class CodeEditor extends BlockingPanel {
     }
 
     private void showSearchPanel(String selectedText, boolean replaceMode) {
+        boolean wasVisible = textArea.isSearchPanelVisible();
         SearchPanel panel = textArea.getOrCreateSearchPanel();
-        panel.setReplaceVisible(replaceMode && !textArea.isReadOnly());
+        if (textArea.isReadOnly()) {
+            panel.setReplaceVisible(false);
+        } else if (replaceMode) {
+            panel.setReplaceVisible(true);
+        } else if (!wasVisible) {
+            panel.setReplaceVisible(false);
+        }
         if (searchPanelPosition == SearchPanelPosition.POPUP) {
             mountPopup(panel);
         } else {

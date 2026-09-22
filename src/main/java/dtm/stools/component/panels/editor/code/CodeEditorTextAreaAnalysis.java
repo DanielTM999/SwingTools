@@ -1400,8 +1400,15 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     public void showSearchPanel(boolean replaceMode) {
+        boolean wasVisible = isSearchPanelVisible();
         SearchPanel panel = getOrCreateSearchPanel();
-        panel.setReplaceVisible(replaceMode && !readOnly);
+        if (readOnly) {
+            panel.setReplaceVisible(false);
+        } else if (replaceMode) {
+            panel.setReplaceVisible(true);
+        } else if (!wasVisible) {
+            panel.setReplaceVisible(false);
+        }
         String initial = hasSelection() ? getSelectedText() : "";
         if (!initial.isEmpty() && !initial.contains("\n")) {
             panel.setQuery(initial);

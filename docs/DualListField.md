@@ -100,7 +100,7 @@ perfis.addEventListener(DualListField.ITEMS_ADDED, event -> {
 
 ## Internacionalizacao
 
-Titulos, placeholder do filtro e tooltips dos botoes passam por `I18n.getText(DualListField.class, ...)`. As chaves estao em `src/main/resources/languages/{pt-BR,en-US,es-ES}.json` sob o prefixo `DualListField.`.
+Titulos, placeholder do filtro e tooltips dos botoes passam por `I18n.getText(DualListField.class, ...)`. As chaves internas do SwingTools estao em `src/main/resources/META-INF/swingtools/languages/{pt-BR,en-US,es-ES}.json` sob o prefixo `DualListField.`. Aplicacoes e plugins continuam podendo fornecer catalogos proprios em `/languages` por meio de `I18n.load(...)`.
 
 ## Em formularios
 
