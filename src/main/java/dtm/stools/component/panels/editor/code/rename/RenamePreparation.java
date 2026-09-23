@@ -14,7 +14,8 @@ public record RenamePreparation(
         List<RenameOption> options,
         RenamePresenter presenter,
         SymbolKind kind,
-        boolean localFallback
+        boolean localFallback,
+        Boolean popupEnabled
 ) {
 
     public RenamePreparation {
@@ -30,15 +31,28 @@ public record RenamePreparation(
             List<RenameOption> options,
             RenamePresenter presenter
     ) {
-        this(range, placeholder, occurrences, rejection, options, presenter, null, true);
+        this(range, placeholder, occurrences, rejection, options, presenter, null, true, null);
+    }
+
+    public RenamePreparation(
+            Range range,
+            String placeholder,
+            List<Range> occurrences,
+            String rejection,
+            List<RenameOption> options,
+            RenamePresenter presenter,
+            SymbolKind kind,
+            boolean localFallback
+    ) {
+        this(range, placeholder, occurrences, rejection, options, presenter, kind, localFallback, null);
     }
 
     public static RenamePreparation of(Range range, String placeholder) {
-        return new RenamePreparation(range, placeholder, List.of(), null, List.of(), null, null, true);
+        return new RenamePreparation(range, placeholder, List.of(), null, List.of(), null, null, true, null);
     }
 
     public static RenamePreparation rejected(String message) {
-        return new RenamePreparation(null, null, List.of(), message == null ? "" : message, List.of(), null, null, true);
+        return new RenamePreparation(null, null, List.of(), message == null ? "" : message, List.of(), null, null, true, null);
     }
 
     public boolean isRejected() {
@@ -46,19 +60,19 @@ public record RenamePreparation(
     }
 
     public RenamePreparation withRange(Range newRange) {
-        return new RenamePreparation(newRange, placeholder, occurrences, rejection, options, presenter, kind, localFallback);
+        return new RenamePreparation(newRange, placeholder, occurrences, rejection, options, presenter, kind, localFallback, popupEnabled);
     }
 
     public RenamePreparation withPlaceholder(String newPlaceholder) {
-        return new RenamePreparation(range, newPlaceholder, occurrences, rejection, options, presenter, kind, localFallback);
+        return new RenamePreparation(range, newPlaceholder, occurrences, rejection, options, presenter, kind, localFallback, popupEnabled);
     }
 
     public RenamePreparation withOccurrences(List<Range> newOccurrences) {
-        return new RenamePreparation(range, placeholder, newOccurrences, rejection, options, presenter, kind, localFallback);
+        return new RenamePreparation(range, placeholder, newOccurrences, rejection, options, presenter, kind, localFallback, popupEnabled);
     }
 
     public RenamePreparation withOptions(List<RenameOption> newOptions) {
-        return new RenamePreparation(range, placeholder, occurrences, rejection, newOptions, presenter, kind, localFallback);
+        return new RenamePreparation(range, placeholder, occurrences, rejection, newOptions, presenter, kind, localFallback, popupEnabled);
     }
 
     public RenamePreparation withOptions(RenameOption... newOptions) {
@@ -66,14 +80,18 @@ public record RenamePreparation(
     }
 
     public RenamePreparation withPresenter(RenamePresenter newPresenter) {
-        return new RenamePreparation(range, placeholder, occurrences, rejection, options, newPresenter, kind, localFallback);
+        return new RenamePreparation(range, placeholder, occurrences, rejection, options, newPresenter, kind, localFallback, popupEnabled);
     }
 
     public RenamePreparation withKind(SymbolKind newKind) {
-        return new RenamePreparation(range, placeholder, occurrences, rejection, options, presenter, newKind, localFallback);
+        return new RenamePreparation(range, placeholder, occurrences, rejection, options, presenter, newKind, localFallback, popupEnabled);
     }
 
     public RenamePreparation withLocalFallback(boolean newLocalFallback) {
-        return new RenamePreparation(range, placeholder, occurrences, rejection, options, presenter, kind, newLocalFallback);
+        return new RenamePreparation(range, placeholder, occurrences, rejection, options, presenter, kind, newLocalFallback, popupEnabled);
+    }
+
+    public RenamePreparation withPopupEnabled(Boolean newPopupEnabled) {
+        return new RenamePreparation(range, placeholder, occurrences, rejection, options, presenter, kind, localFallback, newPopupEnabled);
     }
 }

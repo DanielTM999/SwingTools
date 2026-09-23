@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions {
 
@@ -55,6 +56,8 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     protected Timer renameHintTimer;
     protected boolean linkedRepositionScheduled;
     protected boolean linkedRenamePopupEnabled = true;
+    protected Boolean linkedPopupOverride;
+    protected final Map<RenameSession, Boolean> sessionPopupOverrides = new WeakHashMap<>();
     protected LinkedRenamePopupFactory linkedRenamePopupFactory = new DefaultLinkedRenamePopupFactory();
 
     protected CodeEditorTextAreaRename(TextBuffer buffer) {
@@ -162,6 +165,10 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
                 this::startLinkedRename,
                 preparation.kind()
         );
+
+        if (preparation.popupEnabled() != null) {
+            sessionPopupOverrides.put(session, preparation.popupEnabled());
+        }
 
         RenamePresenter presenter = preparation.presenter() != null
                 ? preparation.presenter()
@@ -296,6 +303,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         linkedSyncScheduled = false;
         linkedOptionValues.clear();
         linkedOptionValues.putAll(session.defaultOptionValues());
+        linkedPopupOverride = sessionPopupOverrides.remove(session);
 
         hideAutoCompletePopup();
         clearGhostText();
@@ -425,6 +433,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         linkedBroken = false;
         linkedSyncScheduled = false;
         linkedOptionValues.clear();
+        linkedPopupOverride = null;
         hideLinkedRenameWindow();
         repaint();
     }
@@ -714,6 +723,10 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         return linkedRenamePopupEnabled;
     }
 
+    protected boolean isLinkedRenamePopupActive() {
+        return linkedPopupOverride != null ? linkedPopupOverride : linkedRenamePopupEnabled;
+    }
+
     public void setLinkedRenamePopupEnabled(boolean enabled) {
         if (linkedRenamePopupEnabled == enabled) return;
         linkedRenamePopupEnabled = enabled;
@@ -778,7 +791,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         linkedRepositionScheduled = true;
         SwingUtilities.invokeLater(() -> {
             linkedRepositionScheduled = false;
-            if (hasActiveLinkedRename() && linkedRenamePopupEnabled) positionLinkedRenameWindow();
+            if (hasActiveLinkedRename() && isLinkedRenamePopupActive()) positionLinkedRenameWindow();
         });
     }
 
@@ -787,7 +800,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     }
 
     protected void showLinkedRenameWindow() {
-        if (!linkedRenamePopupEnabled) {
+        if (!isLinkedRenamePopupActive()) {
             hideLinkedRenameWindow();
             return;
         }
