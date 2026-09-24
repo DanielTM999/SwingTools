@@ -20,6 +20,55 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class WordUiTest {
+    @Test void hiddenToolsCanBeRestoredThroughVisibleMenu() throws Exception {
+        edt(()->{
+            FlatLightLaf.setup();
+            try(WordEditor editor=new WordEditor()) {
+                editor.setText("Texto preservado");editor.getSession().setSelection(2,5);
+                var document=editor.getDocument();var selection=editor.getSession().getSelection();
+                editor.setNavigationVisible(false);editor.setStatusVisible(false);editor.setReadOnly(true);
+                editor.setSize(800,600);layout(editor);
+                JMenuBar menuBar=(JMenuBar)find(editor,"word.compact.menu");
+                JMenu menu=(JMenu)find(editor,"word.view.menu");
+                assertFalse(menuBar.isVisible());
+                Action toggle=editor.getCommands().get("word.focus");
+                for(int cycle=0;cycle<2;cycle++) {
+                    toggle.actionPerformed(null);layout(editor);
+                    assertFalse(editor.getDefaultRibbon().isVisible());assertFalse(editor.getConfig().ribbonVisible());
+                    assertTrue(menuBar.isVisible());assertTrue(menuBar.getWidth()>0);assertTrue(menuBar.getHeight()>0);
+                    for(Component parent=menuBar.getParent();parent!=null;parent=parent.getParent())assertTrue(parent.isVisible());
+                    JMenuItem restore=menu.getItem(0);assertEquals("Mostrar ferramentas",restore.getText());assertTrue(restore.isEnabled());
+                    restore.doClick();layout(editor);
+                    assertTrue(editor.getDefaultRibbon().isVisible());assertTrue(editor.getConfig().ribbonVisible());assertFalse(menuBar.isVisible());
+                    assertEquals("Ocultar ferramentas",toggle.getValue(Action.NAME));
+                    assertSame(document,editor.getDocument());assertEquals(selection,editor.getSession().getSelection());
+                    assertFalse(editor.getConfig().navigationVisible());assertFalse(editor.getConfig().statusVisible());
+                }
+                editor.setRibbonVisible(false);JPanel customRibbon=new JPanel();customRibbon.setPreferredSize(new Dimension(300,80));
+                editor.setRibbon(customRibbon);layout(editor);
+                assertTrue(menuBar.isVisible());assertFalse(customRibbon.isVisible());
+                menu.getItem(0).doClick();layout(editor);
+                assertTrue(customRibbon.isVisible());assertFalse(menuBar.isVisible());
+            }return null;
+        });
+    }
+
+    @Test void initiallyHiddenRibbonKeepsRestoreMenuAvailable() throws Exception {
+        edt(()->{
+            var defaults=dtm.stools.component.panels.editor.word.config.WordEditorConfig.defaults();
+            var hidden=new dtm.stools.component.panels.editor.word.config.WordEditorConfig(defaults.readOnly(),false,false,false,
+                    defaults.zoom(),defaults.viewMode(),defaults.locale(),defaults.historyLimit());
+            try(WordEditor editor=new WordEditor(hidden)) {
+                editor.setSize(480,600);layout(editor);
+                JMenuBar menuBar=(JMenuBar)find(editor,"word.compact.menu");
+                assertTrue(menuBar.isVisible());assertTrue(menuBar.getHeight()>0);
+                JMenuItem restore=menuBar.getMenu(0).getItem(0);
+                assertEquals("Mostrar ferramentas",restore.getText());restore.doClick();layout(editor);
+                assertTrue(editor.getDefaultRibbon().isVisible());assertFalse(menuBar.isVisible());
+            }return null;
+        });
+    }
+
     @Test void navigationClosesAndReopensWithoutLosingSelection() throws Exception {
         edt(() -> {
             FlatLightLaf.setup();

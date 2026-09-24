@@ -2,6 +2,7 @@ package dtm.stools.component.panels.editor.word.ui;
 
 import dtm.stools.configs.UiTokens;
 import javax.swing.*;
+import javax.accessibility.AccessibleContext;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -21,6 +22,10 @@ public final class WordTableGridChooser extends JComponent {
         };
         addMouseListener(mouse); addMouseMotionListener(mouse);
         getAccessibleContext().setAccessibleName("Escolher tamanho da tabela");
+    }
+    @Override public AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) accessibleContext = new AccessibleJComponent() {};
+        return accessibleContext;
     }
     @Override protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D)g.create();

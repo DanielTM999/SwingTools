@@ -142,7 +142,7 @@ public final class WordRibbon extends JPanel {
     }
     private JButton menu(String text, JPopupMenu menu) {
         JButton b = new JButton(text + " ▾"); b.setMargin(new Insets(5,6,5,6));
-        b.setIcon(new WordIcon("word."+switch(text){case "Espaçamento"->"spacing";case "Gráfico"->"chart";case "Formas"->"shape";case "Diagrama"->"diagram";case "Gerenciar"->"styles";case "Disposição"->"arrange";default->"page";},16));
+        b.setIcon(new WordIcon("word."+switch(text){case "Espaçamento"->"spacing";case "Gráfico"->"chart";case "Formas"->"shape";case "Diagrama"->"diagram";case "Gerenciar"->"styles";case "Disposição"->"arrange";case "Inserir bloco"->"block.insert";case "Tamanho"->"page.size";case "Margens"->"margins";default->"page";},16));
         b.setToolTipText(text);b.getAccessibleContext().setAccessibleName(text);
         b.putClientProperty("word.fullText",b.getText());
         editingMenus.add(b);

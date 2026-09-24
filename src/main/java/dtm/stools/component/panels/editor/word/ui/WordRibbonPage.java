@@ -70,7 +70,7 @@ final class WordRibbonPage extends JPanel {
             setOpaque(false);setBorder(BorderFactory.createEmptyBorder(8,8,4,10));
             caption=new JLabel(name,SwingConstants.CENTER);caption.setFont(UiTokens.fontSmall());caption.setForeground(UiTokens.muted());
             String shortName=switch(name){case "Área de transferência"->"Colar";case "Parágrafo"->"Parágrafo";case "Ilustrações"->"Ilustrar";case "Cabeçalho e rodapé"->"Cabeçalhos";case "Linhas e colunas"->"Estrutura";default->name;};
-            collapsed=new JButton(shortName+" ▾",new WordIcon("word."+switch(name){case "Fonte"->"bold";case "Parágrafo"->"align.LEFT";case "Tabelas"->"table";case "Área de transferência"->"paste";default->"navigation";},24));
+            collapsed=new JButton(shortName+" ▾",new WordIcon(switch(name){case "Fonte"->"word.bold";case "Parágrafo"->"word.align.LEFT";case "Tabelas"->"word.table";case "Área de transferência"->"word.paste";case "Estilos"->"word.styles";case "Zoom"->"word.zoom.in";default->Objects.requireNonNullElse(representativeCommand(content),"word.palette");},24));
             collapsed.setFont(UiTokens.fontSmall());collapsed.setMargin(new Insets(4,2,4,2));
             collapsed.setVerticalTextPosition(SwingConstants.BOTTOM);collapsed.setHorizontalTextPosition(SwingConstants.CENTER);
             collapsed.setToolTipText(name); collapsed.addActionListener(e -> showPopup(collapsed));
@@ -84,6 +84,13 @@ final class WordRibbonPage extends JPanel {
                 compact(content,mode>0);
             }
             return widths[value];
+        }
+        private static String representativeCommand(Component component) {
+            if(component instanceof AbstractButton button&&button.getIcon() instanceof WordIcon icon)return icon.command();
+            if(component instanceof Container container)for(Component child:container.getComponents()){
+                String command=representativeCommand(child);if(command!=null)return command;
+            }
+            return null;
         }
         void applyTheme() {
             if(popup!=null)popup.close();

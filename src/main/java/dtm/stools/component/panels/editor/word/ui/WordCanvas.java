@@ -36,6 +36,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     private Future<?> pending;
     private WordLayout snapshot;
     private long generation;
+    private long layoutGeneration,topRevealTicket;
+    private Integer topRevealOffset;
     private double zoom=1;
     private WordViewMode viewMode=WordViewMode.PRINT_LAYOUT;
     private boolean closed;
@@ -61,6 +63,7 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         getAccessibleContext().setAccessibleName("Documento");
         snapshot=engine.layout(session.getDocument());
         listener=session.addListener(event->{
+            if(event.change()==WordSession.Change.DOCUMENT||event.change()==WordSession.Change.SELECTION){topRevealOffset=null;topRevealTicket++;}
             if(event.change()==WordSession.Change.DOCUMENT) scheduleLayout();
             repaint(); if(event.change()==WordSession.Change.SELECTION) revealCaret();
             if(accessibleContext!=null) accessibleContext.firePropertyChange(AccessibleContext.ACCESSIBLE_TEXT_PROPERTY,null,event.revision());
@@ -87,7 +90,7 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         pending=executor.submit(()->{
             try {
                 WordLayout next=engine.layout(document,continuous,Math.max(120,width));
-                SwingUtilities.invokeLater(()->{if(!closed&&ticket==generation){snapshot=next;revalidate();repaint();revealCaret();firePropertyChange("layoutSnapshot",null,next);}});
+                SwingUtilities.invokeLater(()->{if(!closed&&ticket==generation){snapshot=next;layoutGeneration=ticket;revalidate();repaint();revealCaret();queueTopReveal();firePropertyChange("layoutSnapshot",null,next);}});
             }catch(CancellationException ignored){}catch(Throwable error){SwingUtilities.invokeLater(()->{if(!closed&&ticket==generation)errorHandler.accept(error);});}
         });
     }
@@ -204,9 +207,36 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         return new Rectangle(24,24,2,16);
     }
     public void revealCaret(){
-        if(!isLayoutCurrent())return;
+        if(!isLayoutCurrent()||topRevealOffset!=null)return;
         if(session.getContentSelection() instanceof WordObjectSelection o){WordLayout.ObjectBox box=box(o.offset());if(box!=null){scrollRectToVisible(screen(box));return;}}
         scrollRectToVisible(caretBounds());
+    }
+    /** Reveals a document offset near the viewport top, after pending pagination completes. */
+    public void revealOffsetAtTop(int offset){
+        session.getDocument().checkRange(offset,offset);
+        topRevealOffset=offset;topRevealTicket++;
+        queueTopReveal();
+    }
+    private void queueTopReveal(){
+        if(closed||topRevealOffset==null||!isLayoutCurrent()||layoutGeneration!=generation)return;
+        long ticket=topRevealTicket,layoutTicket=generation;
+        SwingUtilities.invokeLater(()->{
+            if(closed||ticket!=topRevealTicket||topRevealOffset==null||layoutTicket!=generation||!isLayoutCurrent())return;
+            if(getParent() instanceof JViewport viewport){
+                // Revalidation is deferred in Swing; use the new view size before clamping the destination.
+                viewport.doLayout();
+                Rectangle target=boundsAt(topRevealOffset);
+                Dimension extent=viewport.getExtentSize();
+                Point position=viewport.getViewPosition();
+                int x=position.x;
+                if(target.x<x)x=target.x;
+                else if(target.x+target.width>x+extent.width)x=target.x+target.width-extent.width;
+                x=Math.max(0,Math.min(x,getWidth()-extent.width));
+                int y=Math.max(0,Math.min(target.y-16,getHeight()-extent.height));
+                viewport.setViewPosition(new Point(x,y));
+            }
+            topRevealOffset=null;
+        });
     }
     private WordLayout.ObjectBox box(int offset){
         if(snapshot==null)return null;

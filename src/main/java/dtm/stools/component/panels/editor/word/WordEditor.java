@@ -43,10 +43,13 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
     private final WordCanvas canvas;
     private final JScrollPane scrollPane;
     private final JPanel north=new JPanel(new BorderLayout()),providerBar=new JPanel(new FlowLayout(FlowLayout.LEADING,4,0));
+    private final JPanel ribbonHost=new JPanel(new BorderLayout());
+    private final JMenuBar compactMenu=new JMenuBar();
     private final JLabel status=new JLabel(),diagnostics=new JLabel();
     private final DefaultListModel<String> outlineModel=new DefaultListModel<>();
     private final JList<String> outline=new JList<>(outlineModel);
     private final List<Integer> outlineOffsets=new ArrayList<>();
+    private boolean updatingOutline;
     private final WordNavigationPanel navigation=new WordNavigationPanel(outline,this::closeNavigation);
     private final LinkedHashMap<String,Action> commands=new LinkedHashMap<>();
     private final Map<String,String> commandGroups=new HashMap<>();
@@ -94,12 +97,27 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         add(commentsPanel,BorderLayout.EAST);
         registerBuiltins();
         defaultRibbon=new WordRibbon(this);ribbon=defaultRibbon;
-        north.add(ribbon,BorderLayout.NORTH);north.add(providerBar,BorderLayout.CENTER);
+        JMenu viewMenu=new JMenu("Exibir");viewMenu.setMnemonic(KeyEvent.VK_E);viewMenu.setName("word.view.menu");
+        JMenuItem showTools=new JMenuItem(commands.get("word.focus"));showTools.setName("word.tools.toggle");viewMenu.add(showTools);
+        compactMenu.setName("word.compact.menu");compactMenu.add(viewMenu);
+        ribbonHost.add(compactMenu,BorderLayout.NORTH);ribbonHost.add(ribbon,BorderLayout.CENTER);
+        north.add(ribbonHost,BorderLayout.NORTH);north.add(providerBar,BorderLayout.CENTER);
         diagnostics.setBorder(BorderFactory.createEmptyBorder(6,12,6,12));diagnostics.setVisible(false);north.add(diagnostics,BorderLayout.SOUTH);add(north,BorderLayout.NORTH);
         add(navigation,BorderLayout.WEST);
         outline.getAccessibleContext().setAccessibleName("Navegação por títulos");
         status.setOpaque(true);status.setBorder(BorderFactory.createEmptyBorder(7,16,7,16));add(status,BorderLayout.SOUTH);
-        outline.addListSelectionListener(e->{if(!e.getValueIsAdjusting()&&outline.getSelectedIndex()>=0&&outline.getSelectedIndex()<outlineOffsets.size()){int offset=outlineOffsets.get(outline.getSelectedIndex());if(offset<=getDocument().length()){session.setSelection(offset,offset);canvas.requestFocusInWindow();}}});
+        outline.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        outline.addListSelectionListener(e->{if(!updatingOutline&&!e.getValueIsAdjusting())navigateOutline(false);});
+        outline.addMouseListener(new MouseAdapter(){
+            @Override public void mouseClicked(MouseEvent e){
+                int index=outline.locationToIndex(e.getPoint());
+                if(SwingUtilities.isLeftMouseButton(e)&&index>=0&&outline.getCellBounds(index,index).contains(e.getPoint()))navigateOutline(true);
+            }
+        });
+        outline.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,0),"word.outline.activate");
+        outline.getActionMap().put("word.outline.activate",new AbstractAction(){
+            @Override public void actionPerformed(ActionEvent e){navigateOutline(true);}
+        });
         lastDocument=session.getDocument();
         sessionListener=session.addListener(this::sessionChanged);
         fontListener=fonts.addListener(this::refreshState);
@@ -161,9 +179,10 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
     private void applyConfig(){
         session.setReadOnly(config.readOnly()||files.origin().map(o->!o.isEditable()).orElse(false));session.setHistoryLimit(config.historyLimit());
         ribbon.setVisible(config.ribbonVisible());providerBar.setVisible(config.ribbonVisible());navigation.setVisible(config.navigationVisible());status.setVisible(config.statusVisible());
+        compactMenu.setVisible(!config.ribbonVisible());
         canvas.setZoom(config.zoom());canvas.setViewMode(config.viewMode());commentsPanel.setReadOnly(session.isReadOnly());revalidate();repaint();refreshState();
     }
-    public void setRibbon(JComponent value){ensureOpen();north.remove(ribbon);ribbon=Objects.requireNonNull(value);north.add(ribbon,BorderLayout.NORTH);ribbon.setVisible(config.ribbonVisible());revalidate();}
+    public void setRibbon(JComponent value){ensureOpen();Objects.requireNonNull(value);ribbonHost.remove(ribbon);ribbon=value;ribbonHost.add(ribbon,BorderLayout.CENTER);ribbon.setVisible(config.ribbonVisible());revalidate();}
 
     public void setDocument(WordDocument document){
         ensureOpen();files.replaced();diagnostics.setVisible(false);
@@ -387,6 +406,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
                 try{c.localChange(new WordCollaborationEvent(e.revision(),e.label(),session.getAuthor(),before,lastDocument));}catch(RuntimeException error){errorHandler.accept(error);}
             if(commentsVisible)commentsPanel.refresh();
         }
+        if(e.change()==WordSession.Change.SELECTION)syncOutlineSelection();
         refreshState();firePropertyChange("sessionEvent",null,e);
     }
     private void refreshState(){
@@ -397,6 +417,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         if(commands.containsKey("word.export.pdf"))commands.get("word.export.pdf").setEnabled(pdfExporter().isPresent());
         if(commands.containsKey("word.recover"))commands.get("word.recover").setEnabled(files.isRecoveryEnabled());
         Action track=commands.get("word.track");if(track!=null)track.putValue(Action.NAME,session.isTrackChanges()?"Controlar alterações ✓":"Controlar alterações");
+        Action focus=commands.get("word.focus");if(focus!=null)focus.putValue(Action.NAME,config.ribbonVisible()?"Ocultar ferramentas":"Mostrar ferramentas");
         boolean table=session.getContentSelection() instanceof WordCellSelection||getDocument().tableAt(session.getSelection().caret()).isPresent();
         boolean object=session.getSelectedObject().isPresent();
         for(var entry:commands.entrySet()){
@@ -433,9 +454,30 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         applyConfig();
     }
     private void refreshOutline(){
-        outline.clearSelection();outlineModel.clear();outlineOffsets.clear();
-        var doc=getDocument();
-        for(int i=0;i<doc.paragraphs().size();i++){var p=doc.paragraphs().get(i);if(p.style().headingLevel()>0&&!p.plainText().isBlank()){outlineModel.addElement("  ".repeat(p.style().headingLevel()-1)+p.plainText());outlineOffsets.add(doc.paragraphStart(i));}}
+        updatingOutline=true;
+        try {
+            outline.clearSelection();outlineModel.clear();outlineOffsets.clear();
+            var doc=getDocument();
+            for(int i=0;i<doc.paragraphs().size();i++){var p=doc.paragraphs().get(i);if(p.style().headingLevel()>0&&!p.plainText().isBlank()){outlineModel.addElement("  ".repeat(p.style().headingLevel()-1)+p.plainText());outlineOffsets.add(doc.paragraphStart(i));}}
+        } finally {updatingOutline=false;}
+        syncOutlineSelection();
+    }
+    private void syncOutlineSelection(){
+        int selected=-1,caret=session.getSelection().caret();
+        for(int i=0;i<outlineOffsets.size()&&outlineOffsets.get(i)<=caret;i++)selected=i;
+        updatingOutline=true;
+        try {
+            if(selected<0)outline.clearSelection();else outline.setSelectedIndex(selected);
+            if(selected>=0)outline.ensureIndexIsVisible(selected);
+        } finally {updatingOutline=false;}
+    }
+    private void navigateOutline(boolean focusDocument){
+        int index=outline.getSelectedIndex();
+        if(index<0||index>=outlineOffsets.size())return;
+        int offset=outlineOffsets.get(index);
+        session.setSelection(offset,offset);
+        canvas.revealOffsetAtTop(offset);
+        if(focusDocument)canvas.requestFocusInWindow();
     }
     @Override protected void onThemeChanged(){if(north==null)return;UiTokens.refresh();north.setBackground(UiTokens.surface());providerBar.setBackground(UiTokens.surface());status.setBackground(UiTokens.surface());status.setForeground(UiTokens.muted());if(defaultRibbon!=null)defaultRibbon.onThemeChanged();commentsPanel.setBackground(UiTokens.surface());repaint();}
     private void showContextMenu(int x,int y){
@@ -445,6 +487,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
             menu.addSeparator();for(String id:List.of("word.table.row.below","word.table.column.right","word.table.merge","word.table.split","word.table.properties"))menu.add(commands.get(id));
         }
         menu.addSeparator();menu.add(commands.get("word.insert.link"));menu.add(commands.get("word.comment.new"));
+        menu.addSeparator();menu.add(commands.get("word.focus"));
         for(Registration r:providers.values())if(r.provider instanceof WordContextMenuProvider p)try{p.contribute(this,menu);}catch(Exception error){errorHandler.accept(error);}
         menu.show(canvas,x,y);
     }
