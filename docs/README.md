@@ -124,6 +124,7 @@ EventListenerComponent
 | `DockPanel` | [DockPanel.md](DockPanel.md) | Layout de docking por regioes |
 | `WindowPanel` / `WindowDesktopPanel` | [WindowPanel.md](WindowPanel.md) | Janelas internas, modalidade, snap, layout e extensao por heranca |
 | `CodeEditor` | [CodeEditor.md](CodeEditor.md) | Editor de codigo extensivel |
+| `WordEditor` | [WordEditor.md](WordEditor.md) | Editor de documentos em desenvolvimento, DOCX proprio, configuracao e providers |
 | Contratos do `CodeEditor` | [CodeEditor_Contratos.md](CodeEditor_Contratos.md) | Providers, diagnostics, autocomplete, CodeLens e modelos semanticos |
 | Graficos | [Graphics.md](Graphics.md) | Visao geral do pacote `graphics`, ciclo de vida, threading, input e nativos |
 | `AbstractGraphicsPanel` | [AbstractGraphicsPanel.md](AbstractGraphicsPanel.md) | Base para paineis graficos com renderer, loop, FPS, input e ciclo de vida |

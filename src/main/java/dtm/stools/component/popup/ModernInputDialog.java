@@ -9,6 +9,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class ModernInputDialog {
@@ -58,6 +59,8 @@ public final class ModernInputDialog {
 
         private boolean draggable = true;
         private boolean showIcon = true;
+        private Dialog.ModalityType modality = Dialog.ModalityType.APPLICATION_MODAL;
+        private Consumer<JDialog> openHandler = null;
 
         public ModernInputDialogBuilder title(String t) {
             this.title = t;
@@ -148,6 +151,16 @@ public final class ModernInputDialog {
             return this;
         }
 
+        public ModernInputDialogBuilder modality(Dialog.ModalityType value) {
+            this.modality = value == null ? Dialog.ModalityType.APPLICATION_MODAL : value;
+            return this;
+        }
+
+        public ModernInputDialogBuilder onOpen(Consumer<JDialog> handler) {
+            this.openHandler = handler;
+            return this;
+        }
+
         public ModernInputDialogBuilder onSubmit(SubmitHandler handler) {
             this.submitHandler = handler;
             return this;
@@ -235,7 +248,7 @@ public final class ModernInputDialog {
                 owner = parent != null ? SwingUtilities.getWindowAncestor(parent) : null;
             }
 
-            JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
+            JDialog dialog = new JDialog(owner, title, modality);
             dialog.setUndecorated(true);
 
             JPanel root = new JPanel(new BorderLayout()) {
@@ -417,6 +430,10 @@ public final class ModernInputDialog {
 
             JComponent focusTarget = validationSource != null ? validationSource : inputComponent;
             SwingUtilities.invokeLater(focusTarget::requestFocusInWindow);
+
+            if (openHandler != null) {
+                openHandler.accept(dialog);
+            }
 
             dialog.setVisible(true);
 
