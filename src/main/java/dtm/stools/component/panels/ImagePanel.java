@@ -3,7 +3,10 @@ package dtm.stools.component.panels;
 import java.awt.Graphics;
 import java.awt.Image;
 import javax.swing.ImageIcon;
+
+import dtm.stools.utils.ImageUtils;
 import lombok.Getter;
+import lombok.NonNull;
 
 public class ImagePanel extends BlockingPanel {
     
@@ -15,11 +18,15 @@ public class ImagePanel extends BlockingPanel {
         setOpaque(false);
     }
     
-    public ImagePanel(String imagePath) {
-        this(new ImageIcon(imagePath));
+    public ImagePanel(@NonNull String imagePath) {
+        this(ImageUtils.getImageByResourceOrThrow(ImagePanel.class, imagePath));
     }
 
-    public ImagePanel(ImageIcon imageIcon) {
+    public ImagePanel(@NonNull Class<?> aClass, @NonNull String imagePath) {
+        this(ImageUtils.getImageByResourceOrThrow(aClass, imagePath));
+    }
+
+    public ImagePanel(@NonNull ImageIcon imageIcon) {
         this(imageIcon.getImage());
     }
 
