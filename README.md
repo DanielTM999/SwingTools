@@ -61,6 +61,7 @@ SwingTools cobre vários pontos comuns de uma aplicação desktop:
 | Tabelas | `GridViewTable` com reflexão, anotações, seleção, edição e paginação |
 | Árvore | `TreeView` com checkbox, lazy load, busca, filtro, edição, popup e drag and drop |
 | Editor | `CodeEditor` com gutter, minimap, busca, folding, markers, providers e extensões |
+| Planilha | `SheetEditor` estilo Excel 365/Google Planilhas: fórmulas, arrays dinâmicos, tabelas, gráficos, tabela dinâmica, XLSX/ODS/CSV e PDF |
 | Gráficos | `AbstractGraphicsPanel` e `GraphicsGlPanel` com renderer, loop, FPS, input e OpenGL nativo |
 | Feedback | Dialogs modernos, input dialog, popups, toasts e notificações empilháveis |
 | Tema | `JsonLookAndFeel` para aplicar tema por JSON |
@@ -1059,6 +1060,20 @@ Listeners disponíveis:
 | `HoverListener` | Hover |
 | `SearchRequestListener` | Solicitação de busca |
 
+### SheetEditor
+
+`SheetEditor` é o componente de planilha, também baseado em `BlockingPanel`. Na forma padrão ele já vem com ribbon, barra de fórmulas, abas, status, atalhos, diálogos e o catálogo de funções do Excel com os extras do Google Planilhas.
+
+```java
+SheetEditor editor = new SheetEditor();
+editor.input("A1", "Produto");
+editor.setValue("B2", 10.5);
+editor.setFormula("B10", "=SOMA(B2:B9)");
+editor.save(Path.of("vendas.xlsx"));
+```
+
+A referência completa está em [docs/SheetEditor.md](docs/SheetEditor.md), e os pontos de extensão em [docs/SheetEditor_Contratos.md](docs/SheetEditor_Contratos.md).
+
 ---
 
 ## 19. GraphicsPanel e GraphicsGlPanel
@@ -1496,6 +1511,7 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `CodeEditorContextMenuExample` | Provider de menu de contexto no editor |
 | `CodeEditorMarkerEventsExample` | Breakpoints, bookmarks e eventos de marker |
 | `CodeEditorTabsExample` | `CodeEditor` dentro de `TabbedPanel` |
+| `SheetEditorExample` | Planilha completa com tabela, gráficos, formatação condicional, fórmulas dinâmicas e tabela dinâmica |
 | `WindowConfigCollapsibleMenuBarExample` | `CollapsibleMenuBar` e ação central integrados à barra de título de uma `WindowPanel` |
 | `GraphicsGlPanelExample` | Triângulo OpenGL, input, VSync e FPS |
 | `GraphicsGlCubeExample` | Cubo 3D usando `GraphicsGlPanel` |

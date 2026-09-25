@@ -27,7 +27,9 @@ class DocxCodecTest {
         assertEquals(doc.pageSettings().width(),read.document().pageSettings().width(),.05);
     }
     @Test void uneditedSaveIsByteExactEvenWithUnsupportedObjects()throws Exception{
-        byte[] bytes=patch(write(WordDocument.fromText("safe")),"</w:body>","<w:tbl><w:tr><w:tc><w:p><w:r><w:t>cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>");
+        byte[] tabled=patch(write(WordDocument.fromText("safe")),"</w:body>","<w:tbl><w:tr><w:tc><w:p><w:r><w:t>cell</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>");
+        var signed=new ByteArrayOutputStream();OpcPackage.read(tabled,OpcPackage.Limits.DEFAULT).withPart("_xmlsignatures/sig1.xml","<Signature/>".getBytes(StandardCharsets.UTF_8)).write(signed);
+        byte[] bytes=signed.toByteArray();
         WordImportResult read=codec.read(new ByteArrayInputStream(bytes));assertFalse(read.isEditable());
         ByteArrayOutputStream out=new ByteArrayOutputStream();codec.write(read.document(),read,out);assertArrayEquals(bytes,out.toByteArray());
         assertThrows(IOException.class,()->codec.write(read.document().replace(0,0,"change",WordTextStyle.DEFAULT),read,new ByteArrayOutputStream()));

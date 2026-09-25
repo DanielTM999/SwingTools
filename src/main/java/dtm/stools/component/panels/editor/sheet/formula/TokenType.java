@@ -1,0 +1,3 @@
+package dtm.stools.component.panels.editor.sheet.formula;
+
+public enum TokenType { NUMBER, STRING, BOOL, ERROR, REF, NAME, FUNCTION, STRUCTURED, OPERATOR, LPAREN, RPAREN, LBRACE, RBRACE, SEPARATOR, ROW_SEPARATOR, COLUMN_SEPARATOR, SPACE, END }

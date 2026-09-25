@@ -125,6 +125,8 @@ EventListenerComponent
 | `WindowPanel` / `WindowDesktopPanel` | [WindowPanel.md](WindowPanel.md) | Janelas internas, modalidade, snap, layout e extensao por heranca |
 | `CodeEditor` | [CodeEditor.md](CodeEditor.md) | Editor de codigo extensivel |
 | `WordEditor` | [WordEditor.md](WordEditor.md) | Editor de documentos em desenvolvimento, DOCX proprio, configuracao e providers |
+| `SheetEditor` | [SheetEditor.md](SheetEditor.md) | Planilha estilo Excel 365/Google Planilhas: formulas, funcoes, tabelas, graficos, tabela dinamica, XLSX/ODS/CSV e PDF |
+| Contratos do `SheetEditor` | [SheetEditor_Contratos.md](SheetEditor_Contratos.md) | Providers de funcoes, dados externos, comandos, ribbon, popups, arquivos, colaboracao e IA |
 | Contratos do `CodeEditor` | [CodeEditor_Contratos.md](CodeEditor_Contratos.md) | Providers, diagnostics, autocomplete, CodeLens e modelos semanticos |
 | Graficos | [Graphics.md](Graphics.md) | Visao geral do pacote `graphics`, ciclo de vida, threading, input e nativos |
 | `AbstractGraphicsPanel` | [AbstractGraphicsPanel.md](AbstractGraphicsPanel.md) | Base para paineis graficos com renderer, loop, FPS, input e ciclo de vida |

@@ -1,0 +1,3 @@
+package dtm.stools.component.panels.editor.sheet.model;
+
+public enum PivotShowAs { NORMAL, PERCENT_OF_GRAND_TOTAL, PERCENT_OF_COLUMN, PERCENT_OF_ROW, RUNNING_TOTAL, DIFFERENCE_FROM_PREVIOUS, RANK_ASCENDING, RANK_DESCENDING }
