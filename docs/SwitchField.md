@@ -35,7 +35,7 @@ active.toggle();
 O evento inclui propriedades `oldValue` e `newValue`.
 
 ```java
-active.addEventListner(EventType.CHANGE, event -> {
+active.addEventListener(EventType.CHANGE, event -> {
     boolean selected = event.tryGetValue();
     boolean oldValue = (boolean) event.getProperties().get("oldValue");
 });

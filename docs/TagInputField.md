@@ -40,12 +40,19 @@
 ## Exemplo
 
 ```java
+import dtm.stools.component.inputfields.tagfield.TagInputField;
+
 TagInputField tags = new TagInputField()
         .setTagNormalizer(String::trim)
         .setTagValidator(tag -> tag.length() >= 2)
         .setAllowDuplicates(false);
 
-tags.addEventListner(TagInputField.TAG_ADD, event -> {
+tags.addEventListener(TagInputField.TAG_ADD, event -> {
     System.out.println(event.getValue());
 });
+
+tags.addTags(java.util.List.of("java", "swing"));
+java.util.List<String> selecionadas = tags.getTags();
 ```
+
+Defina normalizador, validador e limite antes de preencher dados iniciais. Use `setTags` para substituir a seleção inteira e `getTags` ao salvar o formulário. `TAG_ADD` e `TAG_REMOVE` são adequados para atualizar uma tela dependente das tags; a persistência final pode acontecer no submit.

@@ -90,7 +90,7 @@ tabs.onBeforeTabClose(event -> {
 tabs.onTabClose(event -> System.out.println("Fechou " + event.getKey()));
 ```
 
-Ou use `addEventListner` com constantes de `EventTabbedPanel`.
+Ou use `addEventListener` com constantes de `EventTabbedPanel`.
 
 ## Drag, reorder e split
 

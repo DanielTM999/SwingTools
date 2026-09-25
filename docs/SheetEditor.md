@@ -29,6 +29,10 @@ O pacote é `dtm.stools.component.panels.editor.sheet`. Ele não importa nada de
 ## Uso básico
 
 ```java
+import dtm.stools.component.panels.editor.sheet.SheetEditor;
+
+import javax.swing.JFrame;
+
 SheetEditor editor = new SheetEditor();
 editor.input("A1", "Produto");
 editor.setValue("B2", 10.5);
@@ -145,6 +149,7 @@ new XlsxCodec().write(wb, engine, out);
 ## Arquivos
 
 - `open(path)` e `open(path, true)`, `save()`, `save(path)` e `export(path, ExportFormat)` devolvem `SheetTask<Path>` e fazem IO em virtual threads. O resultado é aplicado na EDT.
+- `SheetEditor` implementa `AutoCloseable`: chame `close()` quando a planilha for descartada permanentemente para encerrar os recursos associados à sessão. Trocar o componente de região visual não é motivo para encerrar a sessão.
 - **Leitura**: XLSX/XLSM, ODS, CSV/TSV/TXT (detecção de separador, codificação e localidade) e formatos de `SheetImportProvider`.
 - **Gravação**: XLSX, ODS, CSV (`;` em pt-BR) e TSV. A gravação é atômica (arquivo temporário e `ATOMIC_MOVE`), detecta alteração externa e reaproveita os bytes originais quando a pasta aberta não foi alterada.
 - **Exportação**: PDF (`SheetPdfExportProvider`, com páginas rasterizadas em PDF 1.4 e gerador próprio), HTML, texto e formatos de `SheetExportProvider`.

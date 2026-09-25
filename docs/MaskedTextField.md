@@ -112,7 +112,7 @@ O campo inicia vazio e a mascara e construida conforme o usuario digita, escolhe
 
 ```java
 MaskedTextField cpf = new MaskedTextField("###.###.###-##");
-cpf.addEventListner(EventType.CHANGE, event -> {
+cpf.addEventListener(EventType.CHANGE, event -> {
     String clean = event.tryGetValue();
     System.out.println(clean);
 });

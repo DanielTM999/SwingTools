@@ -9,12 +9,17 @@
 | Uso principal | Alternar entre 2 a 5 modos de visualizacao |
 
 ```java
+import dtm.stools.component.inputfields.segmentedfield.SegmentedField;
+
 SegmentedField<String> periodo = new SegmentedField<>();
 periodo.addSegment("Dia", "DAY")
        .addSegment("Semana", "WEEK")
        .addSegment("Mes", "MONTH");
 periodo.setSelectedValue("WEEK", false);
+String selecionado = periodo.getSelectedValue();
 ```
+
+Use `setSelectedValue(valor, false)` ao restaurar o estado da tela sem disparar uma mudança de usuário. Para reagir à seleção, registre `EventType.CHANGE` ou `SegmentedField.SEGMENT_SELECTED`; leia `getSelectedValue()` para aplicar o filtro correspondente.
 
 ## Segmentos
 

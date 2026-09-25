@@ -29,7 +29,7 @@
 CurrencyField amount = new CurrencyField(new Locale("pt", "BR"));
 amount.setValue(new BigDecimal("129.90"));
 
-amount.addEventListner(EventType.CHANGE, event -> {
+amount.addEventListener(EventType.CHANGE, event -> {
     BigDecimal value = amount.getValue();
     System.out.println(value);
 });

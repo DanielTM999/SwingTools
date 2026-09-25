@@ -118,7 +118,7 @@ tree.addNode(src, new TreeNode<>("src/Main.java", "Main.java"));
 tree.addNode(src, new TreeNode<>("src/AppService.java", "AppService.java"));
 
 tree.expandAll();
-tree.addEventListner(EventType.SELECT, event -> {
+tree.addEventListener(EventType.SELECT, event -> {
     TreeNode<String> selected = tree.getSelectedNode();
     if (selected != null) {
         System.out.println(selected.getData());

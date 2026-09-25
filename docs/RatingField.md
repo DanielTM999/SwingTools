@@ -9,10 +9,18 @@
 | Uso principal | Nota de 0 a N |
 
 ```java
+import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.ratingfield.RatingField;
+
 RatingField nota = new RatingField(5, 3.5);
 nota.setAllowHalf(true).setIconSize(24);
-nota.addEventListener(EventType.CHANGE, e -> salvar((double) e.getValue()));
+nota.addEventListener(EventType.CHANGE, e -> {
+    Double value = e.tryGetValue();
+    System.out.println("Nota: " + value);
+});
 ```
+
+Use `getValue()` ao salvar o formulário. Ative `setReadOnly(true)` quando a nota deve ser mostrada sem permitir edição; `setEnabled(false)` tem também o comportamento visual de componente desabilitado. O hover é apenas prévia e não altera `getValue()` até a confirmação do usuário.
 
 ## Valor
 

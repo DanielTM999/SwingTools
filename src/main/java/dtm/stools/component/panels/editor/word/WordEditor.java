@@ -68,7 +68,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
     private JComponent ribbon;
     private WordRibbon defaultRibbon;
     private WordEditorConfig config;
-    private boolean closed,applyingRemote,commentsVisible;
+    private boolean closed,applyingRemote,commentsVisible,screenActive;
     private WordDocument lastDocument;
     private Consumer<Throwable> errorHandler=error->firePropertyChange("error",null,error);
 
@@ -131,7 +131,18 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         canvas.bind("word.properties",KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,InputEvent.ALT_DOWN_MASK),this::showObjectProperties);
         canvas.addMouseListener(new MouseAdapter(){private void popup(MouseEvent e){if(e.isPopupTrigger())showContextMenu(e.getX(),e.getY());}@Override public void mousePressed(MouseEvent e){popup(e);}@Override public void mouseReleased(MouseEvent e){popup(e);}});
         applyConfig();refreshOutline();refreshState();onThemeChanged();
+        addHierarchyListener(e->{if((e.getChangeFlags()&HierarchyEvent.SHOWING_CHANGED)!=0)updateScreenLifecycle();});
     }
+
+    private void updateScreenLifecycle(){
+        boolean showing=!closed&&isShowing();
+        if(screenActive==showing)return;
+        screenActive=showing;
+        if(showing){canvas.resumeVisualWork();SwingUtilities.invokeLater(()->{if(screenActive&&isShowing())canvas.resumeVisualWork();});}
+        else{defaultRibbon.closePopups();popups.dismissTransient();canvas.pauseVisualWork();}
+    }
+    @Override public void addNotify(){super.addNotify();updateScreenLifecycle();}
+    @Override public void removeNotify(){if(screenActive){screenActive=false;defaultRibbon.closePopups();popups.dismissTransient();canvas.pauseVisualWork();}super.removeNotify();}
 
     public WordSession getSession(){return session;}
     public WordDocument getDocument(){return session.getDocument();}
@@ -693,6 +704,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
     private void ensureOpen(){if(closed)throw new IllegalStateException("Editor is closed");}
     @Override public void close(){
         if(closed)return;closed=true;
+        screenActive=false;
         defaultRibbon.closePopups();
         popups.close();runner.close();files.close();
         for(Registration r:List.copyOf(providers.values()))try{r.close();}catch(Exception error){errorHandler.accept(error);}

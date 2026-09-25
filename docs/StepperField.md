@@ -11,11 +11,17 @@
 Internamente ele reusa o [NumberField](NumberField.md), entao herda `BigDecimal`, locale, casas decimais e limites, sem duplicar a logica numerica.
 
 ```java
+import dtm.stools.component.inputfields.stepperfield.StepperField;
+
+import java.math.BigDecimal;
+
 StepperField quantidade = new StepperField(BigDecimal.ONE);
 quantidade.setRange(BigDecimal.ZERO, BigDecimal.TEN)
           .setStep(BigDecimal.ONE)
           .setDecimalPlaces(0);
 ```
+
+Use `getValue()` para obter um `BigDecimal` ao confirmar o formulário; evite converter pelo texto exibido. O `NumberField` interno mantém as regras de precisão e locale. Configure intervalo e passo antes de apresentar o componente para evitar alterações visuais durante a entrada do usuário.
 
 ## Valor
 

@@ -9,6 +9,9 @@
 | Uso principal | Escolha unica entre poucas opcoes |
 
 ```java
+import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.checkfield.RadioGroupField;
+
 RadioGroupField<String> plano = new RadioGroupField<>();
 plano.addOption("Mensal", "MONTHLY")
      .addOption("Anual", "YEARLY");
@@ -18,6 +21,8 @@ plano.addEventListener(EventType.CHANGE, e -> {
     String escolhido = e.tryGetValue();
 });
 ```
+
+Defina as opções antes de selecionar o valor inicial. A sobrecarga com `fireEvent=false` evita processar a restauração de dados como clique. Ao salvar, leia `getSelectedValue()` e trate `null` quando nenhuma opção estiver marcada.
 
 ## RadioGroupField
 

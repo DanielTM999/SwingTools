@@ -1,13 +1,29 @@
-# SwingTools - documentacao para desenvolvedores
+# SwingTools — documentação de uso
 
-Esta pasta e a referencia tecnica para quem vai usar ou estender o SwingTools em uma aplicacao Java Swing. O README principal do repositorio apresenta a biblioteca; estes documentos entram nos contratos de API, heranca, ciclo de vida, eventos, exemplos de uso e pontos de extensao.
+Esta pasta é a referência da **SwingTools 1.3.0**, compilada com Java 25. As páginas explicam como integrar cada recurso em uma aplicação Swing. O [README principal](../README.md) mostra instalação via JitPack, requisitos e uma visão geral; o [Guia do Desenvolvedor](Guia_do_Desenvolvedor.md) ensina a montar uma aplicação.
+
+As áreas mais completas da biblioteca são a composição de áreas de trabalho ([abas](TabbedPanel.md), [dock](DockPanel.md), [janelas internas](WindowPanel.md)), os três editores ([código](CodeEditor.md), [documentos](WordEditor.md), [planilhas](SheetEditor.md)) e os componentes de dados e formulários ([tabela](GridView.md), [árvore](TreeView.md), [formulário](FormPanel.md)). Use a tabela abaixo para partir da tarefa da aplicação.
+
+## Encontre o que precisa fazer
+
+| Quero... | Comece por | Aprofunde em |
+|---|---|---|
+| Criar uma janela ou separar comportamento da tela | [Guia do Desenvolvedor](Guia_do_Desenvolvedor.md) | [ViewPanel](ViewPanel.md), [Eventos](Eventos.md) |
+| Montar um formulário com validação | [FormPanel](FormPanel.md) | [campos de entrada](#inputs) e [dialogs](#menus-dialogs-e-janela) |
+| Criar uma interface com abas e áreas móveis | [TabbedPanel](TabbedPanel.md) | [DockPanel](DockPanel.md), [WindowPanel](WindowPanel.md) |
+| Mostrar dados em tabela ou árvore | [GridView](GridView.md) | [TreeView](TreeView.md) |
+| Oferecer edição de código, documentos ou planilhas | [CodeEditor](CodeEditor.md) | [WordEditor](WordEditor.md), [SheetEditor](SheetEditor.md) |
+| Alterar cores, tipografia e desenho | [JsonLookAndFeel](JsonLookAndFeel.md) | [UiTokens](UiTokens.md), [PaintUtils](PaintUtils.md) |
+| Escolher arquivo ou usar recursos nativos | [FilePickerInputPanel](FilePickerInputPanel.md) | [OsFilePicker](OsFilePicker.md), [Graphics](Graphics.md) |
+
+Os exemplos de cada página são trechos Java para copiar e adaptar. Quando o trecho não mostra uma classe completa, coloque-o dentro da criação da tela na EDT. Os exemplos executáveis completos ficam em `src/test/java/dtm/stools/examples`.
 
 ## Caminho recomendado de leitura
 
-1. Leia [Guia_do_Desenvolvedor.md](Guia_do_Desenvolvedor.md) para entender a arquitetura, a heranca e o jeito esperado de montar telas.
-2. Leia [Eventos.md](Eventos.md) antes de usar componentes que emitem eventos.
-3. Escolha o componente na tabela abaixo e use a doc dele como referencia de API.
-4. Consulte os exemplos em `src/test/java/dtm/stools/examples` quando quiser ver uma tela completa executavel.
+1. Leia o [Guia do Desenvolvedor](Guia_do_Desenvolvedor.md) para instalar, montar uma janela e entender ciclo de vida, controllers e EDT.
+2. Consulte [Eventos](Eventos.md) ao conectar callbacks ou gerenciar inscrições.
+3. Escolha um componente nas tabelas abaixo e siga o exemplo de uso antes de personalizar a API.
+4. Compare com as demos em `src/test/java/dtm/stools/examples` quando precisar de uma tela completa executável.
 
 ## Mapa rapido de heranca
 
@@ -22,6 +38,9 @@ IWindow
 IWindowComponent
   ViewPanel extends JPanel
     BlockingPanel
+      CodeEditor
+      WordEditor
+      SheetEditor
       PanelEventListener
         KeyPanel
         TabbedPanel
@@ -61,7 +80,7 @@ IWindowComponent
 EventListenerComponent
   PanelEventListener
   DataTableListener extends JTable
-    GridViewTable<T>
+    GridView<T>
   DropdownFieldListener<T> extends JComboBox<T>
     DropdownField
   JTextFieldListener extends JTextField
@@ -118,13 +137,13 @@ EventListenerComponent
 
 | Componente | Arquivo | Uso principal |
 |---|---|---|
-| `GridViewTable` | [GridViewTable.md](GridViewTable.md) | Tabela reflexiva a partir de POJOs anotados |
+| `GridView` | [GridView.md](GridView.md) | Tabela reflexiva a partir de POJOs anotados |
 | `TreeView` | [TreeView.md](TreeView.md) | Arvore com nodes de dominio, busca, check e lazy load |
 | `TabbedPanel` | [TabbedPanel.md](TabbedPanel.md) | Abas com chave, pin, dirty, badge, menu, drag e split |
 | `DockPanel` | [DockPanel.md](DockPanel.md) | Layout de docking por regioes |
 | `WindowPanel` / `WindowDesktopPanel` | [WindowPanel.md](WindowPanel.md) | Janelas internas, modalidade, snap, layout e extensao por heranca |
 | `CodeEditor` | [CodeEditor.md](CodeEditor.md) | Editor de codigo extensivel |
-| `WordEditor` | [WordEditor.md](WordEditor.md) | Editor de documentos em desenvolvimento, DOCX proprio, configuracao e providers |
+| `WordEditor` | [WordEditor.md](WordEditor.md) | Editor de documentos com ribbon, paginação, navegação, formatação e leitura/escrita do subconjunto DOCX suportado; veja também arquivos e providers |
 | `SheetEditor` | [SheetEditor.md](SheetEditor.md) | Planilha estilo Excel 365/Google Planilhas: formulas, funcoes, tabelas, graficos, tabela dinamica, XLSX/ODS/CSV e PDF |
 | Contratos do `SheetEditor` | [SheetEditor_Contratos.md](SheetEditor_Contratos.md) | Providers de funcoes, dados externos, comandos, ribbon, popups, arquivos, colaboracao e IA |
 | Contratos do `CodeEditor` | [CodeEditor_Contratos.md](CodeEditor_Contratos.md) | Providers, diagnostics, autocomplete, CodeLens e modelos semanticos |
@@ -184,8 +203,10 @@ EventListenerComponent
 ## Regras praticas para uso em aplicacoes
 
 - Crie componentes Swing sempre na EDT com `SwingUtilities.invokeLater`.
+- Inicie `Activity` na EDT; a montagem de `onDrawing()` ocorre na thread que chamou `init()`.
+- Em `ViewPanel`, monte filhos em `onDrawing()` e considere `applyDrawingOnce()` se o painel puder ser reinserido. `onLoad()` pode repetir quando a visibilidade mudar.
 - Use `setName("id")` em componentes que precisam ser encontrados por `findById` ou injetados com `@ViewRef`.
 - Prefira controllers delegados quando a tela tiver regras, chamadas assincronas ou muitos listeners.
-- Use `putInClient` apenas para estado local da janela/componente; nao use como banco global.
+- Use `putInClient` apenas para estado local da janela/componente; para substituir uma chave use a sobrecarga com `replace=true`.
 - Use os eventos do SwingTools para eventos de dominio do componente e os listeners Swing nativos para comportamento Swing puro.
 - Quando uma API tem metodo `close...`, use ele antes de `remove...`; `close...` respeita eventos e regras como `closable`.

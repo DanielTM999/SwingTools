@@ -99,8 +99,6 @@ public final class CellEditController {
         canvas.add(inCell);
         editor.getFormulaBar().setDocument(document);
         editor.getFormulaBar().field().setFocusTraversalKeysEnabled(false);
-        autocomplete = new FunctionAutocomplete(canvas);
-        hint = new ArgumentHint(canvas);
         inCell.addKeyListener(new KeyAdapter() {
             @Override public void keyPressed(KeyEvent e) { handleKey(e, inCell); }
         });
@@ -296,7 +294,7 @@ public final class CellEditController {
         SwingUtilities.invokeLater(() -> {
             if (!active) return;
             reposition();
-            highlightTimer.restart();
+            if (editor.isShowing()) highlightTimer.restart();
             updateHints();
             if (typedAtEnd && editor.getConfig().autoComplete() && !fromBar) completeFromColumn();
             editor.refreshStatus();
@@ -306,11 +304,20 @@ public final class CellEditController {
     private void updateHints() {
         if (!active) return;
         String t = text();
-        if (!t.startsWith("=")) { autocomplete.hide(); hint.hide(); return; }
+        if (!t.startsWith("=")) { hideHints(); return; }
         JTextPane c = current();
-        if (!c.isShowing()) { autocomplete.hide(); hint.hide(); return; }
+        if (!c.isShowing()) { hideHints(); return; }
+        ensureHints();
         autocomplete.update(c, editor.getEngine().functions(), editor.formulaLocale(), editor.getWorkbook().properties().names());
         hint.update(c, editor.getEngine().functions(), editor.formulaLocale());
+    }
+    private void ensureHints() {
+        if (autocomplete == null) autocomplete = new FunctionAutocomplete(editor.getCanvas());
+        if (hint == null) hint = new ArgumentHint(editor.getCanvas());
+    }
+    private void hideHints() {
+        if (autocomplete != null) autocomplete.hide();
+        if (hint != null) hint.hide();
     }
 
     private void completeFromColumn() {
@@ -448,7 +455,7 @@ public final class CellEditController {
             if (code == KeyEvent.VK_ESCAPE) { e.consume(); editor.focusGrid(); }
             return;
         }
-        if (autocomplete.isVisible()) {
+        if (autocomplete != null && autocomplete.isVisible()) {
             switch (code) {
                 case KeyEvent.VK_UP -> { autocomplete.move(-1); e.consume(); return; }
                 case KeyEvent.VK_DOWN -> { autocomplete.move(1); e.consume(); return; }
@@ -585,8 +592,7 @@ public final class CellEditController {
         pointSpan = null;
         pointRange = null;
         pointAnchor = null;
-        autocomplete.hide();
-        hint.hide();
+        hideHints();
         inCell.setVisible(false);
         editor.getCanvas().setHighlights(List.of());
         if (sheet != editor.activeSheetIndex() && sheet < editor.getWorkbook().sheetCount()) editor.getSession().setActiveSheet(sheet, SheetSelection.of(cell));
@@ -749,9 +755,10 @@ public final class CellEditController {
         current().requestFocusInWindow();
     }
 
-    public void dispose() {
+    public void pauseVisualWork() {
         highlightTimer.stop();
-        if (autocomplete != null) autocomplete.dispose();
-        if (hint != null) hint.dispose();
+        if (autocomplete != null) { autocomplete.dispose(); autocomplete = null; }
+        if (hint != null) { hint.dispose(); hint = null; }
     }
+    public void dispose() { pauseVisualWork(); }
 }

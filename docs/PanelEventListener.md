@@ -24,7 +24,9 @@ ViewPanel
 
 | Metodo | Contrato |
 |---|---|
-| `addEventListner(String, Consumer<EventComponent>)` | Registra listener por tipo |
+| `addEventListener(String, Consumer<EventComponent>)` | Registra listener por tipo e retorna `EventSubscription` |
+| `removeEventListener(String, Consumer<EventComponent>)` | Remove um callback específico (alias legível) |
+| `removeEventListener(String)` | Remove todos de um tipo (alias legível) |
 | `removeEventListner(String, Consumer<EventComponent>)` | Remove listener especifico |
 | `removeEventListner(String)` | Remove todos de um tipo |
 | `removeAllListeners()` | Remove todos os listeners |
@@ -34,15 +36,20 @@ ViewPanel
 
 `PanelEventListener` dispara `EventType.LOAD` em `addNotify()`, depois que o componente entra na hierarquia Swing.
 
-Para subclasses, existem helpers protegidos `dispachEvent(...)` que montam um `EventComponent` com componente emissor, valor e propriedades extras.
+Para subclasses, existem helpers protegidos `dispatchEvent(...)` que montam um `EventComponent` com componente emissor, valor e propriedades extras. A grafia é diferente da API de `JTextFieldListener`, que usa `dispachEvent(...)`.
 
 ```java
+import dtm.stools.component.events.EventType;
+import dtm.stools.component.panels.base.PanelEventListener;
+
+import java.util.Map;
+
 public class CounterPanel extends PanelEventListener {
     private int value;
 
     public void increment() {
         value++;
-        dispachEvent(EventType.CHANGE, value, Map.of("source", "increment"));
+        dispatchEvent(EventType.CHANGE, value, Map.of("source", "increment"));
     }
 }
 ```

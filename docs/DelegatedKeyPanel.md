@@ -22,25 +22,31 @@ public class WizardPanel extends DelegatedKeyPanel<WizardController> {
         return new WizardController();
     }
 
-    @Override
-    protected void onLoad() {
+    public WizardPanel() {
         register("account", new AccountPanel(), true);
         register("confirm", new ConfirmPanel());
     }
 }
 
 class WizardController extends AbstractViewController<KeyPanel> {
+    private boolean listenerInstalled;
+
     @Override
-    public void onLoad(KeyPanel component) {
-        component.addEventListner(EventType.BEFORE_CHANGE, event -> {
+    public void onInit(KeyPanel component) {
+        super.onInit(component);
+        if (listenerInstalled) return;
+        component.addEventListener(EventType.BEFORE_CHANGE, event -> {
             KeyPanelContextChangeEvent change = event.tryGetValue();
             if (!canLeaveCurrentStep()) {
                 change.cancel();
             }
         });
+        listenerInstalled = true;
     }
 }
 ```
+
+Registre as telas uma vez, no construtor. `onLoad()` pode ocorrer novamente quando o painel volta a ficar visível; registrar as telas ou listeners a cada exibição duplicaria o fluxo.
 
 ## Cuidados
 

@@ -29,6 +29,12 @@ Por herdar `BlockingPanel`, o editor pode ser bloqueado com `lockUI` durante ana
 ## Criacao basica
 
 ```java
+import dtm.stools.component.panels.editor.code.CodeEditor;
+
+import javax.swing.JFrame;
+import java.awt.BorderLayout;
+import java.awt.Font;
+
 CodeEditor editor = new CodeEditor("""
         public class Main {
             public static void main(String[] args) {

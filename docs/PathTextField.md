@@ -28,7 +28,7 @@ path.setText("src/main/java");
 ## Eventos
 
 ```java
-path.addEventListner(PathTextField.PATH_SEGMENT_CLICK, event -> {
+path.addEventListener(PathTextField.PATH_SEGMENT_CLICK, event -> {
     String segment = event.tryGetValue();
 });
 ```

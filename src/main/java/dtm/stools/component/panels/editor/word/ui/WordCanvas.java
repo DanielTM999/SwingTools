@@ -32,7 +32,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     private final WordLayoutEngine engine;
     private final WordRenderer renderer;
     private final ProviderRegistration listener;
-    private final ExecutorService executor=Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"word-layout");t.setDaemon(true);return t;});
+    private ExecutorService executor;
+    private ExecutorService transientExecutor;
     private Future<?> pending;
     private WordLayout snapshot;
     private long generation;
@@ -41,6 +42,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     private double zoom=1;
     private WordViewMode viewMode=WordViewMode.PRINT_LAYOUT;
     private boolean closed;
+    private boolean layoutDirty;
+    private boolean visualPaused;
     private String composition="";
     private Consumer<Throwable> errorHandler=Throwable::printStackTrace;
     private Consumer<WordLayout.ObjectBox> objectHandler=box->{};
@@ -64,12 +67,12 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         snapshot=engine.layout(session.getDocument());
         listener=session.addListener(event->{
             if(event.change()==WordSession.Change.DOCUMENT||event.change()==WordSession.Change.SELECTION){topRevealOffset=null;topRevealTicket++;}
-            if(event.change()==WordSession.Change.DOCUMENT) scheduleLayout();
+            if(event.change()==WordSession.Change.DOCUMENT) scheduleLayoutIfShowing();
             repaint(); if(event.change()==WordSession.Change.SELECTION) revealCaret();
             if(accessibleContext!=null) accessibleContext.firePropertyChange(AccessibleContext.ACCESSIBLE_TEXT_PROPERTY,null,event.revision());
         });
         installInput();
-        addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){if(viewMode==WordViewMode.CONTINUOUS)scheduleLayout();}});
+        addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){if(viewMode==WordViewMode.CONTINUOUS)scheduleLayoutIfShowing();}});
     }
     public WordSession getSession(){return session;}
     public WordRenderer getRenderer(){return renderer;}
@@ -80,20 +83,39 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     public void setLinkHandler(Consumer<String> value){linkHandler=Objects.requireNonNull(value);}
     public void setRegionHandler(Consumer<WordLayout.Region> value){regionHandler=Objects.requireNonNull(value);}
     public void setPasteHandler(Predicate<Transferable> value){pasteHandler=Objects.requireNonNull(value);}
-    public void setZoom(double value){if(!Double.isFinite(value)||value<.25||value>4)throw new IllegalArgumentException();zoom=value;revalidate();repaint();if(viewMode==WordViewMode.CONTINUOUS)scheduleLayout();}
+    public void setZoom(double value){if(!Double.isFinite(value)||value<.25||value>4)throw new IllegalArgumentException();zoom=value;revalidate();repaint();if(viewMode==WordViewMode.CONTINUOUS)scheduleLayoutIfShowing();}
     public double getZoom(){return zoom;}
-    public void setViewMode(WordViewMode value){viewMode=Objects.requireNonNull(value);scheduleLayout();}
+    public void setViewMode(WordViewMode value){viewMode=Objects.requireNonNull(value);scheduleLayoutIfShowing();}
+    private void scheduleLayoutIfShowing(){if(!visualPaused||isShowing())scheduleLayout();else layoutDirty=true;}
     public void scheduleLayout(){
-        if(closed)return;long ticket=++generation;if(pending!=null)pending.cancel(true);
+        if(closed)return;
+        layoutDirty=false;
+        if(pending!=null)pending.cancel(true);
+        if(transientExecutor!=null){transientExecutor.shutdownNow();transientExecutor=null;}
+        boolean transientWorker=!isShowing();
+        if(!transientWorker&&(executor==null||executor.isShutdown()))executor=Executors.newSingleThreadExecutor(r->{Thread t=new Thread(r,"word-layout");t.setDaemon(true);return t;});
+        ExecutorService worker=transientWorker?Executors.newVirtualThreadPerTaskExecutor():executor;
+        if(transientWorker)transientExecutor=worker;
+        long ticket=++generation;
         var document=session.getDocument();boolean continuous=viewMode==WordViewMode.CONTINUOUS;
         float width=(float)(Math.max(300,getWidth()-48)/scale())-document.pageSettings().left()-document.pageSettings().right();
-        pending=executor.submit(()->{
+        pending=worker.submit(()->{
             try {
                 WordLayout next=engine.layout(document,continuous,Math.max(120,width));
                 SwingUtilities.invokeLater(()->{if(!closed&&ticket==generation){snapshot=next;layoutGeneration=ticket;revalidate();repaint();revealCaret();queueTopReveal();firePropertyChange("layoutSnapshot",null,next);}});
             }catch(CancellationException ignored){}catch(Throwable error){SwingUtilities.invokeLater(()->{if(!closed&&ticket==generation)errorHandler.accept(error);});}
+            finally { if(transientWorker)worker.shutdown(); }
         });
     }
+    public void pauseVisualWork(){
+        visualPaused=true;
+        generation++;
+        if(pending!=null){pending.cancel(true);pending=null;}
+        if(transientExecutor!=null){transientExecutor.shutdownNow();transientExecutor=null;}
+        if(executor!=null){executor.shutdownNow();executor=null;}
+        layoutDirty=true;
+    }
+    public void resumeVisualWork(){if(!closed&&isShowing()){visualPaused=false;if(layoutDirty||!isLayoutCurrent())scheduleLayout();}}
     public double scale(){return zoom*96/72;}
     private double pageX(WordLayout.Page p){return Math.max(24,(getWidth()-p.width()*scale())/2);}
     private double pageY(int index){double y=24;for(int i=0;i<index;i++)y+=snapshot.pages().get(i).height()*scale()+24;return y;}
@@ -587,5 +609,5 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
             return start<0||end<0?null:text.substring(start,end);
         }
     }
-    @Override public void close(){if(closed)return;closed=true;generation++;listener.close();if(pending!=null)pending.cancel(true);executor.shutdownNow();}
+    @Override public void close(){if(closed)return;closed=true;pauseVisualWork();listener.close();}
 }

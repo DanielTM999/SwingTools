@@ -31,4 +31,9 @@ public interface EventGrid {
     default Object getOldValue() {
         return null;
     }
+
+    /** Annotated field path, for example "customer.address.city". */
+    default String getFieldPath() {
+        return null;
+    }
 }

@@ -9,9 +9,14 @@
 | Uso principal | Texto longo em formularios |
 
 ```java
+import dtm.stools.component.inputfields.textarea.TextAreaField;
+
 TextAreaField descricao = new TextAreaField("Descreva o chamado...");
 descricao.setMaxLength(280).setAutoGrow(true).setRowRange(3, 10);
+String texto = descricao.getText();
 ```
+
+Configure o limite antes de carregar texto existente. Para inicializar sem tratar a atribuição como edição do usuário, use `setText(texto, false)`. Em formulários, leia `getText()` no submit e use [FormField](FormPanel.md) para mostrar mensagens de validação.
 
 ## Texto
 

@@ -23,13 +23,15 @@ JPanel
 
 | Metodo | Quando usar |
 |---|---|
-| `onInit()` | Configuracoes iniciais do painel |
-| `onLoad()` | Depois que o componente entra na hierarquia Swing |
-| `onRemoved()` | Quando o componente sai da hierarquia |
-| `onDrawing()` | Pintura customizada, chamada em `paintComponent` |
+| `onDrawing()` | Montagem dos filhos quando o painel entra na hierarquia; pode repetir após remoção e reinserção |
+| `onInit()` | Depois da montagem e da recarga do índice de componentes, em `addNotify()` |
+| `onLoad()` | Quando o painel passa a estar visível; pode repetir ao ocultar e exibir |
+| `onRemoved()` | Quando deixa de estar visível ou é removido da hierarquia |
 | `onFocus(FocusEvent)` / `onLostFocus(FocusEvent)` | Foco do painel |
 | `onClick(MouseEvent)` | Clique, quando o listener interno estiver habilitado |
 | `onResize()` / `onMove()` / `onShow()` / `onHidden()` | Eventos de componente |
+
+`onDrawing()` **não é** um callback de pintura por frame. Para desenho personalizado, sobrescreva `paintComponent(Graphics)` e chame `super.paintComponent(g)`. Se a estrutura deve ser montada apenas uma vez, chame `applyDrawingOnce()` no construtor. Como `onLoad()` pode ser chamado novamente, evite registrar o mesmo listener nele a cada exibição.
 
 ## DOM local
 
@@ -58,27 +60,39 @@ Esse estado pertence ao painel. Use para dados temporarios de UI, nao para persi
 ## Exemplo recomendado
 
 ```java
+import dtm.stools.component.ViewPanel;
+
+import javax.swing.JTextField;
+import java.awt.BorderLayout;
+
 public class SearchView extends ViewPanel {
     private final JTextField input = new JTextField();
 
+    public SearchView() {
+        applyDrawingOnce();
+    }
+
     @Override
-    protected void onInit() {
+    protected void onDrawing() {
+        super.onDrawing();
         setLayout(new BorderLayout(8, 8));
         input.setName("searchInput");
         add(input, BorderLayout.NORTH);
+        input.addActionListener(e -> putInClient("lastQuery", input.getText(), true));
     }
 
     @Override
     protected void onLoad() {
-        input.addActionListener(e -> putInClient("lastQuery", input.getText()));
-        reloadDomElements();
+        String lastQuery = getFromClient("lastQuery", "");
+        input.setText(lastQuery);
     }
 }
 ```
 
 ## Cuidados
 
-- Monte a estrutura visual em `onInit` ou no construtor; conecte comportamento em `onLoad`.
+- Monte os filhos em `onDrawing()` com `applyDrawingOnce()` quando a view puder ser reinserida. Use `onLoad()` para atualizar estado visível, sem duplicar listeners.
+- `putInClient(key, value)` não substitui uma chave existente; use `putInClient(key, value, true)` para atualizá-la.
 - Alteracoes de UI vindas de threads externas devem usar `runOnUiTread`.
 - Se a view precisar bloquear interacao, estenda `BlockingPanel`.
 - Se a view precisar emitir eventos publicos, estenda `PanelEventListener`.

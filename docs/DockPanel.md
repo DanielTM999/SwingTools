@@ -74,7 +74,7 @@ Use `setRegionPreferredSize(String key, Dimension size)` para alterar depois da 
 Eventos sao emitidos como `DockEvent`, com constantes em `EventDockPanel`.
 
 ```java
-dock.addEventListner(EventDockPanel.DOCK_MOVE, event -> {
+dock.addEventListener(EventDockPanel.DOCK_MOVE, event -> {
     DockEvent dockEvent = event.tryGetValue();
     System.out.println(dockEvent.getKey());
 });

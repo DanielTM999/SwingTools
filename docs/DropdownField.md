@@ -11,9 +11,13 @@
 ## Criacao
 
 ```java
+import dtm.stools.component.inputfields.selectfield.DropdownField;
+
 DropdownField status = new DropdownField("Novo", "Em andamento", "Fechado");
 status.setPlaceholder("Selecione");
 ```
+
+O valor selecionado segue a API de `JComboBox`: `getSelectedItem()` pode devolver `null`. Quando os itens são objetos da aplicação, configure `setDisplayText` para o rótulo e faça o cast somente após verificar o tipo do item escolhido.
 
 | Construtor | Uso |
 |---|---|
@@ -61,7 +65,7 @@ Em combos editaveis (`setEditable(true)`), o texto digitado no editor e usado pa
 ## Eventos
 
 ```java
-status.addEventListner(EventType.CHANGE, event -> {
+status.addEventListener(EventType.CHANGE, event -> {
     Object selected = event.getValue();
 });
 ```

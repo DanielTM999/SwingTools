@@ -23,14 +23,27 @@ Ao entrar na hierarquia Swing, o painel cria/associa o controller retornado por 
 ## Exemplo
 
 ```java
+import dtm.stools.component.delegated.DelegatedBlockingPanel;
+import dtm.stools.component.panels.BlockingPanel;
+import dtm.stools.context.annotations.ViewRef;
+import dtm.stools.controllers.component.BindingAbstractViewController;
+
+import javax.swing.JTextField;
+import java.awt.BorderLayout;
+
 public class UserFormPanel extends DelegatedBlockingPanel<UserFormController> {
+    public UserFormPanel() {
+        applyDrawingOnce();
+    }
+
     @Override
     protected UserFormController newController() {
         return new UserFormController();
     }
 
     @Override
-    protected void onInit() {
+    protected void onDrawing() {
+        super.onDrawing();
         setLayout(new BorderLayout());
         JTextField name = new JTextField();
         name.setName("name");
@@ -41,13 +54,19 @@ public class UserFormPanel extends DelegatedBlockingPanel<UserFormController> {
 class UserFormController extends BindingAbstractViewController<BlockingPanel> {
     @ViewRef("name")
     private JTextField name;
+    private boolean listenerInstalled;
 
     @Override
-    public void onLoad(BlockingPanel component) {
+    public void onInit(BlockingPanel component) {
+        super.onInit(component);
+        if (listenerInstalled) return;
         name.addActionListener(e -> System.out.println(name.getText()));
+        listenerInstalled = true;
     }
 }
 ```
+
+O painel monta o campo antes da recarga do índice de componentes. O binding do controller acontece em `onInit`, depois dessa recarga. `applyDrawingOnce()` e a guarda do listener evitam duplicação quando o painel é retirado e reinserido na hierarquia.
 
 ## Cuidados
 

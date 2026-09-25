@@ -11,8 +11,17 @@
 ## Criacao
 
 ```java
+import dtm.stools.component.inputfields.colorpicker.ColorFormat;
+import dtm.stools.component.inputfields.colorpicker.ColorPickerField;
+
+import java.awt.Color;
+
 ColorPickerField color = new ColorPickerField(ColorFormat.HEX, Color.RED);
+Color selected = color.getColor();
+String hex = color.getColorAsHex();
 ```
+
+Adicione o campo a um contêiner Swing na EDT. Use `getColor()` quando a lógica da aplicação precisa de `java.awt.Color`; use `getColorAsHex()` quando precisa persistir ou exibir o valor hexadecimal. `setColor(Color)` altera a escolha programaticamente.
 
 ## API
 

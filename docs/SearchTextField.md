@@ -53,7 +53,7 @@ field.addSearchOption(User::email);
 `EventType.SELECT` e disparado quando o usuario escolhe uma sugestao. Eventos herdados de `MaskedTextField`, como `INPUT` e `CHANGE`, continuam disponiveis.
 
 ```java
-field.addEventListner(EventType.SELECT, event -> {
+field.addEventListener(EventType.SELECT, event -> {
     User selected = event.tryGetValue();
     openUser(selected);
 });

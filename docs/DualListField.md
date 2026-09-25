@@ -24,6 +24,11 @@ O layout usa [FlexBoxLayout](../src/main/java/dtm/stools/layouts/FlexBoxLayout.j
 ## Uso basico
 
 ```java
+import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.duallistfield.DualListField;
+
+import java.util.List;
+
 DualListField<String> perfis = new DualListField<>(List.of(
         "Administrador", "Financeiro", "Suporte", "Vendas"));
 
@@ -36,6 +41,8 @@ perfis.addEventListener(EventType.CHANGE, event -> {
     List<String> selecionados = event.tryGetValue();
 });
 ```
+
+Configure as opções antes de restaurar os itens selecionados. Use `setSelected(lista, false)` quando estiver preenchendo uma tela a partir de dados existentes e `getSelected()` ao confirmar. A ordem da lista retornada importa se `setReorderable(true)` estiver ativo.
 
 ## Dados
 

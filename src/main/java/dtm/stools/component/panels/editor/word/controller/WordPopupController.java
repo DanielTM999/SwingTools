@@ -88,11 +88,12 @@ public final class WordPopupController implements AutoCloseable {
     public boolean isSearchOpen() { return searchHandle.isOpen(); }
     public boolean isPaletteOpen() { return paletteHandle.isOpen(); }
     public boolean isPropertiesOpen() { return propertiesHandle.isOpen() || properties == null && defaultProperties.isOpen(); }
-    @Override public void close() {
+    public void dismissTransient() {
         defaultDialog.close();
         defaultConfirmation.close();
         defaultProperties.close();
         searchHandle.close(); paletteHandle.close(); propertiesHandle.close();
         searchHandle = paletteHandle = propertiesHandle = WordPopupHandle.closed();
     }
+    @Override public void close() { dismissTransient(); }
 }

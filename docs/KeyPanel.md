@@ -18,7 +18,7 @@ ViewPanel
       KeyPanel
 ```
 
-Por herdar `PanelEventListener`, `KeyPanel` tambem tem `lockUI`, `unlockUI`, `addEventListner`, estado client-side e DOM local.
+Por herdar `PanelEventListener`, `KeyPanel` tambem tem `lockUI`, `unlockUI`, `addEventListener`, estado client-side e DOM local.
 
 `KeyPanel` gerencia seu proprio layout. Nao chame `setLayout` com outro layout; configure o layout dos paineis registrados.
 
@@ -68,7 +68,7 @@ Por herdar `PanelEventListener`, `KeyPanel` tambem tem `lockUI`, `unlockUI`, `ad
 Exemplo com cancelamento:
 
 ```java
-keyPanel.addEventListner(EventType.BEFORE_CHANGE, event -> {
+keyPanel.addEventListener(EventType.BEFORE_CHANGE, event -> {
     KeyPanelContextChangeEvent change = event.tryGetValue();
     if ("admin".equals(change.getKey()) && !userCanOpenAdmin()) {
         change.cancel();

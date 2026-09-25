@@ -9,10 +9,15 @@
 | Uso principal | Opcao booleana com estado parcial |
 
 ```java
+import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.checkfield.CheckBoxField;
+
 CheckBoxField termos = new CheckBoxField("Aceito os termos");
 termos.setSelected(true);
 termos.addEventListener(EventType.CHANGE, e -> System.out.println(e.getValue()));
 ```
+
+Leia `isSelected()` ao confirmar o formulário. Se a opção representa seleção parcial de um grupo, use `setIndeterminate(true)`; esse estado não equivale a `true`. Ao preencher a UI a partir de dados já salvos, a sobrecarga `setSelected(value, false)` evita tratar a inicialização como interação do usuário.
 
 ## Estado
 

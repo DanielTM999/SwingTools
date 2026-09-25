@@ -1,10 +1,26 @@
 # SwingTools
 
-SwingTools é uma biblioteca Java Swing para criar aplicações desktop com uma camada de organização acima do Swing puro. O projeto reúne ciclo de vida de janelas, controllers, binding por anotações, componentes visuais reutilizáveis, sistema de eventos, layouts, menus, docking, abas, file picker nativo, dialogs modernos, notificações e um editor de código extensível.
+SwingTools é uma biblioteca Java Swing para criar aplicações desktop com uma camada de organização acima do Swing puro. Ela reúne ciclo de vida de janelas, controllers, binding por anotações, componentes visuais reutilizáveis, docking, abas, temas, integração nativa e três editores especializados: **CodeEditor, WordEditor e SheetEditor**.
 
 O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer componentes prontos para interfaces desktop mais completas.
 
-**Stack principal:** Java 21, Maven, Swing, FlatLaf, Lombok e Jackson.
+**Stack principal:** Java 25, Maven, Swing, FlatLaf, Lombok e Jackson.
+
+> **Versão documentada:** 1.3.0. Este guia descreve a API atual da biblioteca. Para aprender por tarefa e encontrar a referência de cada componente, comece pelo [índice da documentação](docs/README.md) e pelo [Guia do Desenvolvedor](docs/Guia_do_Desenvolvedor.md).
+
+## Pontos fortes
+
+| Capacidade | O que entrega em uma aplicação |
+|---|---|
+| Área de trabalho completa | [Abas](docs/TabbedPanel.md), [docking](docs/DockPanel.md) e [janelas internas](docs/WindowPanel.md) permitem montar interfaces com documentos e ferramentas lado a lado. |
+| Editor de código | [CodeEditor](docs/CodeEditor.md) reúne edição de texto, busca, gutter, minimap e providers de linguagem. |
+| Editor de documentos | [WordEditor](docs/WordEditor.md) reúne ribbon, paginação, formatação, navegação e DOCX no subconjunto suportado. |
+| Editor de planilhas | [SheetEditor](docs/SheetEditor.md) reúne grade virtualizada, fórmulas, gráficos, tabelas e formatos de arquivo. |
+| Componentes de aplicação | [Formulários](docs/FormPanel.md), [tabelas](docs/GridView.md), [árvores](docs/TreeView.md), menus, dialogs e notificações evitam reconstruir fluxos comuns do zero. |
+| Personalização | [Temas JSON](docs/JsonLookAndFeel.md), [tokens visuais](docs/UiTokens.md), eventos, renderers e providers permitem adaptar aparência e comportamento. |
+| Integração desktop | [Seletor de arquivos nativo](docs/OsFilePicker.md), system tray e [painel OpenGL](docs/GraphicsGlPanel.md) cobrem recursos além dos controles Swing tradicionais. |
+
+Os editores têm contratos e limites próprios. Em especial, o WordEditor lê e grava o [subconjunto DOCX documentado](docs/WordEditor.md#compatibilidade-docx-desta-entrega); confira esse contrato antes de escolher documentos de produção como entrada.
 
 ---
 
@@ -25,19 +41,21 @@ O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer
 13. [Abas e docking](#13-abas-e-docking)
 14. [Campos de entrada](#14-campos-de-entrada)
 15. [File pickers](#15-file-pickers)
-16. [GridViewTable](#16-gridviewtable)
+16. [GridView](#16-gridview)
 17. [TreeView](#17-treeview)
 18. [CodeEditor](#18-codeeditor)
-19. [GraphicsPanel e GraphicsGlPanel](#19-graphicspanel-e-graphicsglpanel)
-20. [Dialogs, popups e notificações](#20-dialogs-popups-e-notificações)
-21. [FlexBoxLayout](#21-flexboxlayout)
-22. [JsonLookAndFeel](#22-jsonlookandfeel)
-23. [System tray](#23-system-tray)
-24. [Utilitários](#24-utilitários)
-25. [Recursos nativos](#25-recursos-nativos)
-26. [Exemplos disponíveis](#26-exemplos-disponíveis)
-27. [CI e empacotamento](#27-ci-e-empacotamento)
-28. [Status e observações](#28-status-e-observações)
+19. [WordEditor](#19-wordeditor)
+20. [SheetEditor](#20-sheeteditor)
+21. [GraphicsPanel e GraphicsGlPanel](#21-graphicspanel-e-graphicsglpanel)
+22. [Dialogs, popups e notificações](#22-dialogs-popups-e-notificações)
+23. [FlexBoxLayout](#23-flexboxlayout)
+24. [JsonLookAndFeel](#24-jsonlookandfeel)
+25. [System tray](#25-system-tray)
+26. [Utilitários](#26-utilitários)
+27. [Recursos nativos](#27-recursos-nativos)
+28. [Exemplos disponíveis](#28-exemplos-disponíveis)
+29. [CI e empacotamento](#29-ci-e-empacotamento)
+30. [Status e observações](#30-status-e-observações)
 
 ---
 
@@ -58,9 +76,10 @@ SwingTools cobre vários pontos comuns de uma aplicação desktop:
 | Abas | `TabbedPanel`, header customizável, pin, dirty state, badge, menu, drag e split |
 | Docking | `DockPanel` com regiões, movimentação, políticas de drop e snapshot de layout |
 | Formulários | Text fields, máscaras, busca, path field, dropdown, switch, tags, cor, data e arquivo |
-| Tabelas | `GridViewTable` com reflexão, anotações, seleção, edição e paginação |
+| Tabelas | `GridView` com reflexão, anotações, seleção, edição e paginação |
 | Árvore | `TreeView` com checkbox, lazy load, busca, filtro, edição, popup e drag and drop |
-| Editor | `CodeEditor` com gutter, minimap, busca, folding, markers, providers e extensões |
+| Editor de código | `CodeEditor` com gutter, minimap, busca, folding, markers, providers e extensões |
+| Editor de documentos | `WordEditor` com ribbon, paginação Java2D, navegação, edição rica, DOCX no subconjunto suportado e exportação HTML/texto |
 | Planilha | `SheetEditor` estilo Excel 365/Google Planilhas: fórmulas, arrays dinâmicos, tabelas, gráficos, tabela dinâmica, XLSX/ODS/CSV e PDF |
 | Gráficos | `AbstractGraphicsPanel` e `GraphicsGlPanel` com renderer, loop, FPS, input e OpenGL nativo |
 | Feedback | Dialogs modernos, input dialog, popups, toasts e notificações empilháveis |
@@ -73,13 +92,13 @@ SwingTools cobre vários pontos comuns de uma aplicação desktop:
 
 | Item | Versão/observação |
 |---|---|
-| Java | 21 ou superior |
+| Java | 25 ou superior |
 | Build | Maven |
 | UI | Swing |
 | Look and Feel | FlatLaf 3.7.1 |
-| JSON | Jackson Databind 2.17.2 |
-| Código gerado | Lombok 1.18.38 |
-| Nativos Windows | MinGW para build do file picker nativo |
+| JSON | Jackson Databind 2.22.2 |
+| Código gerado | Lombok 1.18.42 |
+| Nativos Windows | MinGW para build dos componentes nativos |
 | Nativos Linux | GTK3 dev e `pkg-config` para build do file picker nativo |
 | Nativos macOS | toolchain com suporte a Objective-C++ |
 
@@ -87,38 +106,65 @@ SwingTools cobre vários pontos comuns de uma aplicação desktop:
 
 ## 3. Instalação como dependência
 
-Artefato Maven do projeto:
+### JitPack (recomendado para aplicações consumidoras)
+
+O repositório GitHub é `DanielTM999/SwingTools` e a tag publicada da versão documentada é `1.3.0`. No `pom.xml` da aplicação, adicione o repositório JitPack e a dependência:
 
 ```xml
-<dependency>
-    <groupId>dtm.stools</groupId>
-    <artifactId>SwingTools</artifactId>
-    <version>1.0.1</version>
-</dependency>
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.DanielTM999</groupId>
+        <artifactId>SwingTools</artifactId>
+        <version>1.3.0</version>
+    </dependency>
+</dependencies>
 ```
 
-Se o projeto ainda estiver apenas local, instale no repositório Maven local:
+Configure também a compilação da aplicação com JDK 25 ou superior. O número da dependência JitPack é a **tag Git**; ao atualizar a biblioteca, escolha explicitamente a tag desejada. Veja o [guia oficial de consumo via Maven](https://docs.jitpack.io/#building-with-jitpack).
+
+### Instalação local alternativa
+
+Se você estiver desenvolvendo a biblioteca junto da aplicação, instale o checkout no repositório Maven local:
 
 ```bash
 mvn clean install -Dnative.build.skip=true
 ```
 
-Depois, use a dependência acima em outro projeto Maven.
+Nesse caso, use as coordenadas declaradas no `pom.xml` da própria SwingTools:
+
+```xml
+<dependency>
+    <groupId>dtm.stools</groupId>
+    <artifactId>SwingTools</artifactId>
+    <version>1.3.0</version>
+</dependency>
+```
+
+As coordenadas JitPack e locais são diferentes; escolha uma delas por aplicação. `-Dnative.build.skip=true` evita recompilar os binários nativos e pressupõe que os binários necessários já estejam disponíveis no checkout/artefato.
+
+Ao consumir por Maven, mantenha a resolução transitiva das dependências declaradas pela SwingTools (como FlatLaf e Jackson). O JAR isolado não substitui o POM de dependências. O artefato do workflow se chama `SwingTools-fat-jar`, mas a configuração de shade embute apenas `commonmark`.
 
 ---
 
 ## 4. Build local
 
-Compilar sem testes:
+Para trabalhar no Java usando os binários nativos já presentes no checkout, compile e rode a suíte JUnit com:
 
 ```bash
-mvn -DskipTests compile
+mvn test -Dnative.build.skip=true
 ```
 
-Compilar sem rebuild dos binários nativos:
+Se quiser apenas compilar:
 
 ```bash
-mvn -DskipTests -Dnative.build.skip=true compile
+mvn compile -Dnative.build.skip=true
 ```
 
 Gerar pacote:
@@ -133,7 +179,7 @@ Gerar recursos nativos da plataforma atual:
 mvn generate-resources
 ```
 
-Executar os exemplos/classes de teste não usa uma suíte JUnit no momento. Os arquivos em `src/test/java/dtm/stools/examples` são demos executáveis com método `main`.
+`src/test/java` contém testes automatizados JUnit e demos executáveis em `src/test/java/dtm/stools/examples`. O build sem recompilação nativa pressupõe que os binários necessários estejam disponíveis. `mvn generate-resources` exige a toolchain nativa da plataforma e pode atualizar os recursos binários do checkout.
 
 ---
 
@@ -144,8 +190,10 @@ SwingTools/
 ├── pom.xml
 ├── README.md
 ├── docs/
-│   ├── JsonLookAndFeel_Documentacao.md
-│   └── MaskedTextField_Documentacao.md
+│   ├── README.md
+│   ├── Guia_do_Desenvolvedor.md
+│   ├── JsonLookAndFeel.md
+│   └── MaskedTextField.md
 ├── native/
 │   ├── linux/
 │   ├── mac/
@@ -203,6 +251,8 @@ O Swing continua sendo a base. SwingTools não substitui `JFrame`, `JPanel`, `JT
 ## 7. Janelas, activities e ciclo de vida
 
 Activities são janelas Swing com ciclo de vida padronizado.
+
+Crie e inicialize a `Activity` na Event Dispatch Thread (EDT), como no exemplo abaixo. `init()` executa `onDrawing()` na thread que o chamou; tarefas demoradas devem ir para um executor e retornar à EDT antes de atualizar componentes. Para views reutilizáveis, veja as diferenças de ciclo de vida em [ViewPanel](docs/ViewPanel.md).
 
 | Classe | Base Swing | Uso |
 |---|---|---|
@@ -409,12 +459,12 @@ Componentes próprios usam `EventListenerComponent` e eventos derivados de `Even
 Padrão de uso:
 
 ```java
-componente.addEventListner(EventType.CHANGE, event -> {
+componente.addEventListener(EventType.CHANGE, event -> {
     Object valor = event.getValue();
 });
 ```
 
-Observação: o método público existente é `addEventListner`, com essa grafia.
+`addEventListener` registra o callback e devolve um `EventSubscription`; guarde a inscrição e chame `unsubscribe()` quando o ciclo de vida do componente exigir remoção. As formas antigas `removeEventListner` e `getEventListners` ainda existem, com alternativas `removeEventListener` e `getEventListeners`.
 
 Elementos principais:
 
@@ -424,7 +474,7 @@ Elementos principais:
 | `EventComponent` | Contrato base do evento |
 | `EventListenerComponent` | Contrato para componentes com listeners |
 | `EventSubscription` | Representa inscrição de evento |
-| `EventGridViewTable` | Evento de tabela |
+| `EventGridView` | Evento de tabela |
 | `EventMenuBar` / `MenuBarEvent` | Eventos de menu |
 | `EventTabbedPanel` / `TabEvent` | Eventos de abas |
 | `EventDockPanel` / `DockEvent` | Eventos de dock |
@@ -852,9 +902,9 @@ Recursos:
 
 ---
 
-## 16. GridViewTable
+## 16. GridView
 
-`GridViewTable<T>` é uma tabela baseada em modelo Java e reflexão.
+`GridView<T>` é uma tabela baseada em modelo Java e reflexão.
 
 Exemplo:
 
@@ -867,7 +917,7 @@ public class Usuario {
     private boolean ativo;
 }
 
-GridViewTable<Usuario> table = new GridViewTable<>(Usuario.class);
+GridView<Usuario> table = new GridView<>(Usuario.class);
 table.setDataSource(usuarios);
 table.setPaginationEnabled(true);
 table.setPageSize(20);
@@ -883,7 +933,10 @@ Recursos:
 | `TableGridMode.BATCH` | Seleção múltipla |
 | `allowEdit` | Controla edição |
 | Paginação | `setPaginationEnabled`, `setPageSize`, `goToPage` |
-| Ordenação | `setAutoCreateRowSorter(true)` é habilitado no construtor |
+| Ordenação global | `setSort`, `clearSort` ou clique no cabeçalho |
+| Filtros | `setColumnTextFilter`, `setColumnFilter` ou menu do cabeçalho |
+| Estilos | `GridStyle`, `GridCellStyle` e `GridStyleResolver<T>` |
+| Controles de página | `getPaginationPanel()` para acoplar abaixo da tabela |
 | Boolean | Usa renderer/editor boolean padrão |
 | Coleções/arrays | Podem usar `DropdownField` como editor |
 
@@ -893,6 +946,7 @@ Métodos úteis:
 |---|---|
 | `setDataSource(Collection<T>)` | Define dados |
 | `getTotalItems()` | Total de itens |
+| `getFilteredItems()` | Itens após filtros |
 | `getTotalPages()` | Total de páginas |
 | `goToPage(int)` | Navega para página |
 | `setPageSizeOptions(List<Integer>)` | Opções de tamanho |
@@ -1060,23 +1114,74 @@ Listeners disponíveis:
 | `HoverListener` | Hover |
 | `SearchRequestListener` | Solicitação de busca |
 
-### SheetEditor
+---
+
+## 19. WordEditor
+
+`WordEditor` é o editor de documentos da biblioteca. Ele combina superfície paginada em Java2D, ribbon, formatação de texto e parágrafos, navegação por títulos, busca, histórico de desfazer/refazer e uma API de documento extensível. Pode ler e gravar DOCX dentro do [subconjunto suportado](docs/WordEditor.md#compatibilidade-docx-desta-entrega), além de exportar HTML e texto.
+
+| Necessidade | Ponto de entrada |
+|---|---|
+| Criar ou substituir conteúdo | `setText(String)` e `setDocument(WordDocument)` |
+| Abrir, salvar ou exportar | `open(Path)`, `save(Path)` e `export(Path, ExportFormat)` devolvem tarefas assíncronas |
+| Adaptar a experiência | Configuração de ribbon, navegação, providers de comandos, diálogos e arquivos |
+| Liberar a sessão | `close()` ao descartar o editor definitivamente |
+
+### Uso básico do WordEditor
+
+```java
+import dtm.stools.component.panels.editor.word.WordEditor;
+
+import java.nio.file.Path;
+
+WordEditor editor = new WordEditor();
+editor.setText("Título\nTexto do documento");
+editor.setNavigationVisible(true);
+
+// Ao salvar, acompanhe a tarefa assíncrona para tratar sucesso ou falha.
+var tarefa = editor.save(Path.of("documento.docx"));
+tarefa.completion().whenComplete((arquivo, erro) -> {
+    if (erro != null) erro.printStackTrace();
+});
+```
+
+Crie e use o componente na EDT. Quando ele for descartado definitivamente, chame `editor.close()` para liberar os recursos da sessão; mover o editor entre abas ou regiões não exige encerrá-lo. Veja o [guia completo do WordEditor](docs/WordEditor.md) para DOCX, diálogos, providers, arquivos assíncronos e limitações.
+
+---
+
+## 20. SheetEditor
 
 `SheetEditor` é o componente de planilha, também baseado em `BlockingPanel`. Na forma padrão ele já vem com ribbon, barra de fórmulas, abas, status, atalhos, diálogos e o catálogo de funções do Excel com os extras do Google Planilhas.
 
+| Necessidade | Ponto de entrada |
+|---|---|
+| Preencher e consultar células | `input`, `setValue`, `setFormula`, `getValue` e `getText` |
+| Trabalhar com arquivos | `open`, `save` e `export` devolvem tarefas assíncronas |
+| Personalizar cálculo e interface | Configuração, serviços e providers de funções, comandos e UI |
+| Liberar a sessão | `close()` ao descartar a planilha definitivamente |
+
+### Uso básico do SheetEditor
+
 ```java
+import dtm.stools.component.panels.editor.sheet.SheetEditor;
+
+import java.nio.file.Path;
+
 SheetEditor editor = new SheetEditor();
 editor.input("A1", "Produto");
 editor.setValue("B2", 10.5);
 editor.setFormula("B10", "=SOMA(B2:B9)");
-editor.save(Path.of("vendas.xlsx"));
+var tarefa = editor.save(Path.of("vendas.xlsx"));
+tarefa.completion().whenComplete((arquivo, erro) -> {
+    if (erro != null) erro.printStackTrace();
+});
 ```
 
-A referência completa está em [docs/SheetEditor.md](docs/SheetEditor.md), e os pontos de extensão em [docs/SheetEditor_Contratos.md](docs/SheetEditor_Contratos.md).
+Crie e edite na EDT; a tarefa de arquivo processa I/O fora da EDT. Ao descartar a planilha, chame `editor.close()`. A referência completa está em [docs/SheetEditor.md](docs/SheetEditor.md), e os pontos de extensão em [docs/SheetEditor_Contratos.md](docs/SheetEditor_Contratos.md).
 
 ---
 
-## 19. GraphicsPanel e GraphicsGlPanel
+## 21. GraphicsPanel e GraphicsGlPanel
 
 Esta secao resume o pacote `dtm.stools.component.panels.graphics`. A documentacao detalhada fica em `docs/Graphics.md`, com paginas especificas para `AbstractGraphicsPanel` e `GraphicsGlPanel`.
 
@@ -1174,7 +1279,7 @@ Cuidados principais:
 
 ---
 
-## 20. Dialogs, popups e notificações
+## 22. Dialogs, popups e notificações
 
 ### Dialogs
 
@@ -1256,7 +1361,7 @@ Notifications.modernDialogBuilder()
 
 ---
 
-## 21. FlexBoxLayout
+## 23. FlexBoxLayout
 
 `FlexBoxLayout` implementa `LayoutManager2` inspirado em CSS Flexbox.
 
@@ -1310,7 +1415,7 @@ JPanel scrollable = FlexBoxLayout.scrollablePanel(modernDialogBuilder -> modernD
 
 ---
 
-## 22. JsonLookAndFeel
+## 24. JsonLookAndFeel
 
 `JsonLookAndFeel` aplica tema visual em Swing a partir de JSON, usando Jackson e `UIManager`.
 
@@ -1370,7 +1475,7 @@ Exemplo reduzido de tema:
 }
 ```
 
-A documentação mais detalhada fica em `docs/JsonLookAndFeel_Documentacao.md`.
+A documentação mais detalhada fica em [docs/JsonLookAndFeel.md](docs/JsonLookAndFeel.md).
 
 ### UiTokens
 
@@ -1390,7 +1495,7 @@ JsonLookAndFeel.updateOpenWindows();
 
 ---
 
-## 23. System tray
+## 25. System tray
 
 `Activity` possui suporte a system tray via `SystemTrayConfiguration`.
 
@@ -1410,7 +1515,7 @@ Por padrão, clique esquerdo no ícone restaura a janela.
 
 ---
 
-## 24. Utilitários
+## 26. Utilitários
 
 ### FontUtils
 
@@ -1462,7 +1567,7 @@ Detalhes em [docs/PaintUtils.md](docs/PaintUtils.md).
 
 ---
 
-## 25. Recursos nativos
+## 27. Recursos nativos
 
 O projeto contém um file picker nativo por plataforma e suporte nativo para o contexto OpenGL usado pelo `GraphicsGlPanel`.
 
@@ -1501,7 +1606,7 @@ mvn package -Dnative.build.skip=true
 
 ---
 
-## 26. Exemplos disponíveis
+## 28. Exemplos disponíveis
 
 Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 
@@ -1511,6 +1616,7 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `CodeEditorContextMenuExample` | Provider de menu de contexto no editor |
 | `CodeEditorMarkerEventsExample` | Breakpoints, bookmarks e eventos de marker |
 | `CodeEditorTabsExample` | `CodeEditor` dentro de `TabbedPanel` |
+| `WordEditorExample` | Editor de documentos com ribbon, navegação, formatação e DOCX |
 | `SheetEditorExample` | Planilha completa com tabela, gráficos, formatação condicional, fórmulas dinâmicas e tabela dinâmica |
 | `WindowConfigCollapsibleMenuBarExample` | `CollapsibleMenuBar` e ação central integrados à barra de título de uma `WindowPanel` |
 | `GraphicsGlPanelExample` | Triângulo OpenGL, input, VSync e FPS |
@@ -1531,12 +1637,12 @@ Como são demos Swing, a forma mais simples é executar a classe desejada pela I
 
 ---
 
-## 27. CI e empacotamento
+## 29. CI e empacotamento
 
-O workflow `.github/workflows/build.yml` faz build multi-plataforma:
+O workflow `.github/workflows/build.yml` é acionado manualmente e faz build multi-plataforma:
 
 1. Executa em Windows, macOS e Linux.
-2. Configura JDK 21.
+2. Configura JDK 25.
 3. Instala dependências nativas necessárias.
 4. Roda `mvn -B generate-resources` para gerar os binários nativos.
 5. Envia os nativos como artifacts.
@@ -1544,8 +1650,8 @@ O workflow `.github/workflows/build.yml` faz build multi-plataforma:
 7. Mescla tudo em `src/main/resources/native`.
 8. Gera o JAR com `mvn -B clean package -Dnative.build.skip=true`.
 9. Publica artifact `SwingTools-fat-jar`.
-10. Em push na `main`, commita os binários nativos atualizados.
-11. Em tags `v*`, anexa JAR e nativos à release.
+10. Se executado a partir da branch `main`, commita os binários nativos atualizados.
+11. Se executado a partir de uma tag `v*`, anexa JAR e nativos à release.
 
 O `maven-jar-plugin` exclui:
 
@@ -1556,7 +1662,7 @@ O `maven-jar-plugin` exclui:
 
 ---
 
-## 28. Status e observações
+## 30. Status e observações
 
 Este projeto é uma biblioteca Swing em evolução com foco em uso prático. Há muitos componentes funcionais, exemplos manuais e documentação complementar para partes específicas.
 
@@ -1564,12 +1670,12 @@ Pontos a observar:
 
 | Ponto | Observação |
 |---|---|
-| Testes automatizados | O diretório `src/test` contém exemplos executáveis, não uma suíte de testes unitários estruturada |
-| APIs públicas | Algumas APIs preservam nomes existentes, como `addEventListner` |
+| Testes automatizados | Há testes JUnit em `src/test/java`; as demos com `main` ficam em `src/test/java/dtm/stools/examples` |
+| APIs públicas | `addEventListener` é a chamada de registro; algumas chamadas de remoção e consulta ainda preservam a grafia histórica `Listner` |
 | Nativos | Builds nativos dependem do sistema operacional e toolchain local |
 | Swing/EDT | Como em qualquer aplicação Swing, atualizações visuais devem respeitar a Event Dispatch Thread |
 | Lombok | IDE e build precisam estar configurados para annotation processing |
-| Documentação extra | `docs/JsonLookAndFeel_Documentacao.md` e `docs/MaskedTextField_Documentacao.md` detalham partes específicas |
+| Documentação extra | O [índice de componentes](docs/README.md) leva às páginas detalhadas, incluindo [JsonLookAndFeel](docs/JsonLookAndFeel.md) e [MaskedTextField](docs/MaskedTextField.md) |
 
 ---
 
@@ -1577,7 +1683,7 @@ Pontos a observar:
 
 ```java
 import dtm.stools.activity.Activity;
-import dtm.stools.component.grids.GridViewTable;
+import dtm.stools.component.grids.GridView;
 import dtm.stools.component.grids.annotations.GridColumn;
 import dtm.stools.component.inputfields.textfield.SearchTextField;
 import dtm.stools.component.panels.dock.DockPanel;
@@ -1647,8 +1753,8 @@ public class DemoSwingTools extends Activity {
         return tabs;
     }
 
-    private GridViewTable<Usuario> createTable() {
-        GridViewTable<Usuario> table = new GridViewTable<>(Usuario.class);
+    private GridView<Usuario> createTable() {
+        GridView<Usuario> table = new GridView<>(Usuario.class);
         table.setDataSource(List.of(
                 new Usuario("Ana", true),
                 new Usuario("Bruno", false)

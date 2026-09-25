@@ -9,9 +9,16 @@
 | Uso principal | OTP, PIN e codigos curtos |
 
 ```java
+import dtm.stools.component.inputfields.pinfield.PinField;
+
 PinField codigo = new PinField(6);
-codigo.addEventListener(PinField.COMPLETED, e -> validar(e.getValue().toString()));
+codigo.addEventListener(PinField.COMPLETED, e -> {
+    String pin = codigo.getValue();
+    System.out.println("Código completo: " + pin);
+});
 ```
+
+Use `isComplete()` antes de enviar o PIN para sua rotina de validação. `COMPLETED` informa que todas as caixas foram preenchidas; a decisão de aceitar o código pertence à aplicação. `setMasked(true)` oculta a representação visual, mas `getValue()` continua devolvendo o texto.
 
 ## Valor
 

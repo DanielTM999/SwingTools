@@ -212,8 +212,11 @@ public final class SheetPopups {
         if (menu.getComponentCount() > 0) menu.show(invoker, x, y);
     }
 
-    public void dispose() {
+    public void dismissTransient() {
         search.close();
         palette.close();
+        search = SheetPopupHandle.closed();
+        palette = SheetPopupHandle.closed();
     }
+    public void dispose() { dismissTransient(); }
 }

@@ -1,12 +1,12 @@
 # WordEditor
 
-Componente de edição de documentos em desenvolvimento, com modelo próprio, superfície Java2D e codec DOCX próprio. O plano completo permanece em [PLANO_WORD_EDITOR.md](../PLANO_WORD_EDITOR.md); esta página descreve somente as funcionalidades implementadas.
+`WordEditor` reúne edição rica de documentos, ribbon, navegação, paginação Java2D, histórico e arquivos em um componente Swing. Ele usa modelo e codec DOCX próprios. O editor continua em evolução: esta página descreve as funcionalidades implementadas na versão atual e delimita o subconjunto DOCX suportado.
 
 ## Pacotes
 
-`dtm.stools.component.panels.editor` contém somente `code` e `word`. Todo contrato, comando, modelo, configuração, provider e codec do Word fica dentro de `dtm.stools.component.panels.editor.word`.
+`dtm.stools.component.panels.editor` reúne `code`, `word` e `sheet`. Todo contrato, comando, modelo, configuração, provider e codec do Word fica dentro de `dtm.stools.component.panels.editor.word`.
 
-O componente principal é `WordEditor extends BlockingPanel implements AutoCloseable`. Os pacotes de `CodeEditor` não foram alterados. Nenhuma dependência foi adicionada ao Maven.
+O componente principal é `WordEditor extends BlockingPanel implements AutoCloseable`. Ele pode ser usado ao lado de [CodeEditor](CodeEditor.md) e [SheetEditor](SheetEditor.md) na mesma aplicação.
 
 ## Utilização
 
@@ -20,7 +20,7 @@ editor.setNavigationVisible(true);
 editor.setRibbonVisible(true);
 editor.setZoom(1.0);
 editor.setViewMode(WordViewMode.PRINT_LAYOUT);
-editor.setErrorHandler(error -> mostrarErro(error.getMessage()));
+editor.setErrorHandler(error -> System.err.println(error.getMessage()));
 frame.add(editor);
 ```
 

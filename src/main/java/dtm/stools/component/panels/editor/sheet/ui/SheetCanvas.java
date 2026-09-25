@@ -101,6 +101,7 @@ public class SheetCanvas extends JComponent implements Accessible {
     private final Timer autoScroll;
     private Point lastMouse;
     private final Map<String, Image> imageCache = new HashMap<>();
+    private boolean tooltipRegistered;
     private List<Integer> pageRowBreaks = List.of(), pageColumnBreaks = List.of();
     private boolean dark;
 
@@ -110,9 +111,7 @@ public class SheetCanvas extends JComponent implements Accessible {
         setOpaque(true);
         setFocusTraversalKeysEnabled(false);
         setRequestFocusEnabled(true);
-        ToolTipManager.sharedInstance().registerComponent(this);
         marquee = new Timer(120, e -> { marqueePhase = (marqueePhase + 1) % 8; if (editor.copySource() != null) repaintMarquee(); });
-        marquee.start();
         autoScroll = new Timer(50, e -> autoScrollStep());
         MouseAdapter mouse = new MouseAdapter() {
             @Override public void mousePressed(MouseEvent e) { press(e); }
@@ -1168,5 +1167,18 @@ public class SheetCanvas extends JComponent implements Accessible {
         return accessibleContext;
     }
 
-    public void dispose() { marquee.stop(); autoScroll.stop(); imageCache.clear(); }
+    public void resumeVisualWork() {
+        if (!isShowing()) return;
+        if (!tooltipRegistered) { ToolTipManager.sharedInstance().registerComponent(this); tooltipRegistered = true; }
+        if (!marquee.isRunning()) marquee.start();
+    }
+    public void pauseVisualWork() {
+        marquee.stop();
+        autoScroll.stop();
+        drag = Drag.NONE;
+        lastMouse = null;
+        imageCache.clear();
+        if (tooltipRegistered) { ToolTipManager.sharedInstance().unregisterComponent(this); tooltipRegistered = false; }
+    }
+    public void dispose() { pauseVisualWork(); }
 }

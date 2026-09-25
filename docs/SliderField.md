@@ -9,10 +9,14 @@
 | Uso principal | Escolher um numero dentro de um intervalo |
 
 ```java
+import dtm.stools.component.inputfields.sliderfield.SliderField;
+
 SliderField volume = new SliderField(0, 10, 6);
 volume.setStep(1).setShowValue(true).setShowTicks(true).setTickCount(11);
 volume.setValueFormatter(v -> Math.round(v) + " / 10");
 ```
+
+Adicione o controle na EDT e leia `getValue()` ao confirmar. Para feedback imediato, escute `EventType.CHANGE`; para uma operação mais cara, como persistir a preferência, escute `SliderField.DRAG_FINISHED` e leia o valor final.
 
 ## Valor
 

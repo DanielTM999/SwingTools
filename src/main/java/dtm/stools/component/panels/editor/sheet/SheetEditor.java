@@ -71,6 +71,7 @@ import dtm.stools.component.panels.editor.sheet.ui.SheetGeometry;
 import dtm.stools.component.panels.editor.sheet.ui.SheetRibbon;
 import dtm.stools.component.panels.editor.sheet.ui.SheetStatusBar;
 import dtm.stools.component.panels.editor.sheet.ui.SheetTabBar;
+import dtm.stools.component.panels.editor.sheet.ui.popup.AiAssistantPanel;
 import dtm.stools.configs.UiTokens;
 
 import javax.swing.Action;
@@ -91,6 +92,7 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.HierarchyEvent;
 import java.awt.event.KeyEvent;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -148,7 +150,7 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
     private SheetEditorConfig config;
     private ValueParser parser;
     private Consumer<Throwable> errorHandler;
-    private boolean updatingScroll, closed, applyingRemote;
+    private boolean updatingScroll, closed, applyingRemote, screenActive;
 
     public SheetEditor() { this(SheetEditorConfig.defaults(), SheetServices.defaults()); }
     public SheetEditor(SheetEditorConfig config) { this(config, SheetServices.defaults()); }
@@ -235,6 +237,38 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
         statusTimer.setRepeats(false);
         applyConfig();
         refreshAll();
+        addHierarchyListener(e -> { if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) updateScreenLifecycle(); });
+    }
+
+    private void updateScreenLifecycle() {
+        boolean showing = !closed && isShowing();
+        if (screenActive == showing) return;
+        screenActive = showing;
+        if (showing) {
+            canvas.resumeVisualWork();
+            SwingUtilities.invokeLater(() -> { if (screenActive && isShowing()) canvas.resumeVisualWork(); });
+            refreshStatusNow();
+            canvas.repaint();
+        } else {
+            statusTimer.stop();
+            editing.pauseVisualWork();
+            popups.dismissTransient();
+            AiAssistantPanel.suspend(this);
+            canvas.pauseVisualWork();
+        }
+    }
+
+    @Override public void addNotify() { super.addNotify(); updateScreenLifecycle(); }
+    @Override public void removeNotify() {
+        if (screenActive) {
+            screenActive = false;
+            statusTimer.stop();
+            editing.pauseVisualWork();
+            popups.dismissTransient();
+            AiAssistantPanel.suspend(this);
+            canvas.pauseVisualWork();
+        }
+        super.removeNotify();
     }
 
     public SheetServices getServices() { return services; }
@@ -601,7 +635,7 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
     public void applyFill(Integer argb) { format.applyFill(argb); }
     public void applyFontColor(Integer argb) { format.applyFontColor(argb); }
 
-    public void refreshStatus() { if (!closed) statusTimer.restart(); }
+    public void refreshStatus() { if (!closed && screenActive) statusTimer.restart(); }
 
     public void showDiagnostics(List<String> messages) {
         if (messages == null || messages.isEmpty()) { diagnostics.setVisible(false); return; }
@@ -786,6 +820,8 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
         if (closed) return;
         editing.cancel();
         closed = true;
+        screenActive = false;
+        AiAssistantPanel.close(this);
         statusTimer.stop();
         if (recoveryTimer != null) recoveryTimer.stop();
         for (SheetProvider p : List.copyOf(providers)) removeProvider(p.id());

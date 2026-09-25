@@ -23,7 +23,7 @@ JTextField
 
 | Metodo | Contrato |
 |---|---|
-| `addEventListner(type, consumer)` | Registra listener |
+| `addEventListener(type, consumer)` | Registra listener |
 | `removeEventListner(type, consumer)` | Remove listener especifico |
 | `removeEventListner(type)` | Remove todos do tipo |
 | `removeAllListeners()` | Limpa todos |
