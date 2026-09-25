@@ -4,6 +4,7 @@ import dtm.stools.component.events.EventGridView;
 import dtm.stools.component.feedback.pagination.PaginationPanel;
 import dtm.stools.component.grids.annotations.GridColumn;
 import dtm.stools.component.grids.event.EventGrid;
+import dtm.stools.component.grids.model.ColumnDefinition;
 import dtm.stools.component.popup.ModernComponentDialog;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +14,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -503,6 +505,153 @@ class GridViewTest {
             assertSame(shared, order.customer);
             assertEquals("Novo", shared.name);
             assertEquals("Salvador", shared.address.city);
+        });
+    }
+
+    private static Map<String, Object> record(Object... pairs) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (int index = 0; index < pairs.length; index += 2) map.put((String) pairs[index], pairs[index + 1]);
+        return map;
+    }
+
+    @Test void structuredRowsExposeCellsByFieldHeaderAndIndex() throws Exception {
+        edt(() -> {
+            GridView<Row> grid = new GridView<>(Row.class);
+            Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno");
+            ana.internal = "segredo";
+            grid.setDataSource(List.of(ana, bruno));
+            GridRow<Row> row = grid.getRow(0);
+            assertSame(ana, row.getItem());
+            assertEquals("Ana", row.getCell("name"));
+            assertEquals("Ana", row.getCell("Nome"));
+            assertEquals(1, row.getCell(0));
+            assertEquals(1, row.getCell("id", Integer.class));
+            assertEquals("segredo", row.getCell("internal"));
+            assertEquals(List.of("id", "name", "active"), row.getKeys());
+            assertThrows(IllegalArgumentException.class, () -> row.getCell("missing"));
+            assertTrue(grid.getRow(9).isEmpty());
+            assertNull(grid.getSelectedGridRow());
+            grid.setRowSelectionInterval(1, 1);
+            assertEquals("Bruno", grid.getSelectedGridRow().getCell("name"));
+            assertSame(bruno, grid.getSelectedRowObject());
+            grid.addRowSelectionInterval(0, 0);
+            assertEquals(2, grid.getSelectedGridRows().size());
+            assertTrue(grid.isStructured());
+        });
+    }
+
+    @Test void mapGridInfersColumnsAndSupportsSortFilterAndSelection() throws Exception {
+        edt(() -> {
+            GridView<Map<String, Object>> grid = GridView.ofMaps();
+            assertFalse(grid.isStructured());
+            Map<String, Object> ana = record("id", 1, "nome", "Ana", "ativo", true);
+            Map<String, Object> bruno = record("id", 2, "nome", "Bruno", "ativo", false, "extra", "x");
+            grid.setDataSource(List.of(ana, bruno));
+            assertEquals(4, grid.getColumnCount());
+            assertEquals("Nome", grid.getColumnModel().getColumn(1).getHeaderValue());
+            assertEquals(Boolean.class, grid.getColumnClass(2));
+            assertEquals("Ana", grid.getRow(0).getCell("nome"));
+            assertEquals(1, grid.getRow(0).getCell(0));
+            assertNull(grid.getRow(0).getCell("extra"));
+            assertSame(ana, grid.getRow(0).getItem());
+            grid.setSort("nome", SortOrder.DESCENDING);
+            assertSame(bruno, grid.getRowObject(0));
+            grid.setColumnTextFilter("nome", "an");
+            assertEquals(1, grid.getRowCount());
+            assertEquals("Ana", grid.getRow(0).getCell("nome"));
+            grid.clearFilters();
+            grid.setRowSelectionInterval(0, 0);
+            assertEquals("Bruno", grid.getSelectedGridRow().getCell("nome"));
+            assertEquals("x", grid.getSelectedGridRow().getCell("extra"));
+            grid.setColumnStyle("nome", GridCellStyle.empty().withForeground(Color.RED));
+            assertEquals(Color.RED, grid.prepareRenderer(grid.getCellRenderer(1, 1), 1, 1).getForeground());
+            grid.setDataSource(List.of(record("codigo", "A1")));
+            assertEquals(1, grid.getColumnCount());
+            assertNull(grid.getSortField());
+            assertEquals("A1", grid.getRow(0).getCell("codigo"));
+            assertThrows(IllegalStateException.class, () -> grid.setObjectChoices("codigo", context -> List.of()));
+        });
+    }
+
+    @Test void mapGridWithExplicitColumnsConvertsEditsAndSavesForms() throws Exception {
+        edt(() -> {
+            GridView<Map<String, Object>> grid = GridView.ofMaps(List.of(
+                    ColumnDefinition.builder().key("id").name("Código").type(Integer.class).width(60).build(),
+                    ColumnDefinition.builder().key("nome").build(),
+                    ColumnDefinition.builder().key("obs").editable(false).build()));
+            Map<String, Object> ana = record("id", 1, "nome", "Ana", "obs", "fixo");
+            grid.setDataSource(List.of(ana));
+            assertEquals("Código", grid.getColumnModel().getColumn(0).getHeaderValue());
+            assertEquals(60, grid.getColumnModel().getColumn(0).getPreferredWidth());
+            grid.setAllowEdit(true);
+            assertTrue(grid.isCellEditable(0, 0));
+            assertFalse(grid.isCellEditable(0, 2));
+            AtomicReference<EventGrid> edit = new AtomicReference<>();
+            grid.addEventListener(EventGridView.CELL_EDIT, event -> edit.set((EventGrid) event.getValue()));
+            grid.getModel().setValueAt("7", 0, 0);
+            assertEquals(7, ana.get("id"));
+            assertEquals("id", edit.get().getFieldPath());
+            assertEquals(1, edit.get().getOldValue());
+            grid.getModel().setValueAt("Anabela", 0, 1);
+            assertEquals("Anabela", ana.get("nome"));
+
+            grid.setRowFormMode(GridRowFormMode.INLINE);
+            AtomicReference<GridRowEdit<?>> saved = new AtomicReference<>();
+            grid.addEventListener(EventGridView.ROW_EDIT_SAVED, event -> saved.set((GridRowEdit<?>) event.getValue()));
+            assertTrue(grid.openRowForm(0));
+            formField(grid, "id", JTextField.class).setText("9");
+            formField(grid, "nome", JTextField.class).setText("Carla");
+            button(grid, "Salvar").doClick();
+            assertEquals(9, ana.get("id"));
+            assertEquals("Carla", ana.get("nome"));
+            assertEquals("fixo", ana.get("obs"));
+            assertEquals(7, saved.get().previousValues().get("id"));
+
+            grid.setRowSaveHandler((row, before, after) -> { throw new IllegalStateException("Falha"); });
+            assertTrue(grid.openRowForm(0));
+            formField(grid, "nome", JTextField.class).setText("Zoe");
+            button(grid, "Salvar").doClick();
+            assertEquals("Carla", ana.get("nome"));
+
+            GridView<Map<String, Object>> immutable = GridView.ofMaps("nome");
+            immutable.setDataSource(List.of(Map.of("nome", "Ana")));
+            immutable.setAllowEdit(true);
+            assertThrows(IllegalArgumentException.class, () -> immutable.getModel().setValueAt("Bia", 0, 0));
+        });
+    }
+
+    static final class ClientesGrid extends MapGridView {
+        ClientesGrid() {
+            super("id", "nome");
+            setColumnStyle("nome", GridCellStyle.empty().withForeground(Color.BLUE));
+        }
+        String nomeSelecionado() {
+            GridRow<Map<String, Object>> row = getSelectedGridRow();
+            return row == null ? null : row.getCell("nome", String.class);
+        }
+    }
+
+    static final class ProdutosGrid extends GridView<Row> {
+        ProdutosGrid() { super(Row.class); }
+    }
+
+    @Test void mapAndTypedGridsCanBeSubclassed() throws Exception {
+        edt(() -> {
+            ClientesGrid grid = new ClientesGrid();
+            grid.setDataSource(List.of(record("id", 1, "nome", "Ana"), record("id", 2, "nome", "Bruno")));
+            assertNull(grid.nomeSelecionado());
+            grid.setRowSelectionInterval(1, 1);
+            assertEquals("Bruno", grid.nomeSelecionado());
+            grid.clearSelection();
+            assertEquals(Color.BLUE, grid.prepareRenderer(grid.getCellRenderer(0, 1), 0, 1).getForeground());
+            MapGridView inferred = new MapGridView();
+            inferred.setDataSource(List.of(record("a", 1, "b", 2)));
+            assertEquals(2, inferred.getColumnCount());
+            GridView<Map<String, Object>> fromFactory = GridView.ofMaps("x");
+            assertInstanceOf(MapGridView.class, fromFactory);
+            ProdutosGrid typed = new ProdutosGrid();
+            typed.setDataSource(List.of(new Row(1, "Ana")));
+            assertEquals("Ana", typed.getRow(0).getCell("name"));
         });
     }
 

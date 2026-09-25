@@ -5,6 +5,8 @@ import dtm.stools.component.feedback.pagination.PaginationPanel;
 import dtm.stools.component.grids.annotations.GridColumn;
 import dtm.stools.component.grids.event.EventGrid;
 import dtm.stools.component.grids.model.ColumnDefinition;
+import dtm.stools.component.grids.model.GridTableModel;
+import dtm.stools.component.grids.model.MapTableModel;
 import dtm.stools.component.grids.model.ReflectionTableModel;
 import dtm.stools.component.inputfields.selectfield.DropdownField;
 import dtm.stools.component.popup.ModernComponentDialog;
@@ -24,6 +26,7 @@ import java.util.*;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class GridView<T> extends DataTableListener {
     private record RowEntry<T>(int sourceIndex, T item, boolean detail) {
@@ -33,7 +36,7 @@ public class GridView<T> extends DataTableListener {
                               Object previous, Object next) {}
 
     private final Class<T> modelClass;
-    private ReflectionTableModel<T> currentModel;
+    private GridTableModel<T> currentModel;
     private List<T> fullDataList = new ArrayList<>();
     private List<RowEntry<T>> visibleRows = List.of();
     private int filteredItems;
@@ -80,9 +83,13 @@ public class GridView<T> extends DataTableListener {
     public GridView(Class<T> modelClass) { this(modelClass, TableGridMode.BATCH); }
 
     public GridView(Class<T> modelClass, TableGridMode mode) {
+        this(modelClass, mode, allowEdit -> new ReflectionTableModel<>(List.of(), modelClass, allowEdit));
+    }
+
+    protected GridView(Class<T> modelClass, TableGridMode mode, Function<Supplier<Boolean>, GridTableModel<T>> modelFactory) {
         this.modelClass = Objects.requireNonNull(modelClass, "modelClass");
         setAutoCreateColumnsFromModel(false);
-        currentModel = new ReflectionTableModel<>(List.of(), modelClass, this::isAllowEdit);
+        currentModel = modelFactory.apply(this::isAllowEdit);
         currentModel.setEditListener(this::edited);
         super.setModel(currentModel);
         rebuildColumns();
@@ -93,17 +100,30 @@ public class GridView<T> extends DataTableListener {
         setTableHeaderToolTip();
     }
 
+    public static MapGridView ofMaps() { return new MapGridView(); }
+
+    public static MapGridView ofMaps(String... keys) { return new MapGridView(keys); }
+
+    public static MapGridView ofMaps(List<ColumnDefinition> columns) { return new MapGridView(columns); }
+
+    public static MapGridView ofMaps(List<ColumnDefinition> columns, TableGridMode mode) {
+        return new MapGridView(columns, mode);
+    }
+
+    public boolean isStructured() { return currentModel instanceof ReflectionTableModel<?>; }
+
     @Override public void setModel(TableModel dataModel) {
         if (modelClass == null) { super.setModel(dataModel); return; }
-        if (!(dataModel instanceof ReflectionTableModel<?> model) || model.getItemClass() != modelClass)
-            throw new IllegalArgumentException("GridView requires a ReflectionTableModel for " + modelClass.getName());
-        @SuppressWarnings("unchecked") ReflectionTableModel<T> typed = (ReflectionTableModel<T>) model;
+        if (!(dataModel instanceof GridTableModel<?> model) || model.getItemClass() != modelClass)
+            throw new IllegalArgumentException("GridView requires a GridTableModel for " + modelClass.getName());
+        @SuppressWarnings("unchecked") GridTableModel<T> typed = (GridTableModel<T>) model;
         if (typed == currentModel) return;
         super.setModel(typed);
         currentModel = typed;
         currentModel.setEditListener(this::edited);
         fullDataList = new ArrayList<>(typed.getDataList());
         rowStyles.clear(); cellStyles.clear();
+        retainKnownKeys();
         rebuildColumns();
         rebuildView();
     }
@@ -168,9 +188,10 @@ public class GridView<T> extends DataTableListener {
                 || !super.isCellEditable(row, column)) return false;
         T item = getRowObject(row);
         if (item == null || blockedEditRows.contains(item)) return false;
-        String field = currentModel.getFieldForColumn(convertColumnIndexToModel(column)).getName();
+        String field = currentModel.getKeyForColumn(convertColumnIndexToModel(column));
         if (blockedEditColumns.contains(field) || blockedEditCells.getOrDefault(item, Set.of()).contains(field)) return false;
         ColumnDefinition definition = currentModel.getColumnDefinition(convertColumnIndexToModel(column));
+        if (definition.getField() == null) return true;
         Class<?> type = targetField(modelClass, definition).getType();
         Object value = getValueAt(row, column);
         return !isObjectType(type) || objectChoices.containsKey(field)
@@ -292,6 +313,10 @@ public class GridView<T> extends DataTableListener {
     public void setDataSource(Collection<T> data) {
         clearInlinePanel();
         fullDataList = data == null ? new ArrayList<>() : new ArrayList<>(data);
+        if (currentModel instanceof MapTableModel mapModel && mapModel.inferColumns(fullDataList)) {
+            retainKnownKeys();
+            rebuildColumns();
+        }
         retainStylesForSource();
         currentPage = 1;
         rebuildView();
@@ -304,6 +329,19 @@ public class GridView<T> extends DataTableListener {
         cellStyles.keySet().removeIf(item -> !present.contains(item));
         blockedEditRows.removeIf(item -> !present.contains(item));
         blockedEditCells.keySet().removeIf(item -> !present.contains(item));
+    }
+
+    private void retainKnownKeys() {
+        Predicate<String> missing = key -> currentModel.findColumnIndexByKey(key) < 0;
+        columnFilters.keySet().removeIf(missing);
+        textFilters.keySet().removeIf(missing);
+        columnStyles.keySet().removeIf(missing);
+        blockedEditColumns.removeIf(missing);
+        cellStyles.values().forEach(cells -> cells.keySet().removeIf(missing));
+        cellStyles.values().removeIf(Map::isEmpty);
+        blockedEditCells.values().forEach(cells -> cells.removeIf(missing));
+        blockedEditCells.values().removeIf(Set::isEmpty);
+        if (sortField != null && missing.test(sortField)) { sortField = null; sortOrder = SortOrder.UNSORTED; }
     }
 
     public List<T> getDataSource() { return Collections.unmodifiableList(new ArrayList<>(fullDataList)); }
@@ -360,7 +398,7 @@ public class GridView<T> extends DataTableListener {
 
     private int fieldIndex(String fieldName) {
         Objects.requireNonNull(fieldName, "fieldName");
-        int index = currentModel.findColumnIndexByFieldName(fieldName);
+        int index = currentModel.findColumnIndexByKey(fieldName);
         if (index < 0) throw new IllegalArgumentException("Unknown grid field: " + fieldName);
         return index;
     }
@@ -370,12 +408,7 @@ public class GridView<T> extends DataTableListener {
     }
 
     private Object fieldValue(T item, int column) {
-        if (item == null) return null;
-        try {
-            Field field = currentModel.getFieldForColumn(column);
-            return field.get(item);
-        }
-        catch (IllegalAccessException error) { throw new IllegalStateException("Unable to read grid field", error); }
+        return item == null ? null : currentModel.readValue(item, column);
     }
 
     private void rebuildView() {
@@ -445,12 +478,46 @@ public class GridView<T> extends DataTableListener {
         return collator.compare(String.valueOf(left), String.valueOf(right));
     }
 
-    public List<Object> getRow(int viewRow) {
-        if (viewRow < 0 || viewRow >= getRowCount() || isDetailRow(viewRow)) return List.of();
+    public GridRow<T> getRow(int viewRow) {
+        if (viewRow < 0 || viewRow >= getRowCount() || isDetailRow(viewRow)) return GridRow.empty();
+        RowEntry<T> entry = visibleRows.get(convertRowIndexToModel(viewRow));
+        List<String> keys = new ArrayList<>();
+        List<String> names = new ArrayList<>();
         List<Object> values = new ArrayList<>();
-        for (int col = 0; col < getColumnCount(); col++)
-            if (!isActionColumn(col)) values.add(unwrap(getValueAt(viewRow, col)));
-        return values;
+        for (int col = 0; col < getColumnCount(); col++) {
+            if (isActionColumn(col)) continue;
+            ColumnDefinition definition = currentModel.getColumnDefinition(convertColumnIndexToModel(col));
+            keys.add(definition.getKey());
+            names.add(definition.getName());
+            values.add(unwrap(getValueAt(viewRow, col)));
+        }
+        Map<String, Object> extras = new LinkedHashMap<>();
+        for (int column = 0; column < currentModel.getColumnCount(); column++) {
+            String key = currentModel.getKeyForColumn(column);
+            if (!keys.contains(key)) extras.put(key, fieldValue(entry.item, column));
+        }
+        if (entry.item instanceof Map<?, ?> map)
+            for (Map.Entry<?, ?> cell : map.entrySet()) {
+                String key = String.valueOf(cell.getKey());
+                if (!keys.contains(key) && !extras.containsKey(key)) extras.put(key, cell.getValue());
+            }
+        return new GridRow<>(entry.item, viewRow, entry.sourceIndex, keys, names, values, extras);
+    }
+
+    public GridRow<T> getSelectedGridRow() {
+        int viewRow = getSelectedRow();
+        return viewRow < 0 || isDetailRow(viewRow) ? null : getRow(viewRow);
+    }
+
+    public List<GridRow<T>> getSelectedGridRows() {
+        List<GridRow<T>> rows = new ArrayList<>();
+        for (int viewRow : getSelectedRows()) if (!isDetailRow(viewRow)) rows.add(getRow(viewRow));
+        return rows;
+    }
+
+    public T getSelectedRowObject() {
+        int viewRow = getSelectedRow();
+        return viewRow < 0 ? null : getRowObject(viewRow);
     }
     public T getRowObject(int viewRow) {
         if (viewRow < 0 || viewRow >= getRowCount()) return null;
@@ -471,7 +538,7 @@ public class GridView<T> extends DataTableListener {
             return new DefaultCellEditor(new DropdownField(array));
         }
         ColumnDefinition definition = currentModel.getColumnDefinition(convertColumnIndexToModel(column));
-        if (isObjectType(targetField(modelClass, definition).getType()))
+        if (definition.getField() != null && isObjectType(targetField(modelClass, definition).getType()))
             return new ObjectCellEditor(getRowObject(row), definition);
         return super.getCellEditor(row, column);
     }
@@ -581,7 +648,7 @@ public class GridView<T> extends DataTableListener {
         ancestors.add(row);
         for (int column = 0; column < currentModel.getColumnCount(); column++) {
             ColumnDefinition definition = currentModel.getColumnDefinition(column);
-            addFormField(panel, row, row, definition, definition.getField().getName(), 0, ancestors, readers);
+            addFormField(panel, row, row, definition, definition.getKey(), 0, ancestors, readers);
         }
         return new GridRowForm(panel, () -> {
             Map<String, Object> values = new LinkedHashMap<>();
@@ -595,7 +662,7 @@ public class GridView<T> extends DataTableListener {
         List<java.util.function.Consumer<Map<String, Object>>> readers = new ArrayList<>();
         Set<Object> ancestors = Collections.newSetFromMap(new IdentityHashMap<>());
         ancestors.add(row);
-        addFormField(panel, row, row, definition, definition.getField().getName(), 0, ancestors, readers);
+        addFormField(panel, row, row, definition, definition.getKey(), 0, ancestors, readers);
         return new GridRowForm(panel, () -> {
             Map<String, Object> values = new LinkedHashMap<>();
             readers.forEach(reader -> reader.accept(values));
@@ -614,6 +681,10 @@ public class GridView<T> extends DataTableListener {
                               ColumnDefinition definition, String path, int parentDepth, Set<Object> ancestors,
                               List<java.util.function.Consumer<Map<String, Object>>> readers) {
         if (!definition.isVisible()) return;
+        if (definition.getField() == null) {
+            addKeyFormField(panel, row, definition, path, readers);
+            return;
+        }
         Field field = targetField(parent.getClass(), definition);
         Object value = readField(field, parent);
         Class<?> type = field.getType();
@@ -632,6 +703,19 @@ public class GridView<T> extends DataTableListener {
             readers.add(node::collect);
             return;
         }
+        java.util.function.Supplier<Object> reader = leafEditor(panel, path, definition.getName(), type, value);
+        if (reader != null) readers.add(values -> values.put(path, reader.get()));
+    }
+
+    private void addKeyFormField(ModernComponentDialog.FormPanel panel, T row, ColumnDefinition definition, String path,
+                                 List<java.util.function.Consumer<Map<String, Object>>> readers) {
+        Object value = fieldValue(row, currentModel.findColumnIndexByKey(definition.getKey()));
+        if (!definition.isEditable()) {
+            panel.field(path, definition.getName(), new JLabel(Objects.toString(value, "")));
+            return;
+        }
+        Class<?> type = definition.getType() != Object.class ? definition.getType()
+                : value == null ? String.class : value.getClass();
         java.util.function.Supplier<Object> reader = leafEditor(panel, path, definition.getName(), type, value);
         if (reader != null) readers.add(values -> values.put(path, reader.get()));
     }
@@ -709,6 +793,7 @@ public class GridView<T> extends DataTableListener {
 
     private void validateObjectPath(String path) {
         Objects.requireNonNull(path, "path");
+        if (!isStructured()) throw new IllegalStateException("Objetos aninhados exigem um GridView tipado");
         if (path.isBlank()) throw new IllegalArgumentException("Caminho vazio");
         Class<?> type = modelClass;
         String[] parts = path.split("\\.", -1);
@@ -894,6 +979,18 @@ public class GridView<T> extends DataTableListener {
             Class<?> owner = modelClass;
             StringBuilder prefix = new StringBuilder();
             int rootColumn = fieldIndex(parts[0]);
+            ColumnDefinition rootDefinition = currentModel.getColumnDefinition(rootColumn);
+            if (rootDefinition.getField() == null) {
+                if (parts.length > 1) throw new IllegalArgumentException("Caminho aninhado não suportado: " + path);
+                if (!rootDefinition.isVisible() || !rootDefinition.isEditable())
+                    throw new IllegalArgumentException("Campo somente leitura: " + path);
+                Object old = currentModel.readValue(row, rootColumn);
+                Object converted = currentModel.convertForColumn(row, rootColumn, entry.getValue());
+                writes.add(new FieldWrite(path, rootColumn, row, null, old, converted));
+                proposed.put(path, converted);
+                previous.put(path, old);
+                continue;
+            }
             for (int index = 0; index < parts.length; index++) {
                 if (prefix.length() != 0) prefix.append('.');
                 prefix.append(parts[index]);
@@ -905,7 +1002,7 @@ public class GridView<T> extends DataTableListener {
                 if (Modifier.isFinal(field.getModifiers()))
                     throw new IllegalArgumentException("Campo imutável: " + currentPath);
                 if (index == parts.length - 1) {
-                    Object converted = ReflectionTableModel.convertValue(entry.getValue(), field.getType());
+                    Object converted = GridTableModel.convertValue(entry.getValue(), field.getType());
                     if (converted == null && field.getType().isPrimitive())
                         throw new IllegalArgumentException("Campo obrigatório: " + currentPath);
                     Object old = readField(field, parent);
@@ -938,14 +1035,14 @@ public class GridView<T> extends DataTableListener {
         List<FieldWrite> applied = new ArrayList<>();
         try {
             for (FieldWrite write : writes) {
-                write.field.set(write.parent, write.next);
+                applyWrite(row, write, write.next);
                 applied.add(write);
             }
             rowSaveHandler.save(row, beforeView, afterView);
         } catch (Exception error) {
             for (int index = applied.size() - 1; index >= 0; index--) {
                 FieldWrite write = applied.get(index);
-                try { write.field.set(write.parent, write.previous); }
+                try { applyWrite(row, write, write.previous); }
                 catch (Exception rollbackError) { error.addSuppressed(rollbackError); }
             }
             throw error;
@@ -966,6 +1063,11 @@ public class GridView<T> extends DataTableListener {
         dispachEvent(EventGridView.ROW_EDIT_SAVED, new GridRowEdit<>(row, beforeView, afterView));
         if (inlineItem == row) clearInlinePanel();
         refreshData();
+    }
+
+    private void applyWrite(T row, FieldWrite write, Object value) throws IllegalAccessException {
+        if (write.field == null) currentModel.writeValue(row, write.rootColumn, value);
+        else write.field.set(write.parent, value);
     }
 
     private int sourceIndexOf(T row) {
@@ -1058,7 +1160,7 @@ public class GridView<T> extends DataTableListener {
         if (header != null) {
             header.setDefaultRenderer((table, value, selected, focus, row, column) -> {
                 String field = column >= 0 && column < getColumnCount() && !isActionColumn(column)
-                        ? currentModel.getFieldForColumn(convertColumnIndexToModel(column)).getName() : "";
+                        ? currentModel.getKeyForColumn(convertColumnIndexToModel(column)) : "";
                 String title = String.valueOf(value);
                 if (field.equals(sortField)) title += sortOrder == SortOrder.ASCENDING ? "  ▲" : "  ▼";
                 JLabel label = new JLabel(title);
@@ -1102,7 +1204,7 @@ public class GridView<T> extends DataTableListener {
         T item = getRowObject(row);
         if (item == null) return component;
         int modelColumn = convertColumnIndexToModel(column);
-        String fieldName = currentModel.getFieldForColumn(modelColumn).getName();
+        String fieldName = currentModel.getKeyForColumn(modelColumn);
         Object value = getValueAt(row, column);
         GridCellStyle style = GridCellStyle.empty().overlay(columnStyles.get(fieldName))
                 .overlay(rowStyles.get(item))
@@ -1147,7 +1249,7 @@ public class GridView<T> extends DataTableListener {
                 if (!SwingUtilities.isLeftMouseButton(event)) return;
                 int viewColumn = header.columnAtPoint(event.getPoint());
                 if (viewColumn < 0 || isActionColumn(viewColumn)) return;
-                String field = currentModel.getFieldForColumn(convertColumnIndexToModel(viewColumn)).getName();
+                String field = currentModel.getKeyForColumn(convertColumnIndexToModel(viewColumn));
                 setSort(field, field.equals(sortField) && sortOrder == SortOrder.ASCENDING ? SortOrder.DESCENDING : SortOrder.ASCENDING);
             }
             @Override public void mousePressed(MouseEvent event) { showFilterMenu(event); }
@@ -1160,7 +1262,7 @@ public class GridView<T> extends DataTableListener {
         JTableHeader header = getTableHeader();
         int viewColumn = header.columnAtPoint(event.getPoint());
         if (viewColumn < 0 || isActionColumn(viewColumn)) return;
-        String field = currentModel.getFieldForColumn(convertColumnIndexToModel(viewColumn)).getName();
+        String field = currentModel.getKeyForColumn(convertColumnIndexToModel(viewColumn));
         JPopupMenu menu = new JPopupMenu();
         JTextField text = new JTextField(textFilters.getOrDefault(field, ""), 18);
         text.setToolTipText("Contém texto");
@@ -1213,9 +1315,9 @@ public class GridView<T> extends DataTableListener {
         } finally { updatingPager = false; }
     }
 
-    private void edited(ReflectionTableModel.Edit<T> edit) {
+    private void edited(GridTableModel.Edit<T> edit) {
         int sourceIndex = visibleRows.get(edit.row()).sourceIndex;
-        String editedField = currentModel.getFieldForColumn(edit.column()).getName();
+        String editedField = currentModel.getKeyForColumn(edit.column());
         dispachEvent(EventGridView.CELL_EDIT, new EventGrid() {
             @Override public List<Integer> getSelectedRows() { return List.of(sourceIndex); }
             @Override public List<Integer> getSelectedColumns() { return List.of(edit.column()); }

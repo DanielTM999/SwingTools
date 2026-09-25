@@ -17,6 +17,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -185,10 +186,58 @@ public final class GridViewExample {
 
         JFrame frame = new JFrame("SwingTools • GridView");
         frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        frame.setContentPane(content);
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Tipado (@GridColumn)", content);
+        tabs.addTab("Chave / valor (Map)", mapGridPanel());
+        frame.setContentPane(tabs);
         frame.setSize(1240, 730);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+    }
+
+    private static JComponent mapGridPanel() {
+        GridView<Map<String, Object>> grid = GridView.ofMaps();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String[] names = {"Ana", "Bruno", "Carla", "Diego", "Elisa", "Fábio"};
+        String[] cities = {"Salvador", "Recife", "Curitiba", "Manaus", "Natal", "Belém"};
+        for (int index = 0; index < names.length; index++) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id", index + 1);
+            row.put("nome", names[index]);
+            row.put("cidade", cities[index]);
+            row.put("ativo", index % 3 != 0);
+            rows.add(row);
+        }
+        grid.setDataSource(rows);
+        grid.setAllowEdit(true);
+        grid.setRowFormMode(GridRowFormMode.DIALOG);
+        grid.setColumnStyle("id", GridCellStyle.empty().withAlignment(SwingConstants.CENTER));
+
+        JLabel selected = new JLabel("Selecione uma linha.");
+        grid.addEventListener(EventGridView.SELECTION_ROW, event -> {
+            var row = grid.getSelectedGridRow();
+            selected.setText(row == null ? "Selecione uma linha."
+                    : "getCell(\"nome\") = " + row.getCell("nome") + "   •   getCell(0) = " + row.getCell(0)
+                    + "   •   toMap() = " + row.toMap());
+        });
+        grid.addEventListener(EventGridView.CELL_EDIT, event -> {
+            EventGrid edit = (EventGrid) event.getValue();
+            selected.setText("Edição em \"" + edit.getFieldPath() + "\": " + edit.getOldValue() + " → " + edit.getNewValue());
+        });
+
+        JTextField search = new JTextField(16);
+        search.putClientProperty("JTextField.placeholderText", "Filtrar por nome");
+        search.addActionListener(event -> grid.setColumnTextFilter("nome", search.getText()));
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEADING, 10, 4));
+        top.add(new JLabel("Colunas inferidas das chaves do Map. Nome (Enter):"));
+        top.add(search);
+
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(new JScrollPane(grid), BorderLayout.CENTER);
+        panel.add(selected, BorderLayout.SOUTH);
+        return panel;
     }
 
     private static GridRowForm customProductForm(Product product) {
