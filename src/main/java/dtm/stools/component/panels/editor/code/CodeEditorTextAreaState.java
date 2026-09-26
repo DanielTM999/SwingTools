@@ -183,6 +183,10 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     protected boolean autoClosePairs = true;
 
     @Getter
+    @Setter
+    protected boolean autoCloseMarkupTags = false;
+
+    @Getter
     protected boolean showIndentGuides = true;
 
     @Getter

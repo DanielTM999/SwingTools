@@ -311,6 +311,14 @@ public class CodeEditor extends BlockingPanel {
         textArea.setHighlightSelectedTextOccurrences(enabled);
     }
 
+    public boolean isAutoCloseMarkupTags() {
+        return textArea.isAutoCloseMarkupTags();
+    }
+
+    public void setAutoCloseMarkupTags(boolean enabled) {
+        textArea.setAutoCloseMarkupTags(enabled);
+    }
+
     public Color getSelectedTextOccurrencesColor() {
         return textArea.getSelectedTextOccurrencesColor();
     }

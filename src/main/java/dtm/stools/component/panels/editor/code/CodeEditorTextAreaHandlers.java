@@ -80,9 +80,14 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             if (hasSelection() || hasExtraSelections()) {
                 replaceSelectionsAtCarets(String.valueOf(c), 1);
             } else {
+                String closingTag = closingMarkupTagFor(c);
                 beginCompoundEdit();
                 try {
-                    insertAtAllCarets(String.valueOf(c), overwriteMode, 1);
+                    if (closingTag == null) {
+                        insertAtAllCarets(String.valueOf(c), overwriteMode, 1);
+                    } else {
+                        insertAtAllCarets(c + closingTag, false, 1);
+                    }
                 } finally {
                     endCompoundEdit();
                 }
@@ -693,7 +698,21 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
         protected boolean isClosingChar(char c) {
             return autoClosePairsMap.containsValue(c);
         }
+
+        protected String closingMarkupTagFor(char c) {
+            if (!autoCloseMarkupTags || c != '>' || overwriteMode || !extraCarets.isEmpty()) {
+                return null;
+            }
+            int offset = caretOffset();
+            int length = buffer.length();
+            return MarkupTagCloser.closingTagFor(
+                    buffer.substring(Math.max(0, offset - MARKUP_TAG_SCAN_BEFORE), offset),
+                    buffer.substring(offset, Math.min(length, offset + MARKUP_TAG_SCAN_AFTER)));
+        }
     }
+
+    private static final int MARKUP_TAG_SCAN_BEFORE = 8_192;
+    private static final int MARKUP_TAG_SCAN_AFTER = 512;
 
     protected class FoldPreviewComponent extends JComponent {
         private final int startLine;
