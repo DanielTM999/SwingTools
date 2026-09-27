@@ -6,6 +6,9 @@ import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteEditAppl
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteItem;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopup;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopupFactory;
+import dtm.stools.component.panels.editor.code.utils.LoadingIndicator;
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerContext;
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerFactory;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteProvider;
 import dtm.stools.component.panels.editor.code.autocomplete.CompletionContext;
 import dtm.stools.component.panels.editor.code.autocomplete.SnippetExpansion;
@@ -61,7 +64,31 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     protected void configureAutoCompletePopup(AutoCompletePopup popup) {
         if (popup != null) {
             popup.setAcceptHandler(this::applyAutoCompleteSelection);
+            popup.setLoadingSpinnerFactory(loadingSpinnerFactory);
         }
+    }
+
+    public LoadingSpinnerFactory getLoadingSpinnerFactory() {
+        return loadingSpinnerFactory;
+    }
+
+    public void setLoadingSpinnerFactory(LoadingSpinnerFactory factory) {
+        loadingSpinnerFactory = factory == null ? LoadingSpinnerFactory.defaults() : factory;
+        if (autoCompletePopup != null) {
+            autoCompletePopup.setLoadingSpinnerFactory(loadingSpinnerFactory);
+        }
+    }
+
+    protected LoadingIndicator createLoadingIndicator(LoadingSpinnerContext context) {
+        LoadingIndicator indicator = null;
+        try {
+            indicator = loadingSpinnerFactory.create(context);
+        } catch (RuntimeException ignored) {
+        }
+        if (indicator == null || indicator.getComponent() == null) {
+            indicator = LoadingSpinnerFactory.defaults().create(context);
+        }
+        return indicator;
     }
 
     public void addAutoCompleteAcceptKeyStroke(KeyStroke ks) {
@@ -194,7 +221,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     }
 
     protected void applyAutoCompleteSelection() {
-        if (readOnly) {
+        if (isEditingBlocked()) {
             hideAutoCompletePopup();
             return;
         }
@@ -323,7 +350,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
 
     protected void scheduleGhostIdleTimer() {
         if (!isGhostTextActive() || !isGhostCaretIdleActivation()
-                || ghostTextProvider == null || readOnly
+                || ghostTextProvider == null || isEditingBlocked()
                 || hasSelection() || hasGhostText()
                 || !isFocusOwner()) {
             stopGhostIdleTimer();
@@ -398,7 +425,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     }
 
     protected void requestGhostText(GhostTextContext.TriggerKind kind) {
-        if (!isGhostTextActive() || ghostTextProvider == null || readOnly) return;
+        if (!isGhostTextActive() || ghostTextProvider == null || isEditingBlocked()) return;
 
         if (hasSelection() || hasGhostText()) return;
 
@@ -431,7 +458,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     }
 
     protected boolean acceptGhostText() {
-        if (!hasGhostText() || readOnly) return false;
+        if (!hasGhostText() || isEditingBlocked()) return false;
         String text = ghostText;
         int offset = ghostAnchorOffset;
 

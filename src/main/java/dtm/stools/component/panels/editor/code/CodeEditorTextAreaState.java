@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code;
 
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerFactory;
 import dtm.stools.component.panels.editor.code.api.CodeEditorState;
 import dtm.stools.component.panels.editor.code.api.WordCaretChangeListener;
 import dtm.stools.component.panels.editor.code.api.WordClickHandler;
@@ -149,6 +150,16 @@ public abstract class CodeEditorTextAreaState extends JComponent {
 
     @Getter
     protected boolean readOnly = false;
+
+    protected boolean renamePending;
+
+    protected boolean blockEditsWhileRenamePending = true;
+
+    protected LoadingSpinnerFactory loadingSpinnerFactory = LoadingSpinnerFactory.defaults();
+
+    protected boolean isEditingBlocked() {
+        return readOnly || renamePending && blockEditsWhileRenamePending;
+    }
 
     @Getter
     @Setter

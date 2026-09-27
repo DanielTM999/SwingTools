@@ -435,14 +435,14 @@ public abstract class CodeEditorTextAreaInput extends CodeEditorTextAreaAnalysis
 
         boolean hasSel = hasSelection();
         boolean hasClipboardText = clipboardHasText();
-        boolean canPaste = copyPasteEnabled && !readOnly && hasClipboardText;
+        boolean canPaste = copyPasteEnabled && !isEditingBlocked() && hasClipboardText;
         boolean canCopy = copyPasteEnabled && hasSel;
-        boolean canCut = canCopy && !readOnly;
+        boolean canCut = canCopy && !isEditingBlocked();
 
         JMenuItem undo = new JMenuItem(text("menu.undo", "Desfazer"));
-        undo.setEnabled(!readOnly && buffer.canUndo());
+        undo.setEnabled(!isEditingBlocked() && buffer.canUndo());
         undo.addActionListener(ev -> {
-            if (readOnly) return;
+            if (isEditingBlocked()) return;
             performUndo();
             scrollToCaret();
             resetCaretBlink();
@@ -452,9 +452,9 @@ public abstract class CodeEditorTextAreaInput extends CodeEditorTextAreaAnalysis
         menu.add(undo);
 
         JMenuItem redo = new JMenuItem(text("menu.redo", "Refazer"));
-        redo.setEnabled(!readOnly && buffer.canRedo());
+        redo.setEnabled(!isEditingBlocked() && buffer.canRedo());
         redo.addActionListener(ev -> {
-            if (readOnly) return;
+            if (isEditingBlocked()) return;
             performRedo();
             scrollToCaret();
             resetCaretBlink();
@@ -468,7 +468,7 @@ public abstract class CodeEditorTextAreaInput extends CodeEditorTextAreaAnalysis
         JMenuItem cut = new JMenuItem(text("menu.cut", "Recortar"));
         cut.setEnabled(canCut);
         cut.addActionListener(ev -> {
-            if (readOnly) return;
+            if (isEditingBlocked()) return;
             copyToClipboard();
             deleteSelectionsAtCarets();
             scrollToCaret();

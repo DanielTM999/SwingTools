@@ -18,6 +18,8 @@ import dtm.stools.component.panels.editor.code.rename.RenamePreparation;
 import dtm.stools.component.panels.editor.code.rename.RenamePresenter;
 import dtm.stools.component.panels.editor.code.rename.RenameSession;
 import dtm.stools.component.panels.editor.code.rename.RenameStyle;
+import dtm.stools.component.panels.editor.code.utils.LoadingIndicator;
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerContext;
 
 import javax.swing.*;
 import java.awt.*;
@@ -38,6 +40,18 @@ import java.util.WeakHashMap;
 public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions {
 
     private static final int RENAME_HINT_DURATION_MS = 2600;
+    private static final int PENDING_RENAME_PULSE_MS = 80;
+
+    protected static final class PendingRename {
+        private final List<int[]> ranges;
+        private final String newName;
+        private final List<Runnable> settled = new ArrayList<>();
+
+        private PendingRename(List<int[]> ranges, String newName) {
+            this.ranges = ranges;
+            this.newName = newName;
+        }
+    }
 
     protected List<int[]> linkedRanges;
     protected int linkedPrimary = -1;
@@ -51,6 +65,12 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     protected Position pendingRenamePosition;
     protected int pendingRenameOffset = -1;
     protected List<TextEdit> pendingRenameFallback = List.of();
+    protected List<int[]> pendingRenameRanges = List.of();
+    protected volatile PendingRename pendingRename;
+    protected JWindow pendingRenameWindow;
+    protected LoadingIndicator pendingRenameSpinner;
+    protected Timer pendingRenamePulse;
+    protected int pendingRenamePhase;
     protected JWindow linkedRenameWindow;
     protected JWindow renameHintWindow;
     protected Timer renameHintTimer;
@@ -71,7 +91,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
 
     @Override
     public void triggerRename() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         RenameProvider provider = renameProvider;
         if (provider == null) return;
         if (hasActiveLinkedRename()) return;
@@ -200,40 +220,255 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         Position position = pendingRenamePosition != null ? pendingRenamePosition : prepareContext.position();
         int offset = pendingRenameOffset >= 0 ? pendingRenameOffset : prepareContext.offset();
         List<TextEdit> fallback = pendingRenameFallback == null || !localFallback ? List.of() : pendingRenameFallback;
+        List<int[]> ranges = pendingRenameRanges == null ? List.of() : pendingRenameRanges;
         pendingRenamePosition = null;
         pendingRenameOffset = -1;
         pendingRenameFallback = List.of();
+        pendingRenameRanges = List.of();
 
         String textSnapshot = buffer.getText();
         RenameContext context = new RenameContext(textSnapshot, position, offset, newName, options);
+        PendingRename pending = beginPendingRename(ranges, newName);
         requestFocusInWindow();
-        getProviderExecutor().submit(() -> {
-            List<TextEdit> edits;
-            try {
-                edits = provider.computeRenameEdits(context);
-            } catch (Exception ex) {
-                edits = Collections.emptyList();
-            }
-            final List<TextEdit> snapshot = edits != null ? List.copyOf(edits) : List.of();
-            SwingUtilities.invokeLater(() -> {
-                if (!buffer.getText().equals(textSnapshot)) return;
-                List<TextEdit> applied = List.of();
-                if (!snapshot.isEmpty()) {
-                    applyEdits(snapshot);
-                    applied = snapshot;
-                } else if (!fallback.isEmpty()) {
-                    applyEdits(fallback);
-                    applied = fallback;
-                }
+        try {
+            getProviderExecutor().submit(() -> {
+                List<TextEdit> edits;
                 try {
-                    provider.onRenameApplied(context, applied);
-                } catch (Exception ignored) {
+                    edits = provider.computeRenameEdits(context);
+                } catch (Throwable ex) {
+                    edits = Collections.emptyList();
                 }
-                if (applied.isEmpty() && !localFallback) {
-                    showRenameHint(text("rename.error.noEdits", "Rename produced no changes"));
-                }
+                final List<TextEdit> snapshot = edits != null ? List.copyOf(edits) : List.of();
+                SwingUtilities.invokeLater(() -> completeRename(pending, provider, context, textSnapshot,
+                        snapshot, fallback, localFallback));
             });
-        });
+        } catch (RuntimeException ex) {
+            endPendingRename(pending);
+            runRenameSettled(pending);
+        }
+    }
+
+    protected void completeRename(PendingRename pending, RenameProvider provider, RenameContext context,
+                                  String textSnapshot, List<TextEdit> snapshot, List<TextEdit> fallback,
+                                  boolean localFallback) {
+        if (pendingRename != pending) return;
+        endPendingRename(pending);
+        try {
+            if (!buffer.getText().equals(textSnapshot)) {
+                showRenameHint(text("rename.error.discarded", "Rename discarded: the file changed while renaming"));
+                return;
+            }
+            List<TextEdit> applied = List.of();
+            if (!snapshot.isEmpty()) {
+                applyEdits(snapshot);
+                applied = snapshot;
+            } else if (!fallback.isEmpty()) {
+                applyEdits(fallback);
+                applied = fallback;
+            }
+            try {
+                provider.onRenameApplied(context, applied);
+            } catch (Exception ignored) {
+            }
+            if (applied.isEmpty() && !localFallback) {
+                showRenameHint(text("rename.error.noEdits", "Rename produced no changes"));
+            }
+        } finally {
+            runRenameSettled(pending);
+        }
+    }
+
+    public boolean isRenamePending() {
+        return pendingRename != null;
+    }
+
+    public boolean isBlockEditsWhileRenamePending() {
+        return blockEditsWhileRenamePending;
+    }
+
+    public void setBlockEditsWhileRenamePending(boolean block) {
+        if (blockEditsWhileRenamePending == block) return;
+        blockEditsWhileRenamePending = block;
+        fireStateChangedIfNeeded();
+    }
+
+    public void whenRenameSettled(Runnable action) {
+        if (action == null) return;
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> whenRenameSettled(action));
+            return;
+        }
+        PendingRename pending = pendingRename;
+        if (pending == null) {
+            action.run();
+        } else {
+            pending.settled.add(action);
+        }
+    }
+
+    public boolean cancelPendingRename() {
+        return cancelPendingRename(true);
+    }
+
+    protected boolean cancelPendingRename(boolean notify) {
+        PendingRename pending = pendingRename;
+        if (pending == null) return false;
+        endPendingRename(pending);
+        if (notify) showRenameHint(text("rename.cancelled", "Rename cancelled"));
+        runRenameSettled(pending);
+        return true;
+    }
+
+    protected PendingRename beginPendingRename(List<int[]> ranges, String newName) {
+        PendingRename pending = new PendingRename(copyRanges(ranges), newName == null ? "" : newName);
+        pendingRename = pending;
+        renamePending = true;
+        hideAutoCompletePopup();
+        clearGhostText();
+        pendingRenamePhase = 0;
+        if (pendingRenamePulse == null) {
+            pendingRenamePulse = new Timer(PENDING_RENAME_PULSE_MS, e -> {
+                pendingRenamePhase = (pendingRenamePhase + 1) % 1000;
+                repaint();
+            });
+        }
+        pendingRenamePulse.start();
+        showPendingRenameWindow(pending);
+        fireStateChangedIfNeeded();
+        repaint();
+        return pending;
+    }
+
+    protected void endPendingRename(PendingRename pending) {
+        if (pendingRename != pending) return;
+        pendingRename = null;
+        renamePending = false;
+        if (pendingRenamePulse != null) pendingRenamePulse.stop();
+        hidePendingRenameWindow();
+        fireStateChangedIfNeeded();
+        repaint();
+    }
+
+    protected void runRenameSettled(PendingRename pending) {
+        List<Runnable> callbacks = new ArrayList<>(pending.settled);
+        pending.settled.clear();
+        for (Runnable callback : callbacks) {
+            try {
+                callback.run();
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private static List<int[]> copyRanges(List<int[]> ranges) {
+        List<int[]> copy = new ArrayList<>(ranges == null ? 0 : ranges.size());
+        if (ranges != null) {
+            for (int[] range : ranges) {
+                if (range != null && range.length >= 2) copy.add(new int[]{range[0], range[1]});
+            }
+        }
+        return copy;
+    }
+
+    protected void showPendingRenameWindow(PendingRename pending) {
+        hidePendingRenameWindow();
+        if (!canShowPopups()) return;
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        if (owner == null) return;
+        Color bg = UIManager.getColor("ToolTip.background");
+        if (bg == null) bg = UIManager.getColor("Panel.background");
+        Color fg = UIManager.getColor("ToolTip.foreground");
+        if (fg == null) fg = UIManager.getColor("Label.foreground");
+        Color border = UIManager.getColor("Component.borderColor");
+        if (border == null) border = Color.GRAY;
+
+        LoadingIndicator spinner = createLoadingIndicator(
+                new LoadingSpinnerContext(LoadingSpinnerContext.Usage.RENAME, 14, linkedRenameAccent()));
+        JLabel label = new JLabel(text("rename.pending", "Renaming to '{name}'… (Esc cancels)")
+                .replace("{name}", pending.newName));
+        label.setForeground(fg);
+        JPanel content = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        content.setOpaque(true);
+        content.setBackground(bg);
+        content.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(border),
+                BorderFactory.createEmptyBorder(4, 6, 4, 8)));
+        content.add(spinner.getComponent());
+        content.add(label);
+
+        pendingRenameSpinner = spinner;
+        pendingRenameWindow = new JWindow(owner);
+        pendingRenameWindow.setFocusableWindowState(false);
+        pendingRenameWindow.setContentPane(content);
+        pendingRenameWindow.pack();
+        spinner.start();
+        positionPendingRenameWindow();
+    }
+
+    protected void positionPendingRenameWindow() {
+        JWindow window = pendingRenameWindow;
+        if (window == null) return;
+        if (!isShowing() || !canShowPopups()) {
+            window.setVisible(false);
+            return;
+        }
+        Point caret = caretScreenPoint();
+        Point screen;
+        try {
+            screen = getLocationOnScreen();
+        } catch (IllegalComponentStateException ex) {
+            window.setVisible(false);
+            return;
+        }
+        window.setLocation(screen.x + caret.x, screen.y + caret.y + 2);
+        if (!window.isVisible()) window.setVisible(true);
+    }
+
+    protected void hidePendingRenameWindow() {
+        if (pendingRenameSpinner != null) {
+            pendingRenameSpinner.stop();
+            pendingRenameSpinner = null;
+        }
+        if (pendingRenameWindow != null) {
+            pendingRenameWindow.setVisible(false);
+            pendingRenameWindow.dispose();
+            pendingRenameWindow = null;
+        }
+    }
+
+    protected void paintPendingRename(Graphics2D g2, FontMetrics fm, int lineHeight) {
+        PendingRename pending = pendingRename;
+        if (pending == null || pending.ranges.isEmpty()) return;
+        Color accent = linkedRenameAccent();
+        double wave = 0.5 + 0.5 * Math.sin(pendingRenamePhase * 0.18);
+        int alpha = 90 + (int) Math.round(140 * wave);
+        Color outline = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), Math.min(255, alpha));
+        Color fill = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 18 + (int) Math.round(22 * wave));
+        Stroke previous = g2.getStroke();
+        Object previousAa = g2.getRenderingHint(RenderingHints.KEY_ANTIALIASING);
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setStroke(new BasicStroke(1.2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10f,
+                new float[]{3f, 3f}, pendingRenamePhase % 6));
+        for (int[] r : pending.ranges) {
+            int start = clampOffset(r[0]);
+            int end = clampOffset(r[0] + r[1]);
+            int line = buffer.lineOfOffset(start);
+            if (isLineHidden(line)) continue;
+            String lineText = buffer.lineAt(line);
+            int lineOffset = buffer.offsetOfLine(line);
+            int endLine = buffer.lineOfOffset(end);
+            int endCol = endLine == line ? end - lineOffset : lineText.length();
+            int x1 = baseVisualXForColumn(line, lineText, start - lineOffset, fm);
+            int x2 = baseVisualXForColumn(line, lineText, endCol, fm);
+            int width = Math.max(2, x2 - x1);
+            int y = yOfBufferLine(line);
+            g2.setColor(fill);
+            g2.fillRect(x1 - 1, y, width + 2, lineHeight);
+            g2.setColor(outline);
+            g2.drawRoundRect(x1 - 2, y, width + 3, lineHeight - 1, 4, 4);
+        }
+        g2.setStroke(previous);
+        if (previousAa != null) g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, previousAa);
     }
 
     protected int[] wordBoundsAtCaret() {
@@ -251,7 +486,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     }
 
     protected void startLinkedRename(RenameSession session) {
-        if (session == null || session.isFinished() || readOnly) return;
+        if (session == null || session.isFinished() || isEditingBlocked()) return;
         if (hasActiveLinkedRename()) abortLinkedRename();
         Range primaryRange = session.range();
         if (primaryRange == null) return;
@@ -391,11 +626,13 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         pendingRenamePosition = positionOf(position);
         pendingRenameOffset = position;
         pendingRenameFallback = List.copyOf(fallback);
+        pendingRenameRanges = copyRanges(ranges);
         boolean committed = session.commit(newName, options);
         if (!committed) {
             pendingRenamePosition = null;
             pendingRenameOffset = -1;
             pendingRenameFallback = List.of();
+            pendingRenameRanges = List.of();
         }
         repaint();
         return committed;
@@ -468,8 +705,17 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         repaint();
     }
 
+    protected void discardPendingRenameOnEdit() {
+        PendingRename pending = pendingRename;
+        if (pending == null || blockEditsWhileRenamePending) return;
+        endPendingRename(pending);
+        showRenameHint(text("rename.error.discarded", "Rename discarded: the file changed while renaming"));
+        runRenameSettled(pending);
+    }
+
     @Override
     protected void onLinkedRenameInsert(int offset, int insertedLen) {
+        if (insertedLen > 0) discardPendingRenameOnEdit();
         if (!hasActiveLinkedRename() || linkedSyncing || insertedLen <= 0) return;
         int[] primary = linkedRanges.get(linkedPrimary);
         boolean insidePrimary = offset >= primary[0] && offset <= primary[0] + primary[1];
@@ -493,6 +739,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
 
     @Override
     protected void onLinkedRenameDelete(int start, int end) {
+        if (end > start) discardPendingRenameOnEdit();
         if (!hasActiveLinkedRename() || linkedSyncing || end <= start) return;
         int delta = end - start;
         int[] primary = linkedRanges.get(linkedPrimary);
@@ -549,6 +796,11 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
 
     @Override
     protected boolean handleLinkedRenameKey(KeyEvent e) {
+        if (pendingRename != null && e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            cancelPendingRename();
+            e.consume();
+            return true;
+        }
         if (!hasActiveLinkedRename()) return false;
         switch (e.getKeyCode()) {
             case KeyEvent.VK_ENTER -> {
@@ -674,7 +926,10 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
 
     @Override
     protected void paintLinkedRename(Graphics2D g2, FontMetrics fm, int lineHeight) {
-        if (!hasActiveLinkedRename()) return;
+        if (!hasActiveLinkedRename()) {
+            paintPendingRename(g2, fm, lineHeight);
+            return;
+        }
         Color accent = linkedRenameAccent();
         Color fill = new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 40);
         Stroke previous = g2.getStroke();
@@ -786,6 +1041,9 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
 
     protected void onLinkedRenameGeometryChanged() {
         hideRenameHint();
+        if (pendingRenameWindow != null) {
+            SwingUtilities.invokeLater(this::positionPendingRenameWindow);
+        }
         if (!hasActiveLinkedRename()) return;
         if (linkedRepositionScheduled) return;
         linkedRepositionScheduled = true;
@@ -797,6 +1055,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
 
     protected void hideLinkedRenameWindowTemporarily() {
         if (linkedRenameWindow != null) linkedRenameWindow.setVisible(false);
+        if (pendingRenameWindow != null) pendingRenameWindow.setVisible(false);
     }
 
     protected void showLinkedRenameWindow() {
@@ -927,6 +1186,8 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         }
         int offsetY = linkedRenameWindow != null && linkedRenameWindow.isVisible()
                 ? linkedRenameWindow.getHeight() + 4
+                : pendingRenameWindow != null && pendingRenameWindow.isVisible()
+                ? pendingRenameWindow.getHeight() + 4
                 : 2;
         renameHintWindow.setLocation(screen.x + p.x, screen.y + p.y + offsetY);
         renameHintWindow.setVisible(true);
@@ -951,7 +1212,9 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
     protected void disposeTransientWindows() {
         super.disposeTransientWindows();
         if (hasActiveLinkedRename()) abortLinkedRename();
+        cancelPendingRename(false);
         hideLinkedRenameWindow();
+        hidePendingRenameWindow();
         hideRenameHint();
     }
 }

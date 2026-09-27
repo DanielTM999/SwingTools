@@ -12,6 +12,7 @@ import dtm.stools.component.panels.editor.code.gutter.layer.GutterLayer;
 import dtm.stools.component.panels.editor.code.gutter.layer.LineMarkerLayer;
 import dtm.stools.component.panels.editor.code.gutter.layer.LineNumberLayer;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopupFactory;
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerFactory;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationPopup;
 import dtm.stools.component.panels.editor.code.provider.*;
 import dtm.stools.component.panels.editor.code.signature.SignatureHelpPopup;
@@ -1503,6 +1504,34 @@ public class CodeEditor extends BlockingPanel {
 
     public void cancelLinkedRename() {
         textArea.cancelLinkedRename();
+    }
+
+    public boolean isRenamePending() {
+        return textArea.isRenamePending();
+    }
+
+    public void whenRenameSettled(Runnable action) {
+        textArea.whenRenameSettled(action);
+    }
+
+    public boolean cancelPendingRename() {
+        return textArea.cancelPendingRename();
+    }
+
+    public boolean isBlockEditsWhileRenamePending() {
+        return textArea.isBlockEditsWhileRenamePending();
+    }
+
+    public void setBlockEditsWhileRenamePending(boolean block) {
+        textArea.setBlockEditsWhileRenamePending(block);
+    }
+
+    public LoadingSpinnerFactory getLoadingSpinnerFactory() {
+        return textArea.getLoadingSpinnerFactory();
+    }
+
+    public void setLoadingSpinnerFactory(LoadingSpinnerFactory factory) {
+        textArea.setLoadingSpinnerFactory(factory);
     }
 
     public void setCodeActionProvider(CodeActionProvider p) {

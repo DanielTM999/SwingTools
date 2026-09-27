@@ -1,5 +1,8 @@
 package dtm.stools.component.panels.editor.code.autocomplete;
 
+import dtm.stools.component.panels.editor.code.utils.LoadingIndicator;
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerContext;
+import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerFactory;
 import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import dtm.stools.i18n.I18n;
 import lombok.Getter;
@@ -37,7 +40,10 @@ public class AutoCompletePopup {
     protected final JTextArea detailArea = new JTextArea();
     protected final JScrollPane detailScroll;
     protected final JLabel loadingLabel = new JLabel(text("loading", "Buscando sugestoes..."));
-    protected final LoadingSpinner loadingSpinner = new LoadingSpinner();
+    protected final JPanel loadingContent = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+    protected LoadingSpinnerFactory loadingSpinnerFactory = LoadingSpinnerFactory.defaults();
+    protected Color loadingSpinnerColor;
+    protected LoadingIndicator loadingSpinner;
     protected Runnable acceptHandler;
     protected boolean loading;
 
@@ -75,16 +81,16 @@ public class AutoCompletePopup {
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        loadingSpinner.setForeground(blend(popupForeground, popupBackground, 0.20f));
+        loadingSpinnerColor = blend(popupForeground, popupBackground, 0.20f);
+        loadingSpinner = createLoadingSpinner(loadingSpinnerFactory);
         loadingLabel.setForeground(popupForeground);
         loadingLabel.setFont(loadingLabel.getFont().deriveFont(Font.BOLD, Math.max(11f, loadingLabel.getFont().getSize2D())));
         loadingPanel.setOpaque(true);
         loadingPanel.setBackground(popupBackground);
         loadingPanel.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
 
-        JPanel loadingContent = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         loadingContent.setOpaque(false);
-        loadingContent.add(loadingSpinner);
+        loadingContent.add(loadingSpinner.getComponent());
         loadingContent.add(loadingLabel);
         loadingPanel.add(loadingContent);
 
@@ -215,6 +221,51 @@ public class AutoCompletePopup {
         centerPanel.revalidate();
         popup.pack();
         popup.show(owner, x, y);
+    }
+
+    public LoadingSpinnerFactory getLoadingSpinnerFactory() {
+        return loadingSpinnerFactory;
+    }
+
+    public void setLoadingSpinnerFactory(LoadingSpinnerFactory factory) {
+        LoadingSpinnerFactory resolved = factory == null ? LoadingSpinnerFactory.defaults() : factory;
+        if (resolved == loadingSpinnerFactory) return;
+        LoadingIndicator replacement = createLoadingSpinner(resolved);
+        loadingSpinnerFactory = resolved;
+        LoadingIndicator previous = loadingSpinner;
+        previous.stop();
+        int index = loadingContent.getComponentZOrder(previous.getComponent());
+        loadingContent.remove(previous.getComponent());
+        loadingContent.add(replacement.getComponent(), Math.max(0, index));
+        loadingSpinner = replacement;
+        loadingContent.revalidate();
+        loadingContent.repaint();
+        if (loading) loadingSpinner.start();
+    }
+
+    public LoadingIndicator getLoadingIndicator() {
+        return loadingSpinner;
+    }
+
+    public void setLoadingSpinnerColor(Color color) {
+        loadingSpinnerColor = color;
+        if (color != null && loadingSpinner != null) {
+            loadingSpinner.getComponent().setForeground(color);
+        }
+    }
+
+    protected LoadingIndicator createLoadingSpinner(LoadingSpinnerFactory factory) {
+        LoadingIndicator indicator = null;
+        try {
+            indicator = factory.create(new LoadingSpinnerContext(LoadingSpinnerContext.Usage.AUTOCOMPLETE, 20,
+                    loadingSpinnerColor));
+        } catch (RuntimeException ignored) {
+        }
+        if (indicator == null || indicator.getComponent() == null) {
+            indicator = LoadingSpinnerFactory.defaults().create(new LoadingSpinnerContext(
+                    LoadingSpinnerContext.Usage.AUTOCOMPLETE, 20, loadingSpinnerColor));
+        }
+        return indicator;
     }
 
     private boolean canShowOnOwner() {
@@ -398,52 +449,6 @@ public class AutoCompletePopup {
             insets.bottom = 6;
             insets.right = 6;
             return insets;
-        }
-    }
-
-    protected static class LoadingSpinner extends JComponent {
-        private int frame;
-        private final Timer timer = new Timer(70, e -> {
-            frame = (frame + 1) % 24;
-            repaint();
-        });
-
-        LoadingSpinner() {
-            setPreferredSize(new Dimension(20, 20));
-            setMinimumSize(new Dimension(20, 20));
-            setOpaque(false);
-        }
-
-        void start() {
-            if (!timer.isRunning()) timer.start();
-        }
-
-        void stop() {
-            timer.stop();
-            frame = 0;
-            repaint();
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            try {
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                int size = Math.min(getWidth(), getHeight());
-                float stroke = Math.max(2f, size / 9f);
-                float pad = stroke + 1f;
-                Color base = getForeground() != null ? getForeground() : new Color(0x2563EB);
-
-                g2.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.setColor(new Color(base.getRed(), base.getGreen(), base.getBlue(), 42));
-                g2.drawOval(Math.round(pad), Math.round(pad), Math.round(size - pad * 2), Math.round(size - pad * 2));
-
-                int start = 90 - frame * 15;
-                g2.setColor(base);
-                g2.drawArc(Math.round(pad), Math.round(pad), Math.round(size - pad * 2), Math.round(size - pad * 2), start, 115);
-            } finally {
-                g2.dispose();
-            }
         }
     }
 }

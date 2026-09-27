@@ -34,7 +34,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 e.consume();
                 return;
             }
-            if (readOnly) {
+            if (isEditingBlocked()) {
                 e.consume();
                 return;
             }
@@ -140,7 +140,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
 
             if (isAutoCompleteVisible()) {
                 if (hasGhostText() && matchesKeyStroke(e, ghostTextAcceptKeyStroke)) {
-                    if (readOnly) {
+                    if (isEditingBlocked()) {
                         clearGhostText();
                     } else {
                         acceptGhostText();
@@ -149,7 +149,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                     return;
                 }
                 if (isAutoCompleteAccept(e)) {
-                    if (readOnly) {
+                    if (isEditingBlocked()) {
                         hideAutoCompletePopup();
                         e.consume();
                         return;
@@ -208,7 +208,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             }
 
             if (matchesKeyStroke(e, duplicateLineUpKeyStroke)) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     e.consume();
                     return;
                 }
@@ -221,7 +221,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 return;
             }
             if (matchesKeyStroke(e, duplicateLineDownKeyStroke)) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     e.consume();
                     return;
                 }
@@ -234,7 +234,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 return;
             }
             if (matchesKeyStroke(e, moveLineUpKeyStroke)) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     e.consume();
                     return;
                 }
@@ -247,7 +247,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 return;
             }
             if (matchesKeyStroke(e, moveLineDownKeyStroke)) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     e.consume();
                     return;
                 }
@@ -269,7 +269,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                         return;
                     }
                     case KeyEvent.VK_V -> {
-                        if (readOnly) {
+                        if (isEditingBlocked()) {
                             e.consume();
                             return;
                         }
@@ -283,7 +283,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                         return;
                     }
                     case KeyEvent.VK_X -> {
-                        if (readOnly) {
+                        if (isEditingBlocked()) {
                             e.consume();
                             return;
                         }
@@ -303,7 +303,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                         return;
                     }
                     case KeyEvent.VK_Z -> {
-                        if (readOnly) {
+                        if (isEditingBlocked()) {
                             e.consume();
                             return;
                         }
@@ -316,7 +316,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                         return;
                     }
                     case KeyEvent.VK_Y -> {
-                        if (readOnly) {
+                        if (isEditingBlocked()) {
                             e.consume();
                             return;
                         }
@@ -331,7 +331,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             }
 
             if (hasGhostText() && !isAutoCompleteVisible() && matchesKeyStroke(e, ghostTextAcceptKeyStroke)) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     clearGhostText();
                 } else {
                     acceptGhostText();
@@ -348,7 +348,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
 
             if (e.getKeyCode() == KeyEvent.VK_TAB && hasActiveSnippetSession() && !isAutoCompleteVisible()
                     && (!hasSelection() || selectionMatchesCurrentSnippetStop())) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     e.consume();
                     return;
                 }
@@ -373,7 +373,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             }
 
             if (e.getKeyCode() == KeyEvent.VK_TAB) {
-                if (readOnly) {
+                if (isEditingBlocked()) {
                     e.consume();
                     return;
                 }
@@ -424,7 +424,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                             || e.isMetaDown() || e.isShiftDown()) {
                         return;
                     }
-                    if (readOnly) {
+                    if (isEditingBlocked()) {
                         e.consume();
                         return;
                     }
@@ -432,7 +432,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                     resetCaretBlink();
                 }
                 case KeyEvent.VK_ENTER -> {
-                    if (readOnly) {
+                    if (isEditingBlocked()) {
                         e.consume();
                         return;
                     }
@@ -486,7 +486,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                     e.consume();
                 }
                 case KeyEvent.VK_BACK_SPACE -> {
-                    if (readOnly) {
+                    if (isEditingBlocked()) {
                         e.consume();
                         return;
                     }
@@ -547,7 +547,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                     }
                 }
                 case KeyEvent.VK_DELETE -> {
-                    if (readOnly) {
+                    if (isEditingBlocked()) {
                         e.consume();
                         return;
                     }

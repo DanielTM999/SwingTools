@@ -41,7 +41,7 @@ public final class AutoCompletePopupDefaults {
             scroll.getViewport().setBackground(background);
             loadingPanel.setBackground(background);
             loadingLabel.setForeground(foreground);
-            loadingSpinner.setForeground(blend(foreground, background, 0.28f));
+            setLoadingSpinnerColor(blend(foreground, background, 0.28f));
             detailArea.setBackground(background);
             detailArea.setForeground(blend(foreground, background, 0.35f));
             detailScroll.setBackground(background);

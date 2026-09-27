@@ -163,7 +163,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void insertText(int offset, String text) {
-        if (readOnly || text == null || text.isEmpty()) return;
+        if (isEditingBlocked() || text == null || text.isEmpty()) return;
         text = text.replace("\r\n", "\n").replace("\r", "\n");
         int linesBefore = buffer.lineCount();
         int lineAtInsert = buffer.lineOfOffset(Math.min(offset, buffer.length()));
@@ -182,7 +182,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void deleteText(int start, int end) {
-        if (readOnly || start >= end) return;
+        if (isEditingBlocked() || start >= end) return;
         String removed = buffer.substring(start, end);
         int linesBefore = buffer.lineCount();
         int lineAtDelete = buffer.lineOfOffset(Math.min(start, buffer.length()));
@@ -463,7 +463,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void pasteFromClipboard() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         try {
             String text = (String) Toolkit.getDefaultToolkit().getSystemClipboard()
                     .getData(DataFlavor.stringFlavor);
@@ -488,7 +488,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void performUndo() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         abortLinkedRename();
         int linesBefore = buffer.lineCount();
         TextBuffer.EditResult result = buffer.undoEdit();
@@ -508,7 +508,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void performRedo() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         abortLinkedRename();
         int linesBefore = buffer.lineCount();
         TextBuffer.EditResult result = buffer.redoEdit();
@@ -877,13 +877,13 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void insertAtExtraCarets(String text) {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (extraCarets.isEmpty() || text == null || text.isEmpty()) return;
         insertAtAllCarets(text, false, text.length());
     }
 
     protected void insertAtAllCarets(String text, boolean overwrite, int caretAdvance) {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (text == null || text.isEmpty()) return;
         int originalLength = buffer.length();
         int primaryOffset = caretOffset();
@@ -923,7 +923,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected boolean replaceSelectionsAtCarets(String text, int caretAdvance) {
-        if (readOnly) return false;
+        if (isEditingBlocked()) return false;
         if (!hasSelection() && !hasExtraSelections()) return false;
         List<CaretDeleteOp> ops = new ArrayList<>();
         if (hasSelection()) {
@@ -973,7 +973,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected boolean deleteSelectionsAtCarets() {
-        if (readOnly) return false;
+        if (isEditingBlocked()) return false;
         List<CaretDeleteOp> selectedOps = selectedCaretOps();
         if (selectedOps.isEmpty()) return false;
 
@@ -1021,7 +1021,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected boolean wrapSelectionsAtCarets(char open, char close) {
-        if (readOnly) return false;
+        if (isEditingBlocked()) return false;
         if (!hasSelection() && !hasExtraSelections()) return false;
         List<CaretDeleteOp> ops = new ArrayList<>();
         if (hasSelection()) {
@@ -1132,7 +1132,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected boolean deleteAtCarets(boolean backspace) {
-        if (readOnly) return false;
+        if (isEditingBlocked()) return false;
         if (extraCarets.isEmpty()) return false;
         int primaryOffset = caretOffset();
         List<CaretDeleteOp> ops = new ArrayList<>(extraCarets.size() + 1);
@@ -1207,7 +1207,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     public int applyEdits(List<TextEdit> edits) {
-        if (readOnly) return 0;
+        if (isEditingBlocked()) return 0;
         if (edits == null || edits.isEmpty()) return 0;
         List<TextEdit> sorted = new ArrayList<>(edits);
         sorted.sort((a, b) -> {

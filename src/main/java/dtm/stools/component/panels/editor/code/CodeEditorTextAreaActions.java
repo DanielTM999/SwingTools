@@ -149,7 +149,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_MOVE_LINE_UP, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (readOnly) return;
+                if (isEditingBlocked()) return;
                 moveLineUp();
                 scrollToCaret();
                 resetCaretBlink();
@@ -160,7 +160,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_MOVE_LINE_DOWN, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (readOnly) return;
+                if (isEditingBlocked()) return;
                 moveLineDown();
                 scrollToCaret();
                 resetCaretBlink();
@@ -171,7 +171,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_DUPLICATE_LINE_UP, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (readOnly) return;
+                if (isEditingBlocked()) return;
                 duplicateLineUp();
                 scrollToCaret();
                 resetCaretBlink();
@@ -182,7 +182,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_DUPLICATE_LINE_DOWN, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (readOnly) return;
+                if (isEditingBlocked()) return;
                 duplicateLineDown();
                 scrollToCaret();
                 resetCaretBlink();
@@ -203,7 +203,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_AUTO_COMPLETE, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (readOnly) return;
+                if (isEditingBlocked()) return;
                 triggerAutoComplete(CompletionContext.TriggerKind.EXPLICIT);
             }
         });
@@ -216,7 +216,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_FORMAT, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (readOnly) return;
+                if (isEditingBlocked()) return;
                 format();
             }
         });
@@ -229,7 +229,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         getActionMap().put(ACTION_REPLACE, new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                fireSearchRequested(!readOnly);
+                fireSearchRequested(!isEditingBlocked());
             }
         });
         getActionMap().put(ACTION_FIND_NEXT, new AbstractAction() {
@@ -471,7 +471,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     public void moveLineUp() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         int[] cur = getMoveBlockRange(caretLine);
         int curStart = cur[0], curEnd = cur[1];
         if (curStart <= 0) return;
@@ -520,7 +520,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     public void moveLineDown() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         int[] cur = getMoveBlockRange(caretLine);
         int curStart = cur[0], curEnd = cur[1];
         if (curEnd >= buffer.lineCount() - 1) return;
@@ -569,7 +569,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     public void duplicateLineDown() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (hasSelection()) {
             int start = getSelectionStart();
             int end = getSelectionEnd();
@@ -614,7 +614,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     public void duplicateLineUp() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (hasSelection()) {
             int start = getSelectionStart();
             int end = getSelectionEnd();
@@ -987,7 +987,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
 
     public void applyCodeAction(CodeAction action) {
         if (action == null) return;
-        if (readOnly && !action.edits().isEmpty()) return;
+        if (isEditingBlocked() && !action.edits().isEmpty()) return;
         if (!action.edits().isEmpty()) applyEdits(action.edits());
         if (action.command() != null && commandHandler != null) {
             try {
@@ -1008,7 +1008,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     public void toggleLineComment() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (commentProvider == null) return;
         CommentProvider provider = commentProvider;
         String textSnapshot = buffer.getText();
@@ -1028,7 +1028,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     protected void applyLineCommentToggle(String prefix) {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (prefix == null || prefix.isEmpty()) return;
         int startLine, endLine;
         if (hasSelection()) {
@@ -1075,7 +1075,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     public void toggleBlockComment() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (commentProvider == null) return;
         CommentProvider provider = commentProvider;
         String textSnapshot = buffer.getText();
@@ -1095,7 +1095,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     }
 
     protected void applyBlockCommentToggle(String[] delim) {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (delim == null || delim.length < 2 || delim[0] == null || delim[1] == null) {
             toggleLineComment();
             return;

@@ -605,7 +605,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     public void formatDocument() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (codeFormatter == null) return;
         int caretOff = caretOffset();
         String sourceText = buffer.getText();
@@ -646,7 +646,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     public void formatSelection() {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (codeFormatter == null || !hasSelection()) return;
         int start = getSelectionStart();
         int end = getSelectionEnd();
@@ -1325,7 +1325,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     public void searchReplaceCurrent(String replacement) {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (searchMatches.isEmpty() || searchCurrentIndex < 0) return;
         SearchMatch m = searchMatches.get(searchCurrentIndex);
         String repl = replacement == null ? "" : replacement;
@@ -1347,7 +1347,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     public void searchReplaceAll(String replacement) {
-        if (readOnly) return;
+        if (isEditingBlocked()) return;
         if (searchMatches.isEmpty()) return;
         String repl = replacement == null ? "" : replacement;
         List<SearchMatch> snapshot = new ArrayList<>(searchMatches);
@@ -1379,7 +1379,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     protected void fireSearchRequested(boolean replaceMode) {
-        replaceMode = replaceMode && !readOnly;
+        replaceMode = replaceMode && !isEditingBlocked();
         String selected = hasSelection() ? getSelectedText() : "";
         if (selected.contains("\n")) selected = "";
         for (SearchRequestListener l : searchRequestListeners) {
@@ -1402,7 +1402,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     public void showSearchPanel(boolean replaceMode) {
         boolean wasVisible = isSearchPanelVisible();
         SearchPanel panel = getOrCreateSearchPanel();
-        if (readOnly) {
+        if (isEditingBlocked()) {
             panel.setReplaceVisible(false);
         } else if (replaceMode) {
             panel.setReplaceVisible(true);
