@@ -12,8 +12,14 @@ public record Diagnostic(
         DiagnosticSeverity severity,
         String message,
         String source,
-        Color overrideColor
+        Color overrideColor,
+        boolean unnecessary
 ) {
+
+    public Diagnostic(int startLine, int startCol, int endLine, int endCol,
+                      DiagnosticSeverity severity, String message, String source, Color overrideColor) {
+        this(startLine, startCol, endLine, endCol, severity, message, source, overrideColor, false);
+    }
 
     public Diagnostic(int startLine, int startCol, int endLine, int endCol,
                       DiagnosticSeverity severity, String message) {
@@ -22,6 +28,16 @@ public record Diagnostic(
 
     public Diagnostic(int line, int col, int endCol, DiagnosticSeverity severity, String message) {
         this(line, col, line, endCol, severity, message, null, null);
+    }
+
+    public Diagnostic withUnnecessary(boolean unnecessary) {
+        if (this.unnecessary == unnecessary) return this;
+        return new Diagnostic(startLine, startCol, endLine, endCol, severity, message, source,
+                overrideColor, unnecessary);
+    }
+
+    public boolean isFadeOnly() {
+        return unnecessary && severity == DiagnosticSeverity.HINT;
     }
 
     public Color effectiveColor() {

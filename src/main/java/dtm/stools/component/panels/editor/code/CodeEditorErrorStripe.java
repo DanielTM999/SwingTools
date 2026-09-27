@@ -115,7 +115,9 @@ public class CodeEditorErrorStripe extends JComponent {
     }
 
     private List<Diagnostic> diagnostics() {
-        return textArea.getDiagnostics();
+        List<Diagnostic> all = textArea.getDiagnostics();
+        if (all.stream().noneMatch(Diagnostic::isFadeOnly)) return all;
+        return all.stream().filter(d -> !d.isFadeOnly()).toList();
     }
 
     private int trackTop() {

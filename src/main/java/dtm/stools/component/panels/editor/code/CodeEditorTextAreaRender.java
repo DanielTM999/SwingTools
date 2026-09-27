@@ -23,6 +23,8 @@ import java.util.List;
 
 public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometry {
 
+    static final float UNNECESSARY_CODE_FADE = 0.5f;
+
     protected CodeEditorTextAreaRender(TextBuffer buffer) {
         super(buffer);
     }
@@ -185,6 +187,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         paintIndentGuides(g2, defaultFm, lineHeight);
 
         codeLensItemBounds.clear();
+        Map<Integer, List<int[]>> fadedSpans = unnecessarySpans(firstVisibleLine, lastVisibleLine);
         for (int i = firstVisibleLine; i <= lastVisibleLine && i < totalLines; i++) {
             if (isLineHidden(i)) continue;
             if (hasCodeLens(i)) {
@@ -201,6 +204,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             }
 
             final int lineIndex = i;
+            final List<int[]> lineFadedSpans = fadedSpans.get(i);
             int x = forEachLineRun(
                     i,
                     lineText,
@@ -222,8 +226,14 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                         if (lineInfo != null && lineInfo.foreground() != null) {
                             fg = lineInfo.foreground();
                         }
-                        g2.setColor(fg);
-                        g2.drawString(run, runX, ly + fm.getAscent());
+                        if (lineFadedSpans == null) {
+                            g2.setColor(fg);
+                            g2.drawString(run, runX, ly + fm.getAscent());
+                        } else {
+                            drawRunWithFading(g2, lineText, startCol, endCol, visualCol, fm, runX,
+                                    ly + fm.getAscent(), fg, lineFadedSpans);
+                            g2.setColor(fg);
+                        }
 
                         if (style.isUnderline()) {
                             int uy = ly + fm.getAscent() + 1;
@@ -654,10 +664,67 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         }
     }
 
+    protected Map<Integer, List<int[]>> unnecessarySpans(int firstLine, int lastLine) {
+        if (!diagnosticsRenderingEnabled || diagnostics.isEmpty()) return Map.of();
+        Map<Integer, List<int[]>> spans = new HashMap<>();
+        for (Diagnostic d : diagnostics) {
+            if (!d.unnecessary()) continue;
+            int startLine = d.startLine();
+            int endLine = Math.max(startLine, d.endLine());
+            for (int line = Math.max(startLine, firstLine); line <= Math.min(endLine, lastLine); line++) {
+                if (line < 0 || line >= buffer.lineCount()) continue;
+                int length = buffer.lineAt(line).length();
+                int from = line == startLine ? Math.max(0, d.startCol()) : 0;
+                int to = line == endLine ? Math.min(d.endCol(), length) : length;
+                if (to > from) {
+                    spans.computeIfAbsent(line, ignored -> new ArrayList<>()).add(new int[]{from, to});
+                }
+            }
+        }
+        return spans;
+    }
+
+    protected void drawRunWithFading(Graphics2D g2, String lineText, int startCol, int endCol, int visualCol,
+                                     FontMetrics fm, int x, int baseline, Color fg, List<int[]> spans) {
+        Color faded = fadedForeground(fg);
+        int col = startCol;
+        int vcol = visualCol;
+        while (col < endCol) {
+            boolean inside = false;
+            int next = endCol;
+            for (int[] span : spans) {
+                if (span[0] <= col && col < span[1]) {
+                    inside = true;
+                    next = Math.min(next, span[1]);
+                } else if (span[0] > col) {
+                    next = Math.min(next, span[0]);
+                }
+            }
+            String piece = expandTabs(lineText.substring(col, next), vcol);
+            g2.setColor(inside ? faded : fg);
+            g2.drawString(piece, x, baseline);
+            x += fm.stringWidth(piece);
+            vcol += piece.length();
+            col = next;
+        }
+    }
+
+    protected Color fadedForeground(Color fg) {
+        Color bg = defaultStyle.getBackground();
+        if (fg == null || bg == null) return fg;
+        float amount = UNNECESSARY_CODE_FADE;
+        return new Color(
+                Math.round(fg.getRed() + (bg.getRed() - fg.getRed()) * amount),
+                Math.round(fg.getGreen() + (bg.getGreen() - fg.getGreen()) * amount),
+                Math.round(fg.getBlue() + (bg.getBlue() - fg.getBlue()) * amount),
+                fg.getAlpha());
+    }
+
     protected void paintDiagnostics(Graphics2D g2, FontMetrics fm) {
         if (!diagnosticsRenderingEnabled || diagnostics.isEmpty()) return;
         int lineHeight = fm.getHeight();
         for (Diagnostic d : diagnostics) {
+            if (d.isFadeOnly()) continue;
             int startLine = d.startLine();
             int endLine = d.endLine();
             if (endLine < startLine) endLine = startLine;
