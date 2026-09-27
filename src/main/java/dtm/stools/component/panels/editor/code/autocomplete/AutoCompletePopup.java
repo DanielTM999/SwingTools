@@ -377,10 +377,13 @@ public class AutoCompletePopup {
             Color selectionFg = resolveColor("List.selectionForeground", "MenuItem.selectionForeground", new Color(0x111827));
             Color rowBg = isSelected ? selectionBg : bg;
             Color rowFg = isSelected ? selectionFg : fg;
-            Color subtle = blend(rowFg, rowBg, 0.46f);
+            boolean unused = item != null && item.unused();
+            float fade = isSelected ? 0.3f : 0.5f;
+            Color titleFg = unused ? blend(rowFg, rowBg, fade) : rowFg;
+            Color subtle = blend(rowFg, rowBg, unused ? 0.46f + (1f - 0.46f) * fade * 0.8f : 0.46f);
 
             setBackground(rowBg);
-            titleLabel.setForeground(rowFg);
+            titleLabel.setForeground(titleFg);
             titleLabel.setFont(list.getFont().deriveFont(Font.BOLD));
             detailLabel.setForeground(subtle);
             detailLabel.setFont(list.getFont().deriveFont(Math.max(10f, list.getFont().getSize2D() - 1f)));
@@ -391,9 +394,9 @@ public class AutoCompletePopup {
             detailLabel.setText(detail.isBlank() ? " " : detail);
 
             Icon icon = item == null ? null : item.icon();
-            iconLabel.setIcon(icon);
+            iconLabel.setIcon(unused && icon != null ? new FadedIcon(icon, 1f - fade) : icon);
             iconLabel.setText(icon == null ? kindInitial(item) : "");
-            iconLabel.setForeground(rowFg);
+            iconLabel.setForeground(titleFg);
             iconLabel.setBackground(blend(rowFg, rowBg, 0.86f));
             iconLabel.setBorder(BorderFactory.createLineBorder(blend(rowFg, rowBg, 0.76f)));
 

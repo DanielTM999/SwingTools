@@ -3,12 +3,16 @@ package dtm.stools.defaults;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteItem;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopup;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopupFactory;
+import dtm.stools.component.panels.editor.code.autocomplete.FadedIcon;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.Locale;
 
 public final class AutoCompletePopupDefaults {
+
+    static final float UNUSED_FADE = 0.5f;
+    static final float UNUSED_SELECTED_FADE = 0.3f;
 
     private AutoCompletePopupDefaults() {
         throw new AssertionError("Utility class");
@@ -133,7 +137,7 @@ public final class AutoCompletePopupDefaults {
             Color selectedForeground = uiColor("List.selectionForeground", "MenuItem.selectionForeground", foreground);
             Color rowBackground = selected ? selectedBackground : background;
             Color rowForeground = selected ? selectedForeground : foreground;
-            return new Colors(rowBackground, rowForeground, blend(rowForeground, rowBackground, 0.48f));
+            return new Colors(rowBackground, rowForeground, blend(rowForeground, rowBackground, 0.48f), selected);
         }
 
         protected final void updateContent(JList<?> list, AutoCompleteItem item, Colors colors) {
@@ -142,18 +146,23 @@ public final class AutoCompletePopupDefaults {
             titleLabel.setText(label == null ? "" : label);
             detailLabel.setText(detail);
 
+            boolean unused = item != null && item.unused();
+            float fade = colors.selected() ? UNUSED_SELECTED_FADE : UNUSED_FADE;
+            Color foreground = unused ? blend(colors.foreground(), colors.background(), fade) : colors.foreground();
+            Color subtle = unused ? blend(colors.subtle(), colors.background(), fade * 0.8f) : colors.subtle();
+
             Icon icon = item == null ? AutoCompleteIcons.forKind(iconStyle, null) : item.icon();
             if (icon == null) icon = AutoCompleteIcons.forKind(iconStyle, item.kind());
-            iconLabel.setIcon(icon);
+            iconLabel.setIcon(unused && icon != null ? new FadedIcon(icon, 1f - fade) : icon);
             iconLabel.setText("");
-            iconLabel.setForeground(colors.foreground());
+            iconLabel.setForeground(foreground);
             iconLabel.setBackground(blend(colors.foreground(), colors.background(), 0.86f));
             iconLabel.setFont(list.getFont().deriveFont(Font.BOLD, Math.max(10f, list.getFont().getSize2D() - 1f)));
 
-            titleLabel.setForeground(colors.foreground());
-            detailLabel.setForeground(colors.subtle());
+            titleLabel.setForeground(foreground);
+            detailLabel.setForeground(subtle);
             kindLabel.setText(kindText(item));
-            kindLabel.setForeground(colors.subtle());
+            kindLabel.setForeground(subtle);
         }
     }
 
@@ -337,5 +346,5 @@ public final class AutoCompletePopupDefaults {
         return item.kind().name().toLowerCase(Locale.ROOT).replace('_', ' ');
     }
 
-    private record Colors(Color background, Color foreground, Color subtle) {}
+    private record Colors(Color background, Color foreground, Color subtle, boolean selected) {}
 }

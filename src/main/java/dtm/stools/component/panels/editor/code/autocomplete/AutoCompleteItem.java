@@ -12,7 +12,8 @@ public record AutoCompleteItem(
         String description,
         Icon icon,
         Kind kind,
-        List<TextEdit> additionalTextEdits
+        List<TextEdit> additionalTextEdits,
+        boolean unused
 ) {
 
     public enum Kind {
@@ -48,6 +49,11 @@ public record AutoCompleteItem(
         additionalTextEdits = additionalTextEdits == null ? List.of() : List.copyOf(additionalTextEdits);
     }
 
+    public AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon,
+                            Kind kind, List<TextEdit> additionalTextEdits) {
+        this(insertText, label, detail, description, icon, kind, additionalTextEdits, false);
+    }
+
     public AutoCompleteItem(String text) {
         this(text, text, null, null, null, Kind.TEXT, List.of());
     }
@@ -66,6 +72,11 @@ public record AutoCompleteItem(
 
     public AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon, Kind kind) {
         this(insertText, label, detail, description, icon, kind, List.of());
+    }
+
+    public AutoCompleteItem withUnused(boolean unused) {
+        if (this.unused == unused) return this;
+        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused);
     }
 
     public boolean isSnippet() {
