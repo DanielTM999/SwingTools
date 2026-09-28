@@ -23,8 +23,6 @@ import java.util.List;
 
 public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometry {
 
-    static final float UNNECESSARY_CODE_FADE = 0.5f;
-
     protected CodeEditorTextAreaRender(TextBuffer buffer) {
         super(buffer);
     }
@@ -711,8 +709,8 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
 
     protected Color fadedForeground(Color fg) {
         Color bg = defaultStyle.getBackground();
-        if (fg == null || bg == null) return fg;
-        float amount = UNNECESSARY_CODE_FADE;
+        if (fg == null || bg == null || unnecessaryCodeFade <= 0f) return fg;
+        float amount = unnecessaryCodeFade;
         return new Color(
                 Math.round(fg.getRed() + (bg.getRed() - fg.getRed()) * amount),
                 Math.round(fg.getGreen() + (bg.getGreen() - fg.getGreen()) * amount),

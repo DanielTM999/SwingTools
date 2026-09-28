@@ -328,6 +328,14 @@ public class CodeEditor extends BlockingPanel {
         textArea.setSelectedTextOccurrencesColor(color);
     }
 
+    public float getUnnecessaryCodeFade() {
+        return textArea.getUnnecessaryCodeFade();
+    }
+
+    public void setUnnecessaryCodeFade(float fade) {
+        textArea.setUnnecessaryCodeFade(fade);
+    }
+
     public Color getCurrentLineColor() {
         return textArea.getCurrentLineColor();
     }

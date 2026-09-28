@@ -534,6 +534,16 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     protected float codeLensFontScale = 0.85f;
 
     @Getter
+    protected float unnecessaryCodeFade = 0.3f;
+
+    public void setUnnecessaryCodeFade(float fade) {
+        float clamped = Float.isNaN(fade) ? 0.3f : Math.max(0f, Math.min(1f, fade));
+        if (clamped == unnecessaryCodeFade) return;
+        unnecessaryCodeFade = clamped;
+        repaint();
+    }
+
+    @Getter
     @Setter
     protected int codeLensItemSpacing = 16;
 

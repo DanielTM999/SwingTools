@@ -15,7 +15,6 @@ import dtm.stools.component.panels.editor.code.rename.RenamePreparation;
 import dtm.stools.component.panels.editor.code.utils.LoadingIndicator;
 import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerContext;
 import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerFactory;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;

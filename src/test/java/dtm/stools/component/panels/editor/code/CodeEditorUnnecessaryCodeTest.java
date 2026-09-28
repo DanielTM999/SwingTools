@@ -63,6 +63,50 @@ class CodeEditorUnnecessaryCodeTest {
         assertTrue(faded < normal, "faded=" + faded + " normal=" + normal);
     }
 
+    @Test
+    void fadeIsConfigurableAndClamped() {
+        CodeEditorTextArea area = new CodeEditorTextArea("x");
+
+        assertEquals(0.5f, area.getUnnecessaryCodeFade());
+        area.setUnnecessaryCodeFade(0.8f);
+        assertEquals(0.8f, area.getUnnecessaryCodeFade());
+        area.setUnnecessaryCodeFade(3f);
+        assertEquals(1f, area.getUnnecessaryCodeFade());
+        area.setUnnecessaryCodeFade(-1f);
+        assertEquals(0f, area.getUnnecessaryCodeFade());
+    }
+
+    @Test
+    void strongerFadeLowersTheContrastAndZeroDisablesIt() {
+        assertTrue(fadedContrast(0.8f) < fadedContrast(0.3f));
+        assertEquals(normalContrast(), fadedContrast(0f));
+    }
+
+    private static int fadedContrast(float fade) {
+        return contrastOfColumns(fade, 5, 9);
+    }
+
+    private static int normalContrast() {
+        return contrastOfColumns(0.5f, 0, 4);
+    }
+
+    private static int contrastOfColumns(float fade, int fromCol, int toCol) {
+        CodeEditorTextArea area = new CodeEditorTextArea("MMMM MMMM");
+        area.setFont(new Font(Font.MONOSPACED, Font.BOLD, 16));
+        area.setSize(500, 120);
+        area.setUnnecessaryCodeFade(fade);
+        area.diagnostics.add(new Diagnostic(0, 5, 0, 9, DiagnosticSeverity.HINT, "unused", null, null, true));
+        BufferedImage image = new BufferedImage(500, 120, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graphics = image.createGraphics();
+        area.paint(graphics);
+        graphics.dispose();
+        FontMetrics fm = area.getFontMetrics(area.getFont());
+        int charWidth = fm.charWidth('M');
+        int left = CodeEditorTextAreaGeometry.TEXT_LEFT_MARGIN;
+        int background = image.getRGB(480, fm.getHeight() / 2);
+        return maxContrast(image, left + fromCol * charWidth, left + toCol * charWidth, fm.getHeight(), background);
+    }
+
     private static int maxContrast(BufferedImage image, int fromX, int toX, int height, int background) {
         int best = 0;
         for (int x = fromX; x < toX; x++) {
