@@ -67,7 +67,7 @@ class CodeEditorUnnecessaryCodeTest {
     void fadeIsConfigurableAndClamped() {
         CodeEditorTextArea area = new CodeEditorTextArea("x");
 
-        assertEquals(0.5f, area.getUnnecessaryCodeFade());
+        assertEquals(0.3f, area.getUnnecessaryCodeFade());
         area.setUnnecessaryCodeFade(0.8f);
         assertEquals(0.8f, area.getUnnecessaryCodeFade());
         area.setUnnecessaryCodeFade(3f);

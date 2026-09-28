@@ -7,6 +7,7 @@ import dtm.stools.component.panels.editor.code.provider.*;
 import dtm.stools.component.panels.editor.code.listeners.DocumentEditListener;
 import dtm.stools.component.panels.editor.code.multicaret.Caret;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
+import dtm.stools.component.panels.editor.code.prototype.folding.FoldRegion;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.*;
@@ -176,6 +177,10 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         fireStateChangedIfNeeded();
         int addedLines = buffer.lineCount() - linesBefore;
         if (addedLines > 0) {
+            int firstShiftedLine = offset == buffer.offsetOfLine(lineAtInsert)
+                    ? lineAtInsert : lineAtInsert + 1;
+            shiftFoldRegionsOnInsert(firstShiftedLine, addedLines);
+            shiftPreservedViewOnInsert(firstShiftedLine, addedLines);
             fireLinesInserted(lineAtInsert + 1, addedLines);
         }
         scheduleFoldRefresh();
@@ -186,6 +191,8 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         String removed = buffer.substring(start, end);
         int linesBefore = buffer.lineCount();
         int lineAtDelete = buffer.lineOfOffset(Math.min(start, buffer.length()));
+        int firstRemovedLine = start == buffer.offsetOfLine(lineAtDelete)
+                ? lineAtDelete : lineAtDelete + 1;
         buffer.delete(start, end);
         onSnippetDelete(start, end);
         onLinkedRenameDelete(start, end);
@@ -194,9 +201,84 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         fireStateChangedIfNeeded();
         int removedLines = linesBefore - buffer.lineCount();
         if (removedLines > 0) {
+            shiftFoldRegionsOnDelete(firstRemovedLine, removedLines);
+            shiftPreservedViewOnDelete(firstRemovedLine, removedLines);
             fireLinesRemoved(lineAtDelete + 1, removedLines);
         }
         scheduleFoldRefresh();
+    }
+
+    private void shiftFoldRegionsOnInsert(int firstShiftedLine, int count) {
+        if (!foldingEnabled || foldRegions.isEmpty()) return;
+        List<FoldRegion> shifted = new ArrayList<>(foldRegions.size());
+        for (FoldRegion region : foldRegions) {
+            int start = region.startLine();
+            int end = region.endLine();
+            if (start >= firstShiftedLine) {
+                start += count;
+                end += count;
+            } else if (end >= firstShiftedLine) {
+                end += count;
+            }
+            shifted.add(new FoldRegion(start, end, region.folded()));
+        }
+        foldRegions = shifted;
+    }
+
+    private void shiftFoldRegionsOnDelete(int firstRemovedLine, int count) {
+        if (!foldingEnabled || foldRegions.isEmpty()) return;
+        int afterRemovedLines = firstRemovedLine + count;
+        List<FoldRegion> shifted = new ArrayList<>(foldRegions.size());
+        for (FoldRegion region : foldRegions) {
+            int start = region.startLine();
+            int end = region.endLine();
+            if (start >= afterRemovedLines) {
+                start -= count;
+                end -= count;
+            } else if (start >= firstRemovedLine) {
+                continue;
+            } else if (end >= afterRemovedLines) {
+                end -= count;
+            } else if (end >= firstRemovedLine) {
+                end = firstRemovedLine - 1;
+            }
+            if (end > start) shifted.add(new FoldRegion(start, end, region.folded()));
+        }
+        foldRegions = shifted;
+    }
+
+    private void shiftFoldRegionsForHistory(String before, List<TextBuffer.AppliedChange> changes) {
+        if (!foldingEnabled || changes.isEmpty()) return;
+        StringBuilder text = new StringBuilder(before);
+        for (TextBuffer.AppliedChange change : changes) {
+            int offset = change.offset();
+            int line = 0;
+            for (int i = 0; i < offset; i++) {
+                if (text.charAt(i) == '\n') line++;
+            }
+            int removedLines = countNewlines(change.removedText());
+            if (removedLines > 0) {
+                int firstRemovedLine = offset == 0 || text.charAt(offset - 1) == '\n'
+                        ? line : line + 1;
+                shiftFoldRegionsOnDelete(firstRemovedLine, removedLines);
+            }
+            text.delete(offset, offset + change.removedText().length());
+            int insertedLines = countNewlines(change.insertedText());
+            if (insertedLines > 0) {
+                int firstShiftedLine = offset == 0 || text.charAt(offset - 1) == '\n'
+                        ? line : line + 1;
+                shiftFoldRegionsOnInsert(firstShiftedLine, insertedLines);
+            }
+            text.insert(offset, change.insertedText());
+        }
+    }
+
+    private static int countNewlines(String text) {
+        int count = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') count++;
+        }
+        return count;
     }
 
     protected void fireLinesInserted(int atLine, int count) {
@@ -490,6 +572,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     protected void performUndo() {
         if (isEditingBlocked()) return;
         abortLinkedRename();
+        String before = foldingEnabled ? buffer.getText() : null;
         int linesBefore = buffer.lineCount();
         TextBuffer.EditResult result = buffer.undoEdit();
         if (result.caretOffset() >= 0) {
@@ -501,6 +584,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
             if (delta > 0) fireLinesInserted(0, delta);
             else if (delta < 0) fireLinesRemoved(0, -delta);
             if (foldingEnabled) {
+                shiftFoldRegionsForHistory(before, result.changes());
                 recomputeFoldRegions();
                 unfoldToRevealCaret();
             }
@@ -510,6 +594,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     protected void performRedo() {
         if (isEditingBlocked()) return;
         abortLinkedRename();
+        String before = foldingEnabled ? buffer.getText() : null;
         int linesBefore = buffer.lineCount();
         TextBuffer.EditResult result = buffer.redoEdit();
         if (result.caretOffset() >= 0) {
@@ -521,6 +606,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
             if (delta > 0) fireLinesInserted(0, delta);
             else if (delta < 0) fireLinesRemoved(0, -delta);
             if (foldingEnabled) {
+                shiftFoldRegionsForHistory(before, result.changes());
                 recomputeFoldRegions();
                 unfoldToRevealCaret();
             }
@@ -1216,8 +1302,10 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
             if (la != lb) return Integer.compare(lb, la);
             return Integer.compare(b.range().start().col(), a.range().start().col());
         });
+        beginPreservingView();
         beginCompoundEdit();
         int applied = 0;
+        int adjustedCaret = caretOffset();
         try {
             for (TextEdit edit : sorted) {
                 if (edit == null || edit.range() == null) continue;
@@ -1228,20 +1316,31 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
                     start = end;
                     end = tmp;
                 }
-                String newText = edit.newText() == null ? "" : edit.newText();
-                if (end > start) deleteText(start, end);
-                if (!newText.isEmpty()) insertText(start, newText);
+                String newText = edit.newText() == null ? ""
+                        : edit.newText().replace("\r\n", "\n").replace("\r", "\n");
+                if (end > start) {
+                    if (adjustedCaret > start) {
+                        adjustedCaret -= Math.min(adjustedCaret, end) - start;
+                    }
+                    deleteText(start, end);
+                }
+                if (!newText.isEmpty()) {
+                    if (adjustedCaret >= start) adjustedCaret += newText.length();
+                    insertText(start, newText);
+                }
                 applied++;
             }
+            if (applied > 0) setCaretFromOffset(adjustedCaret);
         } finally {
             endCompoundEdit();
         }
         if (applied > 0) {
-            clampCaret();
             if (foldingEnabled) recomputeFoldRegions();
-            scrollToCaret();
+            invalidateGeometry();
+            revalidate();
             repaint();
         }
+        finishPreservingView();
         return applied;
     }
 

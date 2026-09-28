@@ -258,6 +258,66 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         }
     }
 
+    private ViewAnchor activeViewAnchor;
+
+    protected void beginPreservingView() {
+        JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
+        if (viewport == null || viewport.getExtentSize().height <= 0) return;
+        Point position = viewport.getViewPosition();
+        int line = bufferLineAtY(position.y);
+        activeViewAnchor = new ViewAnchor(viewport, line,
+                position.y - yOfBufferLine(line), position.x);
+    }
+
+    protected void shiftPreservedViewOnInsert(int firstShiftedLine, int count) {
+        if (activeViewAnchor != null && count > 0 && activeViewAnchor.line >= firstShiftedLine) {
+            activeViewAnchor.line += count;
+        }
+    }
+
+    protected void shiftPreservedViewOnDelete(int firstRemovedLine, int count) {
+        if (activeViewAnchor == null || count <= 0) return;
+        if (activeViewAnchor.line >= firstRemovedLine + count) {
+            activeViewAnchor.line -= count;
+        } else if (activeViewAnchor.line >= firstRemovedLine) {
+            activeViewAnchor.line = Math.max(0, firstRemovedLine - 1);
+        }
+    }
+
+    protected void finishPreservingView() {
+        ViewAnchor anchor = activeViewAnchor;
+        activeViewAnchor = null;
+        if (anchor == null) return;
+        restoreViewAnchor(anchor);
+        Point restoredPosition = anchor.viewport.getViewPosition();
+        SwingUtilities.invokeLater(() -> {
+            if (anchor.viewport.getViewPosition().equals(restoredPosition)) {
+                restoreViewAnchor(anchor);
+            }
+        });
+    }
+
+    private void restoreViewAnchor(ViewAnchor anchor) {
+        if (anchor.viewport.getView() != this) return;
+        int line = Math.max(0, Math.min(anchor.line, buffer.lineCount() - 1));
+        int y = Math.max(0, yOfBufferLine(line) + anchor.pixelOffset);
+        anchor.viewport.setViewPosition(new Point(anchor.x, y));
+    }
+
+    private static final class ViewAnchor {
+        private final JViewport viewport;
+        private int line;
+        private final int pixelOffset;
+        private final int x;
+
+        private ViewAnchor(JViewport viewport, int line, int pixelOffset, int x) {
+            this.viewport = viewport;
+            this.line = line;
+            this.pixelOffset = pixelOffset;
+            this.x = x;
+        }
+    }
+
     protected Point calculateCaretScrollPosition(Point viewPosition,
                                                  Dimension extentSize,
                                                  Rectangle caretBounds) {

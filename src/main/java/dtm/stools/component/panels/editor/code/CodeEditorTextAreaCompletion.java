@@ -234,6 +234,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         }
         int insertOff = autoCompletePopup.getTriggerOffset();
         int caretOff = caretOffset();
+        boolean hasAdditionalEdits = !resolveAdditionalEdits(item).isEmpty();
+        if (hasAdditionalEdits) beginPreservingView();
         beginCompoundEdit();
         try {
             clearSnippetSession();
@@ -260,6 +262,12 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
             applyTrailingAdditionalEdits(editPlan, editPlan.leadingDelta() + (mainLen - prefixLen));
         } finally {
             endCompoundEdit();
+        }
+        if (hasAdditionalEdits) {
+            if (foldingEnabled) recomputeFoldRegions();
+            invalidateGeometry();
+            revalidate();
+            finishPreservingView();
         }
         autoCompletePopup.hide();
         scrollToCaret();
