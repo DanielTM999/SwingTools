@@ -19,6 +19,7 @@ import dtm.stools.component.panels.editor.code.listeners.HoverListener;
 import dtm.stools.component.panels.editor.code.listeners.LineChangeListener;
 import dtm.stools.component.panels.editor.code.multicaret.Caret;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
+import dtm.stools.component.panels.editor.code.prototype.folding.FoldRegion;
 import dtm.stools.component.panels.editor.code.utils.PopupOwnerGuard;
 import javax.swing.*;
 import java.awt.*;
@@ -472,7 +473,7 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
 
     public void moveLineUp() {
         if (isEditingBlocked()) return;
-        int[] cur = getMoveBlockRange(caretLine);
+        int[] cur = getSelectedMoveBlockRange();
         int curStart = cur[0], curEnd = cur[1];
         if (curStart <= 0) return;
 
@@ -486,7 +487,10 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         List<int[]> curFolds = foldedRegionsWithin(curStart, curEnd);
         List<int[]> prevFolds = foldedRegionsWithin(prevStart, prevEnd);
 
-        int savedCol = caretCol;
+        int savedCaretLine = caretLine;
+        int savedCaretCol = caretCol;
+        int savedAnchorLine = hasSelection() ? selectionStartLine : -1;
+        int savedAnchorCol = selectionStartCol;
         int curTextStart = buffer.offsetOfLine(curStart);
         int curTextEnd = offsetOfLineEnd(curEnd);
         String curText = buffer.substring(curTextStart, curTextEnd);
@@ -508,20 +512,20 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         int newPrevStart = newCurStart + (curEnd - curStart + 1);
 
         if (foldingEnabled) {
+            recomputeFoldRegions();
             refoldRelative(curFolds, newCurStart);
             refoldRelative(prevFolds, newPrevStart);
         }
 
-        caretLine = newCurStart + (caretLine - curStart);
-        caretCol = Math.min(savedCol, buffer.lineAt(caretLine).length());
+        restoreMovedSelection(newCurStart - curStart, savedCaretLine, savedCaretCol,
+                savedAnchorLine, savedAnchorCol);
         unfoldToRevealCaret();
-        clearSelection();
         updateLastEditState();
     }
 
     public void moveLineDown() {
         if (isEditingBlocked()) return;
-        int[] cur = getMoveBlockRange(caretLine);
+        int[] cur = getSelectedMoveBlockRange();
         int curStart = cur[0], curEnd = cur[1];
         if (curEnd >= buffer.lineCount() - 1) return;
 
@@ -535,7 +539,10 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         List<int[]> curFolds = foldedRegionsWithin(curStart, curEnd);
         List<int[]> nextFolds = foldedRegionsWithin(nextStart, nextEnd);
 
-        int savedCol = caretCol;
+        int savedCaretLine = caretLine;
+        int savedCaretCol = caretCol;
+        int savedAnchorLine = hasSelection() ? selectionStartLine : -1;
+        int savedAnchorCol = selectionStartCol;
         int curTextStart = buffer.offsetOfLine(curStart);
         int curTextEnd = offsetOfLineEnd(curEnd);
         String curText = buffer.substring(curTextStart, curTextEnd);
@@ -557,15 +564,57 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         int newCurStart = curStart + nextDelta;
 
         if (foldingEnabled) {
+            recomputeFoldRegions();
             refoldRelative(nextFolds, newNextStart);
             refoldRelative(curFolds, newCurStart);
         }
 
-        caretLine = newCurStart + (caretLine - curStart);
-        caretCol = Math.min(savedCol, buffer.lineAt(caretLine).length());
+        restoreMovedSelection(newCurStart - curStart, savedCaretLine, savedCaretCol,
+                savedAnchorLine, savedAnchorCol);
         unfoldToRevealCaret();
-        clearSelection();
         updateLastEditState();
+    }
+
+    private int[] getSelectedMoveBlockRange() {
+        if (!hasSelection()) return getMoveBlockRange(caretLine);
+        int start = buffer.lineOfOffset(getSelectionStart());
+        int end = buffer.lineOfOffset(getSelectionEnd() - 1);
+        if (foldingEnabled) {
+            boolean expanded;
+            do {
+                expanded = false;
+                for (FoldRegion region : foldRegions) {
+                    if (!region.folded() || region.endLine() < start || region.startLine() > end) continue;
+                    int newStart = Math.min(start, region.startLine());
+                    int newEnd = Math.max(end, region.endLine());
+                    if (newStart != start || newEnd != end) {
+                        start = newStart;
+                        end = newEnd;
+                        expanded = true;
+                    }
+                }
+            } while (expanded);
+        }
+        return new int[]{start, end};
+    }
+
+    private void restoreMovedSelection(int lineDelta, int savedCaretLine, int savedCaretCol,
+                                       int savedAnchorLine, int savedAnchorCol) {
+        int movedCaretLine = savedCaretLine + lineDelta;
+        caretLine = Math.min(movedCaretLine, buffer.lineCount() - 1);
+        caretCol = movedCaretLine >= buffer.lineCount()
+                ? buffer.lineAt(caretLine).length()
+                : Math.min(savedCaretCol, buffer.lineAt(caretLine).length());
+        if (savedAnchorLine < 0) {
+            clearSelection();
+            return;
+        }
+        int movedAnchorLine = savedAnchorLine + lineDelta;
+        selectionStartLine = Math.min(movedAnchorLine, buffer.lineCount() - 1);
+        selectionStartCol = movedAnchorLine >= buffer.lineCount()
+                ? buffer.lineAt(selectionStartLine).length()
+                : Math.min(savedAnchorCol, buffer.lineAt(selectionStartLine).length());
+        fireStateChangedIfNeeded();
     }
 
     public void duplicateLineDown() {

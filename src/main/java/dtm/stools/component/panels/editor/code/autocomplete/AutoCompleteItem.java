@@ -16,6 +16,8 @@ public record AutoCompleteItem(
         boolean unused
 ) {
 
+    public static final String CARET_MARKER = "${0}";
+
     public enum Kind {
         TEXT,
         METHOD,
@@ -80,7 +82,11 @@ public record AutoCompleteItem(
     }
 
     public boolean isSnippet() {
-        return kind == Kind.SNIPPET;
+        return kind == Kind.SNIPPET || (insertText != null && insertText.contains(CARET_MARKER));
+    }
+
+    public static boolean supportsCaretMarker() {
+        return true;
     }
 
     public boolean hasAdditionalTextEdits() {
