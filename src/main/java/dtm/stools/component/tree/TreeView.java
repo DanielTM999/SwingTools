@@ -43,6 +43,11 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DropTargetAdapter;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.DropTargetEvent;
+import java.util.TooManyListenersException;
 import java.awt.image.BufferedImage;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
@@ -188,6 +193,22 @@ public class TreeView<T> extends TreeViewListener {
     protected transient JPopupMenu activePopupMenu;
 
     protected int dropHighlightRow = -1;
+    private final DropTargetAdapter dropHighlightCleanup = new DropTargetAdapter() {
+        @Override
+        public void dragExit(DropTargetEvent event) {
+            clearDropState();
+        }
+
+        @Override
+        public void drop(DropTargetDropEvent event) {
+            SwingUtilities.invokeLater(TreeView.this::clearDropState);
+        }
+
+        @Override
+        public void dragEnter(DropTargetDragEvent event) {
+            resetDropEvaluationCache();
+        }
+    };
     protected long dropHighlightStart;
     protected int lastEvaluatedDropRow = -1;
     protected boolean lastEvaluatedDropExternal;
@@ -369,6 +390,24 @@ public class TreeView<T> extends TreeViewListener {
         setDragEnabled(dragAndDropEnabled);
         setDropMode(enabled ? DropMode.ON : DropMode.USE_SELECTION);
         setTransferHandler(enabled ? new TreeViewTransferHandler() : null);
+        installDropHighlightCleanup(enabled);
+    }
+
+    protected void installDropHighlightCleanup(boolean enabled) {
+        java.awt.dnd.DropTarget target = getDropTarget();
+        clearDropState();
+        if (target == null) return;
+        target.removeDropTargetListener(dropHighlightCleanup);
+        if (!enabled) return;
+        try {
+            target.addDropTargetListener(dropHighlightCleanup);
+        } catch (TooManyListenersException ignored) {
+        }
+    }
+
+    protected void clearDropState() {
+        clearDropHighlight();
+        resetDropEvaluationCache();
     }
 
     public TreeNode<T> addNode(TreeNode<T> parent, T value) {
@@ -1048,9 +1087,11 @@ public class TreeView<T> extends TreeViewListener {
             }
 
             @Override public void treeNodesRemoved(javax.swing.event.TreeModelEvent e) {
+                clearDropState();
             }
 
             @Override public void treeStructureChanged(javax.swing.event.TreeModelEvent e) {
+                clearDropState();
             }
         });
     }
@@ -1550,6 +1591,14 @@ public class TreeView<T> extends TreeViewListener {
 
         @Override
         public boolean importData(TransferSupport support) {
+            try {
+                return importDropData(support);
+            } finally {
+                clearDropState();
+            }
+        }
+
+        protected boolean importDropData(TransferSupport support) {
             DropTarget target = resolveDropTarget(support);
             if (target == null) return false;
             if (!support.isDataFlavorSupported(TREE_NODE_ARRAY_FLAVOR)) {
