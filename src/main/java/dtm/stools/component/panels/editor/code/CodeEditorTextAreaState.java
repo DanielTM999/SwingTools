@@ -12,6 +12,7 @@ import dtm.stools.component.panels.editor.code.api.CommandHandler;
 import dtm.stools.component.panels.editor.code.api.DocumentSymbol;
 import dtm.stools.component.panels.editor.code.api.Location;
 import dtm.stools.component.panels.editor.code.api.Range;
+import dtm.stools.component.panels.editor.code.api.TextEdit;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteItem;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompletePopup;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteProvider;
@@ -336,6 +337,7 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     protected Color ghostTextColor;
 
     protected String ghostText;
+    protected List<TextEdit> ghostTextEdits = List.of();
     protected int ghostAnchorLine = -1;
     protected int ghostAnchorCol = -1;
     protected int ghostAnchorOffset = -1;

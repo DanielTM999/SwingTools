@@ -13,6 +13,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -288,6 +289,13 @@ public class AutoCompletePopup {
 
     public boolean isLoading() {
         return loading;
+    }
+
+    public List<AutoCompleteItem> getItems() {
+        if (loading) return List.of();
+        List<AutoCompleteItem> items = new ArrayList<>(model.size());
+        for (int i = 0; i < model.size(); i++) items.add(model.get(i));
+        return items;
     }
 
     public void moveSelection(int delta) {

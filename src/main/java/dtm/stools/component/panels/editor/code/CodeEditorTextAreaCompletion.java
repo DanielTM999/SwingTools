@@ -15,6 +15,7 @@ import dtm.stools.component.panels.editor.code.autocomplete.SnippetExpansion;
 import dtm.stools.component.panels.editor.code.ghost.GhostTextActivationMode;
 import dtm.stools.component.panels.editor.code.ghost.GhostTextContext;
 import dtm.stools.component.panels.editor.code.ghost.GhostTextProvider;
+import dtm.stools.component.panels.editor.code.ghost.GhostTextSuggestion;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationContext;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationPopup;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationProvider;
@@ -234,12 +235,13 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         }
         int insertOff = autoCompletePopup.getTriggerOffset();
         int caretOff = caretOffset();
-        boolean hasAdditionalEdits = !resolveAdditionalEdits(item).isEmpty();
+        boolean hasAdditionalEdits = !resolveAdditionalEdits(item.additionalTextEdits()).isEmpty();
         if (hasAdditionalEdits) beginPreservingView();
         beginCompoundEdit();
         try {
             clearSnippetSession();
-            AutoCompleteEditApplier.Plan editPlan = applyLeadingAdditionalEdits(item, insertOff, caretOff);
+            AutoCompleteEditApplier.Plan editPlan = applyLeadingAdditionalEdits(
+                    item.additionalTextEdits(), insertOff, caretOff);
             insertOff += editPlan.leadingDelta();
             caretOff += editPlan.leadingDelta();
             int prefixLen = Math.max(0, caretOff - insertOff);
@@ -276,8 +278,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         repaint();
     }
 
-    private AutoCompleteEditApplier.Plan applyLeadingAdditionalEdits(AutoCompleteItem item, int insertOff, int caretOff) {
-        AutoCompleteEditApplier.Plan plan = AutoCompleteEditApplier.plan(resolveAdditionalEdits(item), insertOff, caretOff);
+    private AutoCompleteEditApplier.Plan applyLeadingAdditionalEdits(List<TextEdit> edits, int insertOff, int caretOff) {
+        AutoCompleteEditApplier.Plan plan = AutoCompleteEditApplier.plan(resolveAdditionalEdits(edits), insertOff, caretOff);
         for (AutoCompleteEditApplier.ResolvedEdit edit : plan.leading()) {
             if (edit.end() > edit.start()) {
                 deleteText(edit.start(), edit.end());
@@ -298,8 +300,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         }
     }
 
-    private List<AutoCompleteEditApplier.ResolvedEdit> resolveAdditionalEdits(AutoCompleteItem item) {
-        List<TextEdit> edits = item == null ? null : item.additionalTextEdits();
+    private List<AutoCompleteEditApplier.ResolvedEdit> resolveAdditionalEdits(List<TextEdit> edits) {
         if (edits == null || edits.isEmpty()) {
             return List.of();
         }
@@ -405,6 +406,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         if (!hasGhostText()) return false;
         boolean multiline = ghostReservedRows() > 0;
         ghostText = null;
+        ghostTextEdits = List.of();
         ghostAnchorLine = -1;
         ghostAnchorCol = -1;
         ghostAnchorOffset = -1;
@@ -417,7 +419,13 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     }
 
     protected void setActiveGhostText(String text, int line, int col, int offset) {
-        ghostText = text;
+        setActiveGhostText(GhostTextSuggestion.of(text), line, col, offset);
+    }
+
+    protected void setActiveGhostText(GhostTextSuggestion suggestion, int line, int col, int offset) {
+        if (suggestion == null || suggestion.isEmpty()) return;
+        ghostText = suggestion.text();
+        ghostTextEdits = suggestion.additionalTextEdits();
         ghostAnchorLine = line;
         ghostAnchorCol = col;
         ghostAnchorOffset = offset;
@@ -447,20 +455,20 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         int request = ghostTextVersion.incrementAndGet();
         ExecutorService executor = getAutoCompleteExecutor();
         executor.submit(() -> {
-            CompletableFuture<String> task;
+            CompletableFuture<GhostTextSuggestion> task;
             try {
-                task = provider.getGhostTextAsync(ctx, executor);
+                task = provider.getGhostSuggestionAsync(ctx, executor);
             } catch (Exception ex) {
                 return;
             }
             if (task == null) return;
-            task.whenComplete((text, error) -> SwingUtilities.invokeLater(() -> {
+            task.whenComplete((suggestion, error) -> SwingUtilities.invokeLater(() -> {
                 if (request != ghostTextVersion.get()) return;
-                if (error != null || text == null || text.isEmpty()) return;
+                if (error != null || suggestion == null || suggestion.isEmpty()) return;
 
                 if (caretLine != anchorLine || caretCol != anchorCol) return;
                 if (hasSelection()) return;
-                setActiveGhostText(text, anchorLine, anchorCol, caretOffset());
+                setActiveGhostText(suggestion, anchorLine, anchorCol, caretOffset());
             }));
         });
     }
@@ -468,20 +476,33 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     protected boolean acceptGhostText() {
         if (!hasGhostText() || isEditingBlocked()) return false;
         String text = ghostText;
+        List<TextEdit> edits = ghostTextEdits;
         int offset = ghostAnchorOffset;
 
         ghostText = null;
+        ghostTextEdits = List.of();
         ghostAnchorLine = -1;
         ghostAnchorCol = -1;
         ghostAnchorOffset = -1;
         ghostTextVersion.incrementAndGet();
+        boolean hasAdditionalEdits = !resolveAdditionalEdits(edits).isEmpty();
+        if (hasAdditionalEdits) beginPreservingView();
         beginCompoundEdit();
         try {
+            AutoCompleteEditApplier.Plan editPlan = applyLeadingAdditionalEdits(edits, offset, offset);
+            offset += editPlan.leadingDelta();
             insertText(offset, text);
             setCaretFromOffset(offset + text.length());
             clearSelection();
+            applyTrailingAdditionalEdits(editPlan, editPlan.leadingDelta() + text.length());
         } finally {
             endCompoundEdit();
+        }
+        if (hasAdditionalEdits) {
+            if (foldingEnabled) recomputeFoldRegions();
+            invalidateGeometry();
+            revalidate();
+            finishPreservingView();
         }
         scrollToCaret();
         resetCaretBlink();
@@ -637,8 +658,26 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
                 caretOff, caretLine, caretCol, prefix, insertOff,
                 CompletionContext.TriggerKind.TYPING);
         Point pt = caretScreenPoint();
-        autoCompletePopup.showLoading(pt.x, pt.y, prefix, insertOff);
+        List<AutoCompleteItem> visible = filterVisibleItems(autoCompletePopup.getItems(), prefix);
+        if (visible.isEmpty()) {
+            autoCompletePopup.showLoading(pt.x, pt.y, prefix, insertOff);
+        } else {
+            autoCompletePopup.show(visible, pt.x, pt.y, prefix, insertOff);
+        }
         requestAutoComplete(autoCompleteProvider, ctx, pt);
+    }
+
+    static List<AutoCompleteItem> filterVisibleItems(List<AutoCompleteItem> items, String prefix) {
+        if (items == null || items.isEmpty()) return List.of();
+        String needle = prefix == null ? "" : prefix;
+        List<AutoCompleteItem> filtered = new ArrayList<>(items.size());
+        for (AutoCompleteItem item : items) {
+            String label = item == null ? null : item.label();
+            if (label != null && label.regionMatches(true, 0, needle, 0, needle.length())) {
+                filtered.add(item);
+            }
+        }
+        return filtered;
     }
 
     protected HoverDocumentationPopup createHoverDocumentationPopup() {

@@ -13,4 +13,13 @@ public interface GhostTextProvider extends CodeEditorProvider {
     default CompletableFuture<String> getGhostTextAsync(GhostTextContext context, Executor executor) {
         return CompletableFuture.supplyAsync(() -> getGhostText(context), executor);
     }
+
+    default GhostTextSuggestion getGhostSuggestion(GhostTextContext context) {
+        return GhostTextSuggestion.of(getGhostText(context));
+    }
+
+    default CompletableFuture<GhostTextSuggestion> getGhostSuggestionAsync(GhostTextContext context,
+                                                                         Executor executor) {
+        return CompletableFuture.supplyAsync(() -> getGhostSuggestion(context), executor);
+    }
 }
