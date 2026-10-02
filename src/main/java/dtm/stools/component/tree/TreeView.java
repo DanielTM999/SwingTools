@@ -363,8 +363,7 @@ public class TreeView<T> extends TreeViewListener {
         this.mode = mode;
         switch (mode) {
             case SINGLE -> getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-            case MULTIPLE -> getSelectionModel().setSelectionMode(TreeSelectionModel.CONTIGUOUS_TREE_SELECTION);
-            case DISCONTIGUOUS -> getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
+            case MULTIPLE, DISCONTIGUOUS -> getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
         }
     }
 

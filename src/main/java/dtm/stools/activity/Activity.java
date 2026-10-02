@@ -6,6 +6,7 @@ import dtm.stools.context.IWindow;
 import dtm.stools.context.WindowContext;
 import dtm.stools.context.WindowExecutor;
 import dtm.stools.context.enums.TrayEventType;
+import dtm.stools.context.enums.TrayIconScope;
 import dtm.stools.exceptions.DomElementNotFoundException;
 import dtm.stools.exceptions.DomNotLoadException;
 import dtm.stools.exceptions.InvalidClientSideElementException;
@@ -29,6 +30,11 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unchecked")
 public abstract class Activity extends JFrame implements IWindow {
+    private static final Object SHARED_TRAY_LOCK = new Object();
+    private static final Deque<Activity> SHARED_TRAY_MEMBERS = new ArrayDeque<>();
+    private static TrayIcon sharedTrayIcon;
+    private static boolean sharedTrayIconAdded;
+
     private final DrawingOnceGate drawingOnceGate = new DrawingOnceGate();
     private final Map<String, Object> clientSideElements;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -39,6 +45,7 @@ public abstract class Activity extends JFrame implements IWindow {
     private final WindowExecutor windowExecutor;
     private final AtomicInteger lastWindowStateRef = new AtomicInteger();
     private final AtomicBoolean inTray = new AtomicBoolean();
+    private volatile boolean sharedTrayMember;
     private final AtomicBoolean trayUsable = new AtomicBoolean(true);
     private final AtomicBoolean closing = new AtomicBoolean(false);
 
@@ -209,10 +216,11 @@ public abstract class Activity extends JFrame implements IWindow {
     }
 
     public boolean windowInTray(){
-        if (tray != null) {
-            for (TrayIcon icon : SystemTray.getSystemTray().getTrayIcons()) {
-                if (icon == trayIcon && inTray.get()) return true;
-            }
+        if (tray == null || trayIcon == null || !isTrayIconAdded()) {
+            return false;
+        }
+        for (TrayIcon icon : SystemTray.getSystemTray().getTrayIcons()) {
+            if (icon == trayIcon) return true;
         }
         return false;
     }
@@ -298,54 +306,32 @@ public abstract class Activity extends JFrame implements IWindow {
     }
 
     protected void addSystemTray() {
-        trayIcon = new TrayIcon(trayImage, getTitle());
-        trayIcon.setImageAutoSize(true);
-        trayIcon.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_CLICKED, Activity.this), "trayMouseClicked");
-            }
+        if (systemTrayConfiguration.getTrayIconScope() == TrayIconScope.ACTIVITY) {
+            sharedTrayMember = false;
+            trayIcon = createTrayIcon(trayImage, getTitle(), () -> this);
+            return;
+        }
 
-            @Override
-            public void mousePressed(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_PRESSED, Activity.this), "trayMousePressed");
+        synchronized (SHARED_TRAY_LOCK) {
+            sharedTrayMember = true;
+            SHARED_TRAY_MEMBERS.remove(this);
+            SHARED_TRAY_MEMBERS.addLast(this);
+            if (sharedTrayIcon == null) {
+                sharedTrayIcon = createTrayIcon(trayImage, getTitle(), Activity::currentSharedTrayTarget);
             }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_RELEASED, Activity.this), "trayMouseReleased");
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_ENTERED, Activity.this), "trayMouseEntered");
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_EXITED, Activity.this), "trayMouseExited");
-            }
-
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_WHEEL_MOVED, Activity.this), "trayMouseWheelMoved");
-            }
-
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_DRAGGED, Activity.this), "trayMouseDragged");
-            }
-
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                windowExecutor.execute(() -> onSystemTrayClick(e, TrayEventType.MOUSE_MOVED, Activity.this), "trayMouseMoved");
-            }
-        });
-
+            trayIcon = sharedTrayIcon;
+        }
     }
 
     public void restoreFromTray() {
         if(systemTrayConfiguration.isRemoveOnRestore()) safelyRemoveTrayIcon();
+        if (sharedTrayMember) {
+            for (Activity member : sharedTrayMembersSnapshot()) {
+                if (member != this && member.isDisplayable() && !member.isVisible()) {
+                    member.setVisible(true);
+                }
+            }
+        }
         this.setVisible(true);
         this.toFront();
         requestFocus();
@@ -445,6 +431,11 @@ public abstract class Activity extends JFrame implements IWindow {
             }
 
             @Override
+            public void windowActivated(WindowEvent e) {
+                markAsRecentTrayMember();
+            }
+
+            @Override
             public void windowLostFocus(WindowEvent e) {
                 windowExecutor.execute(() -> onLostFocus(e), "onLostFocus");
             }
@@ -489,10 +480,28 @@ public abstract class Activity extends JFrame implements IWindow {
     }
 
     private void safelyRemoveTrayIcon(boolean force) {
-        if (tray != null && trayIcon != null) {
-            if(force || !systemTrayConfiguration.isAlwaysVisible()){
+        if (tray == null || trayIcon == null) {
+            return;
+        }
+
+        synchronized (SHARED_TRAY_LOCK) {
+            if (force && sharedTrayMember) {
+                SHARED_TRAY_MEMBERS.remove(this);
+                if (!SHARED_TRAY_MEMBERS.isEmpty()) {
+                    refreshSharedTrayToolTip();
+                    return;
+                }
                 tray.remove(trayIcon);
-                inTray.set(false);
+                setTrayIconAdded(false);
+                if (sharedTrayIcon == trayIcon) {
+                    sharedTrayIcon = null;
+                }
+                return;
+            }
+
+            if (force || !systemTrayConfiguration.isAlwaysVisible()) {
+                tray.remove(trayIcon);
+                setTrayIconAdded(false);
             }
         }
     }
@@ -502,7 +511,7 @@ public abstract class Activity extends JFrame implements IWindow {
             return false;
         }
 
-        if (inTray.get()) {
+        if (isTrayIconAdded()) {
             return true;
         }
 
@@ -510,18 +519,137 @@ public abstract class Activity extends JFrame implements IWindow {
             return false;
         }
 
-        try {
-            tray.add(trayIcon);
-            inTray.set(true);
-            return true;
-        } catch (AWTException e) {
-            trayUsable.set(false);
-            inTray.set(false);
-            return false;
-        } catch (Exception e) {
-            if(callErrorHandler) onError("safelyAddTrayIcon", e);
-            return false;
+        Exception failure;
+        synchronized (SHARED_TRAY_LOCK) {
+            if (isTrayIconAdded()) {
+                return true;
+            }
+            try {
+                tray.add(trayIcon);
+                setTrayIconAdded(true);
+                return true;
+            } catch (AWTException e) {
+                trayUsable.set(false);
+                setTrayIconAdded(false);
+                return false;
+            } catch (Exception e) {
+                failure = e;
+            }
         }
+
+        if(callErrorHandler) onError("safelyAddTrayIcon", failure);
+        return false;
+    }
+
+    private boolean isTrayIconAdded() {
+        if (!sharedTrayMember) {
+            return inTray.get();
+        }
+        synchronized (SHARED_TRAY_LOCK) {
+            return sharedTrayIconAdded;
+        }
+    }
+
+    private void setTrayIconAdded(boolean added) {
+        if (!sharedTrayMember) {
+            inTray.set(added);
+            return;
+        }
+        synchronized (SHARED_TRAY_LOCK) {
+            sharedTrayIconAdded = added;
+        }
+    }
+
+    private void markAsRecentTrayMember() {
+        synchronized (SHARED_TRAY_LOCK) {
+            if (trayIcon == null || !SHARED_TRAY_MEMBERS.remove(this)) {
+                return;
+            }
+            SHARED_TRAY_MEMBERS.addLast(this);
+            refreshSharedTrayToolTip();
+        }
+    }
+
+    private static List<Activity> sharedTrayMembersSnapshot() {
+        synchronized (SHARED_TRAY_LOCK) {
+            return new ArrayList<>(SHARED_TRAY_MEMBERS);
+        }
+    }
+
+    private static Activity currentSharedTrayTarget() {
+        synchronized (SHARED_TRAY_LOCK) {
+            Iterator<Activity> iterator = SHARED_TRAY_MEMBERS.descendingIterator();
+            while (iterator.hasNext()) {
+                Activity candidate = iterator.next();
+                if (candidate.isDisplayable()) {
+                    return candidate;
+                }
+            }
+            return SHARED_TRAY_MEMBERS.peekLast();
+        }
+    }
+
+    private static void refreshSharedTrayToolTip() {
+        TrayIcon icon = sharedTrayIcon;
+        Activity target = SHARED_TRAY_MEMBERS.peekLast();
+        if (icon != null && target != null) {
+            icon.setToolTip(target.getTitle());
+        }
+    }
+
+    private static void dispatchTrayEvent(Supplier<Activity> targetSupplier, MouseEvent event, TrayEventType eventType, String action) {
+        Activity target = targetSupplier.get();
+        if (target == null) {
+            return;
+        }
+        target.windowExecutor.execute(() -> target.onSystemTrayClick(event, eventType, target), action);
+    }
+
+    private static TrayIcon createTrayIcon(Image image, String toolTip, Supplier<Activity> targetSupplier) {
+        TrayIcon icon = new TrayIcon(image, toolTip);
+        icon.setImageAutoSize(true);
+        icon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_CLICKED, "trayMouseClicked");
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_PRESSED, "trayMousePressed");
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_RELEASED, "trayMouseReleased");
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_ENTERED, "trayMouseEntered");
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_EXITED, "trayMouseExited");
+            }
+
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_WHEEL_MOVED, "trayMouseWheelMoved");
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_DRAGGED, "trayMouseDragged");
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                dispatchTrayEvent(targetSupplier, e, TrayEventType.MOUSE_MOVED, "trayMouseMoved");
+            }
+        });
+        return icon;
     }
 
     private Image createDefaultTrayIcon() {

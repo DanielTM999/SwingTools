@@ -1,6 +1,7 @@
 package dtm.stools.models;
 
 import dtm.stools.configs.SystemTrayConfiguration;
+import dtm.stools.context.enums.TrayIconScope;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,6 +12,7 @@ public class SystemTrayConfigurationConcrete implements SystemTrayConfiguration 
     private boolean removeOnRestore;
     private boolean alwaysVisible;
     private Image image;
+    private TrayIconScope trayIconScope = TrayIconScope.JVM;
 
     @Override
     public void enableSystemTray() {
@@ -40,6 +42,16 @@ public class SystemTrayConfigurationConcrete implements SystemTrayConfiguration 
     @Override
     public void setAlwaysVisible(boolean alwaysVisible) {
         this.alwaysVisible = alwaysVisible;
+    }
+
+    @Override
+    public TrayIconScope getTrayIconScope() {
+        return trayIconScope;
+    }
+
+    @Override
+    public void setTrayIconScope(TrayIconScope trayIconScope) {
+        this.trayIconScope = (trayIconScope != null) ? trayIconScope : TrayIconScope.JVM;
     }
 
     @Override
