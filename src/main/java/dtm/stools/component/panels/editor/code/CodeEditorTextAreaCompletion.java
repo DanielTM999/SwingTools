@@ -20,6 +20,7 @@ import dtm.stools.component.panels.editor.code.hover.HoverDocumentationContext;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationPopup;
 import dtm.stools.component.panels.editor.code.hover.HoverDocumentationProvider;
 import dtm.stools.component.panels.editor.code.hover.HoverInfo;
+import dtm.stools.component.panels.editor.code.listeners.DocumentEditListener;
 import dtm.stools.component.panels.editor.code.provider.*;
 import dtm.stools.component.panels.editor.code.signature.SignatureHelp;
 import dtm.stools.component.panels.editor.code.signature.SignatureHelpContext;
@@ -39,8 +40,25 @@ import java.util.function.IntPredicate;
 
 public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDocument {
 
+    protected volatile CompletableFuture<HoverInfo> currentHoverTask;
+    protected volatile CompletableFuture<SignatureHelp> currentSignatureHelpTask;
+    protected volatile CompletableFuture<AutoCompleteItem> currentCompletionResolveTask;
+    protected javax.swing.Timer completionResolveTimer;
+
     protected CodeEditorTextAreaCompletion(TextBuffer buffer) {
         super(buffer);
+        documentEditListeners.add(new DocumentEditListener() {
+            @Override
+            public void onTextChanged() {
+                CompletableFuture<List<AutoCompleteItem>> task = currentAutoCompleteTask;
+                if (task != null && !task.isDone()) task.cancel(false);
+                autoCompleteVersion.incrementAndGet();
+                CompletableFuture<HoverInfo> hover = currentHoverTask;
+                if (hover != null && !hover.isDone()) hover.cancel(false);
+                CompletableFuture<SignatureHelp> signature = currentSignatureHelpTask;
+                if (signature != null && !signature.isDone()) signature.cancel(false);
+            }
+        });
     }
 
     protected AutoCompletePopup createAutoCompletePopup() {
@@ -65,6 +83,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     protected void configureAutoCompletePopup(AutoCompletePopup popup) {
         if (popup != null) {
             popup.setAcceptHandler(this::applyAutoCompleteSelection);
+            popup.setSelectionHandler(this::scheduleCompletionResolution);
             popup.setLoadingSpinnerFactory(loadingSpinnerFactory);
         }
     }
@@ -170,7 +189,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
                                                           int insertOff,
                                                           CompletionContext.TriggerKind kind) {
         TextBuffer snapshot = new TextBuffer(buffer.getText());
-        return new CompletionContext(snapshot, caretOff, caretLine, caretCol, prefix, insertOff, kind);
+        return new CompletionContext(snapshot, caretOff, caretLine, caretCol, prefix, insertOff, kind, buffer.getVersion());
     }
 
     protected void requestAutoComplete(AutoCompleteProvider provider, CompletionContext ctx, Point popupPoint) {
@@ -179,37 +198,48 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         if (previous != null && !previous.isDone()) previous.cancel(true);
 
         ExecutorService executor = getAutoCompleteExecutor();
-        executor.submit(() -> {
-            CompletableFuture<List<AutoCompleteItem>> task;
-            try {
-                task = provider.getSuggestionsAsync(ctx, executor);
-            } catch (Exception ex) {
-                SwingUtilities.invokeLater(this::hideAutoCompletePopup);
+        CompletableFuture<List<AutoCompleteItem>> task = requestFromProvider(executor,
+                () -> provider.getSuggestionsAsync(ctx, executor));
+        currentAutoCompleteTask = task;
+        task.whenComplete((items, error) -> SwingUtilities.invokeLater(() -> {
+            if (request != autoCompleteVersion.get() || currentAutoCompleteTask != task) return;
+            if (ctx.documentVersion() >= 0 && buffer.getVersion() != ctx.documentVersion()) return;
+            if (caretOffset() != ctx.caretOffset()) return;
+            if (!isShowing()) {
+                hideAutoCompletePopup();
                 return;
             }
-            if (task == null) {
-                SwingUtilities.invokeLater(this::hideAutoCompletePopup);
+            if (error != null || task.isCancelled()) {
+                hideAutoCompletePopup();
                 return;
             }
-            currentAutoCompleteTask = task;
-            task.whenComplete((items, error) -> SwingUtilities.invokeLater(() -> {
-                if (request != autoCompleteVersion.get() || currentAutoCompleteTask != task) return;
-                if (!isShowing()) {
-                    hideAutoCompletePopup();
-                    return;
-                }
-                if (error != null || task.isCancelled()) {
-                    hideAutoCompletePopup();
-                    return;
-                }
-                if (items == null || items.isEmpty()) {
-                    hideAutoCompletePopup();
-                    return;
-                }
-                AutoCompletePopup p = getOrCreateAutoCompletePopup();
-                p.show(items, popupPoint.x, popupPoint.y, ctx.prefix(), ctx.prefixOffset());
+            if (items == null || items.isEmpty()) {
+                hideAutoCompletePopup();
+                return;
+            }
+            AutoCompletePopup p = getOrCreateAutoCompletePopup();
+            p.show(items, popupPoint.x, popupPoint.y, ctx.prefix(), ctx.prefixOffset());
+        }));
+    }
+
+    protected void scheduleCompletionResolution(AutoCompleteItem item) {
+        if (completionResolveTimer != null) completionResolveTimer.stop();
+        CompletableFuture<AutoCompleteItem> previous = currentCompletionResolveTask;
+        if (previous != null && !previous.isDone()) previous.cancel(false);
+        if (item == null || autoCompleteProvider == null) return;
+        AutoCompleteProvider provider = autoCompleteProvider;
+        completionResolveTimer = new javax.swing.Timer(150, event -> {
+            if (autoCompletePopup == null || !autoCompletePopup.isVisible() || autoCompletePopup.getSelectedItem() != item) return;
+            CompletableFuture<AutoCompleteItem> task = provider.resolveItemAsync(item);
+            if (task == null) return;
+            currentCompletionResolveTask = task;
+            task.whenComplete((resolved, error) -> SwingUtilities.invokeLater(() -> {
+                if (task.isCancelled() || error != null || resolved == null || autoCompletePopup == null) return;
+                autoCompletePopup.replaceSelectedItem(item, resolved);
             }));
         });
+        completionResolveTimer.setRepeats(false);
+        completionResolveTimer.start();
     }
 
     protected Point caretScreenPoint() {
@@ -635,6 +665,9 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     }
 
     protected void hideAutoCompletePopup() {
+        if (completionResolveTimer != null) completionResolveTimer.stop();
+        CompletableFuture<AutoCompleteItem> resolveTask = currentCompletionResolveTask;
+        if (resolveTask != null && !resolveTask.isDone()) resolveTask.cancel(false);
         autoCompleteVersion.incrementAndGet();
         CompletableFuture<List<AutoCompleteItem>> task = currentAutoCompleteTask;
         if (task != null && !task.isDone()) task.cancel(true);
@@ -713,23 +746,22 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     protected void showHoverDocumentation(int line, int col) {
         if (hoverDocumentationProvider == null) return;
         int version = hoverDocumentationVersion.incrementAndGet();
+        CompletableFuture<HoverInfo> previous = currentHoverTask;
+        if (previous != null && !previous.isDone()) previous.cancel(false);
         String textSnapshot = buffer.getText();
+        int documentVersion = buffer.getVersion();
         TextBuffer bufferSnapshot = new TextBuffer(textSnapshot);
         int safeLine = Math.max(0, Math.min(line, bufferSnapshot.lineCount() - 1));
         int offset = bufferSnapshot.offsetOfLine(safeLine) + Math.min(col, bufferSnapshot.lineAt(safeLine).length());
         HoverDocumentationContext ctx = new HoverDocumentationContext(bufferSnapshot, safeLine, col, offset);
         HoverDocumentationProvider provider = hoverDocumentationProvider;
-        getProviderExecutor().submit(() -> {
-            HoverInfo info;
-            try {
-                info = provider.provideHover(ctx);
-            } catch (Exception ignored) {
-                info = null;
-            }
-            final HoverInfo hoverInfo = info;
-            SwingUtilities.invokeLater(() -> showHoverDocumentationResult(
-                    version, textSnapshot, safeLine, col, hoverInfo));
-        });
+        ExecutorService executor = getProviderExecutor();
+        CompletableFuture<HoverInfo> task = requestFromProvider(executor, () -> provider.provideHoverAsync(ctx, executor));
+        currentHoverTask = task;
+        task.whenComplete((info, error) -> SwingUtilities.invokeLater(() -> {
+            if (task.isCancelled() || buffer.getVersion() != documentVersion) return;
+            showHoverDocumentationResult(version, textSnapshot, safeLine, col, error == null ? info : null);
+        }));
     }
 
     protected void showHoverDocumentationResult(int version, String textSnapshot, int line, int col, HoverInfo info) {
@@ -756,6 +788,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
 
     public void hideHoverDocumentation() {
         cancelHoverDocumentationHide();
+        CompletableFuture<HoverInfo> task = currentHoverTask;
+        if (task != null && !task.isDone()) task.cancel(false);
         hoverDocumentationTransitionBounds = null;
         if (hoverDocumentationPopup != null) hoverDocumentationPopup.hide();
     }
@@ -763,6 +797,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     protected void suppressHoverWhileEditing() {
         if (hoverTimer != null) hoverTimer.stop();
         hoverDocumentationVersion.incrementAndGet();
+        CompletableFuture<HoverInfo> task = currentHoverTask;
+        if (task != null && !task.isDone()) task.cancel(false);
         hoverLine = -1;
         hoverCol = -1;
         hideHoverDocumentation();
@@ -875,6 +911,9 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         if (provider == null) return;
 
         int version = signatureHelpVersion.incrementAndGet();
+        CompletableFuture<SignatureHelp> previous = currentSignatureHelpTask;
+        if (previous != null && !previous.isDone()) previous.cancel(false);
+        int documentVersion = buffer.getVersion();
         int caretOff = caretOffset();
         int line = caretLine;
         int col = caretCol;
@@ -885,27 +924,18 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
                 snapshot, caretOff, line, col, kind, triggerChar, retrigger, active);
 
         ExecutorService executor = getProviderExecutor();
-        executor.submit(() -> {
-            CompletableFuture<SignatureHelp> task;
-            try {
-                task = provider.provideSignatureHelpAsync(ctx, executor);
-            } catch (Exception ex) {
-                SwingUtilities.invokeLater(this::hideSignatureHelp);
+        CompletableFuture<SignatureHelp> task = requestFromProvider(executor,
+                () -> provider.provideSignatureHelpAsync(ctx, executor));
+        currentSignatureHelpTask = task;
+        task.whenComplete((help, error) -> SwingUtilities.invokeLater(() -> {
+            if (version != signatureHelpVersion.get() || task.isCancelled()) return;
+            if (buffer.getVersion() != documentVersion) return;
+            if (error != null) {
+                hideSignatureHelp();
                 return;
             }
-            if (task == null) {
-                SwingUtilities.invokeLater(this::hideSignatureHelp);
-                return;
-            }
-            task.whenComplete((help, error) -> SwingUtilities.invokeLater(() -> {
-                if (version != signatureHelpVersion.get()) return;
-                if (error != null) {
-                    hideSignatureHelp();
-                    return;
-                }
-                showSignatureHelpResult(version, help);
-            }));
-        });
+            showSignatureHelpResult(version, help);
+        }));
     }
 
     protected void showSignatureHelpResult(int version, SignatureHelp help) {
@@ -932,6 +962,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
 
     public void hideSignatureHelp() {
         signatureHelpVersion.incrementAndGet();
+        CompletableFuture<SignatureHelp> task = currentSignatureHelpTask;
+        if (task != null && !task.isDone()) task.cancel(false);
         if (signatureHelpPopup != null) signatureHelpPopup.hide();
     }
 

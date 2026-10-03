@@ -29,6 +29,7 @@ import dtm.stools.component.panels.editor.code.prototype.Breakpoint;
 import dtm.stools.component.panels.editor.code.prototype.LineColorInfo;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
 import dtm.stools.component.panels.editor.code.prototype.folding.FoldRegion;
+import dtm.stools.component.panels.editor.code.prototype.folding.FoldRange;
 import dtm.stools.component.panels.editor.code.prototype.folding.FoldRule;
 import dtm.stools.component.panels.editor.code.prototype.styles.BreakpointStyle;
 import dtm.stools.component.panels.editor.code.prototype.styles.StyledRange;
@@ -81,6 +82,11 @@ public class CodeEditor extends BlockingPanel {
     private CodeEditorInspectionWidget inspectionWidget;
 
     private JLayeredPane editorOverlay;
+    private final JPanel navigationHeader = new JPanel();
+    private final JLabel breadcrumbLabel = new JLabel();
+    private final JLabel stickyScrollLabel = new JLabel();
+    private boolean breadcrumbsEnabled = Boolean.parseBoolean(System.getProperty("orion.editor.breadcrumbs.enabled", "true"));
+    private boolean stickyScrollEnabled = Boolean.parseBoolean(System.getProperty("orion.editor.stickyScroll.enabled", "true"));
 
     @Getter
     private boolean searchEnabled = true;
@@ -122,6 +128,15 @@ public class CodeEditor extends BlockingPanel {
         this.scrollPane = scrollPane != null ? scrollPane : new CodeEditorScrollPane(textArea);
         this.userProperties = new ConcurrentHashMap<>();
         setLayout(new BorderLayout());
+        navigationHeader.setLayout(new BoxLayout(navigationHeader, BoxLayout.Y_AXIS));
+        breadcrumbLabel.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
+        stickyScrollLabel.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
+        navigationHeader.add(breadcrumbLabel);
+        navigationHeader.add(stickyScrollLabel);
+        breadcrumbLabel.setVisible(false);
+        stickyScrollLabel.setVisible(false);
+        navigationHeader.setVisible(false);
+        add(navigationHeader, BorderLayout.NORTH);
         this.errorStripe = new CodeEditorErrorStripe(textArea, this.scrollPane);
         this.inspectionWidget = new CodeEditorInspectionWidget(textArea);
         add(buildEditorOverlay(), BorderLayout.CENTER);
@@ -815,6 +830,48 @@ public class CodeEditor extends BlockingPanel {
 
     public void setFoldRules(Collection<? extends FoldRule> rules) {
         textArea.setFoldRules(rules);
+    }
+
+    public void setFoldRanges(Collection<FoldRange> ranges) {
+        textArea.setFoldRanges(ranges);
+    }
+
+    public int getFirstVisibleLine() {
+        return textArea.getFirstVisibleLine();
+    }
+
+    public void setBreadcrumbsEnabled(boolean enabled) {
+        breadcrumbsEnabled = enabled;
+        updateNavigationHeader();
+    }
+
+    public void setStickyScrollEnabled(boolean enabled) {
+        stickyScrollEnabled = enabled;
+        updateNavigationHeader();
+    }
+
+    public void setBreadcrumbText(String value) {
+        String text = value == null ? "" : value;
+        if (text.equals(breadcrumbLabel.getText())) return;
+        breadcrumbLabel.setText(text);
+        updateNavigationHeader();
+    }
+
+    public void setStickyScrollText(String value) {
+        String text = value == null ? "" : value;
+        if (text.equals(stickyScrollLabel.getText())) return;
+        stickyScrollLabel.setText(text);
+        updateNavigationHeader();
+    }
+
+    private void updateNavigationHeader() {
+        breadcrumbLabel.setVisible(breadcrumbsEnabled && !breadcrumbLabel.getText().isBlank());
+        stickyScrollLabel.setVisible(stickyScrollEnabled && !stickyScrollLabel.getText().isBlank());
+        navigationHeader.setVisible(navigationHeader.getComponentCount() > 2
+                || breadcrumbLabel.isVisible() || stickyScrollLabel.isVisible());
+        navigationHeader.revalidate();
+        revalidate();
+        repaint();
     }
 
     public void clearFoldRules() {
@@ -1907,10 +1964,16 @@ public class CodeEditor extends BlockingPanel {
         if (currentMountedConstraint != null && !currentMountedConstraint.equals(constraint)) {
             unmountSearchPanel();
         }
-        if (panel.getParent() != this) {
+        Container target = BorderLayout.NORTH.equals(constraint) ? navigationHeader : this;
+        if (panel.getParent() != target) {
             Container p = panel.getParent();
             if (p != null) p.remove(panel);
-            add(panel, constraint);
+            if (target == navigationHeader) {
+                navigationHeader.add(panel, 0);
+                navigationHeader.setVisible(true);
+            } else {
+                add(panel, constraint);
+            }
             currentMountedConstraint = constraint;
         }
         if (searchPopup != null) searchPopup.setVisible(false);
@@ -1950,6 +2013,7 @@ public class CodeEditor extends BlockingPanel {
             Container p = panel.getParent();
             if (p != null) p.remove(panel);
         }
+        updateNavigationHeader();
         if (searchPopup != null) searchPopup.setVisible(false);
         currentMountedConstraint = null;
         revalidate();

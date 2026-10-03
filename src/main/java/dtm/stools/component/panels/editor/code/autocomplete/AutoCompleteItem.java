@@ -5,16 +5,7 @@ import dtm.stools.component.panels.editor.code.api.TextEdit;
 import javax.swing.Icon;
 import java.util.List;
 
-public record AutoCompleteItem(
-        String insertText,
-        String label,
-        String detail,
-        String description,
-        Icon icon,
-        Kind kind,
-        List<TextEdit> additionalTextEdits,
-        boolean unused
-) {
+public record AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon, Kind kind, List<TextEdit> additionalTextEdits, boolean unused, Object data) {
 
     public static final String CARET_MARKER = "${0}";
 
@@ -51,8 +42,11 @@ public record AutoCompleteItem(
         additionalTextEdits = additionalTextEdits == null ? List.of() : List.copyOf(additionalTextEdits);
     }
 
-    public AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon,
-                            Kind kind, List<TextEdit> additionalTextEdits) {
+    public AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon, Kind kind, List<TextEdit> additionalTextEdits, boolean unused) {
+        this(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, null);
+    }
+
+    public AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon, Kind kind, List<TextEdit> additionalTextEdits) {
         this(insertText, label, detail, description, icon, kind, additionalTextEdits, false);
     }
 
@@ -78,7 +72,11 @@ public record AutoCompleteItem(
 
     public AutoCompleteItem withUnused(boolean unused) {
         if (this.unused == unused) return this;
-        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused);
+        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data);
+    }
+
+    public AutoCompleteItem withData(Object data) {
+        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data);
     }
 
     public boolean isSnippet() {

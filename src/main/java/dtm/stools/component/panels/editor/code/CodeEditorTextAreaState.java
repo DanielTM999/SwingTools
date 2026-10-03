@@ -76,11 +76,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 public abstract class CodeEditorTextAreaState extends JComponent {
@@ -935,6 +937,40 @@ public abstract class CodeEditorTextAreaState extends JComponent {
         if (future != null && !future.isDone()) {
             future.cancel(true);
         }
+    }
+
+    protected <T> CompletableFuture<T> requestFromProvider(ExecutorService executor,
+                                                           Supplier<CompletableFuture<T>> request) {
+        CompletableFuture<T> result = new CompletableFuture<>();
+        try {
+            executor.execute(() -> {
+                if (result.isDone()) return;
+                CompletableFuture<T> source;
+                try {
+                    source = request.get();
+                } catch (Exception error) {
+                    result.completeExceptionally(error);
+                    return;
+                }
+                if (source == null) {
+                    result.complete(null);
+                    return;
+                }
+                result.whenComplete((value, error) -> {
+                    if (result.isCancelled() && !source.isDone()) source.cancel(false);
+                });
+                source.whenComplete((value, error) -> {
+                    if (error != null) {
+                        result.completeExceptionally(error);
+                    } else {
+                        result.complete(value);
+                    }
+                });
+            });
+        } catch (RejectedExecutionException error) {
+            result.completeExceptionally(error);
+        }
+        return result;
     }
 
     protected synchronized ExecutorService getHighlightExecutor() {

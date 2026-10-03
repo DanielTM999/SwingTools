@@ -28,6 +28,7 @@ import java.awt.event.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandlers {
@@ -1211,26 +1212,29 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
     protected void computeSelectionChainAsync(int offset) {
         SelectionRangeProvider provider = selectionRangeProvider;
         String textSnapshot = buffer.getText();
-        getProviderExecutor().submit(() -> {
-            List<Range> chain;
-            try {
-                chain = provider.getSelectionRanges(textSnapshot, offset);
-            } catch (Exception ignored) {
-                chain = null;
-            }
-            final List<Range> snapshot = chain != null && !chain.isEmpty()
-                    ? List.copyOf(chain)
-                    : null;
-            SwingUtilities.invokeLater(() -> {
-                if (!buffer.getText().equals(textSnapshot)) return;
-                selectionChainCache = snapshot != null ? snapshot : defaultSelectionChain(offset);
-                selectionChainIndex = -1;
-                if (!selectionChainCache.isEmpty()) {
-                    selectionChainIndex++;
-                    applySelectionFromChain();
+        int documentVersion = buffer.getVersion();
+        int selectionStart = getSelectionStartOffset();
+        int selectionEnd = getSelectionEndOffset();
+        ExecutorService executor = getProviderExecutor();
+        CompletableFuture<List<Range>> task = requestFromProvider(executor,
+                () -> provider.getSelectionRangesAsync(textSnapshot, offset, executor));
+        task.whenComplete((chain, error) -> SwingUtilities.invokeLater(() -> {
+            if (task.isCancelled() || buffer.getVersion() != documentVersion) return;
+            selectionChainCache = error == null && chain != null && !chain.isEmpty()
+                    ? List.copyOf(chain) : defaultSelectionChain(offset);
+            selectionChainIndex = -1;
+            for (int i = 0; i < selectionChainCache.size(); i++) {
+                Range range = selectionChainCache.get(i);
+                int start = buffer.offsetOfLine(range.start().line()) + range.start().col();
+                int end = buffer.offsetOfLine(range.end().line()) + range.end().col();
+                if (start <= selectionStart && end >= selectionEnd
+                        && (start < selectionStart || end > selectionEnd)) {
+                    selectionChainIndex = i;
+                    break;
                 }
-            });
-        });
+            }
+            if (selectionChainIndex >= 0) applySelectionFromChain();
+        }));
     }
 
     protected List<Range> defaultSelectionChain(int offset) {

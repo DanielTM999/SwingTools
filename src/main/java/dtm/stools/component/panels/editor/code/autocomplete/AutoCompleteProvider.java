@@ -15,6 +15,10 @@ public interface AutoCompleteProvider extends CodeEditorProvider {
         return CompletableFuture.supplyAsync(() -> getSuggestions(context), executor);
     }
 
+    default CompletableFuture<AutoCompleteItem> resolveItemAsync(AutoCompleteItem item) {
+        return CompletableFuture.completedFuture(item);
+    }
+
     default boolean shouldAutoTrigger(CompletionContext context) {
         return false;
     }

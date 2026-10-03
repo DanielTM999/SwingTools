@@ -28,6 +28,7 @@ import dtm.stools.component.panels.editor.code.listeners.SearchRequestListener;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
 import dtm.stools.component.panels.editor.code.prototype.Token;
 import dtm.stools.component.panels.editor.code.prototype.folding.FoldRegion;
+import dtm.stools.component.panels.editor.code.prototype.folding.FoldRange;
 import dtm.stools.component.panels.editor.code.prototype.folding.FoldRule;
 import dtm.stools.component.panels.editor.code.prototype.styles.StyledRange;
 import dtm.stools.component.panels.editor.code.search.SearchMatch;
@@ -41,9 +42,16 @@ import java.awt.event.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompletion {
+
+    public int getFirstVisibleLine() {
+        return bufferLineAtY(getVisibleRect().y);
+    }
+
+    private List<FoldRange> explicitFoldRanges;
 
     protected CodeEditorTextAreaAnalysis(TextBuffer buffer) {
         super(buffer);
@@ -316,8 +324,16 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         refreshFoldRegionsAfterRuleChange();
     }
 
+    public void setFoldRanges(Collection<FoldRange> ranges) {
+        List<FoldRange> next = ranges == null ? null : List.copyOf(ranges);
+        if (Objects.equals(next, explicitFoldRanges)) return;
+        explicitFoldRanges = next;
+        refreshFoldRegionsAfterRuleChange();
+    }
+
     public void clearFoldRules() {
         foldRules.clear();
+        explicitFoldRanges = null;
         foldRegions = new ArrayList<>();
         invalidateGeometry();
         revalidate();
@@ -452,21 +468,31 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     protected void recomputeFoldRegions(boolean preserveFoldedByLine) {
-        if (!foldingEnabled || foldRules.isEmpty()) {
+        if (!foldingEnabled || (explicitFoldRanges == null && foldRules.isEmpty())) {
             foldRegions = new ArrayList<>();
             return;
         }
         List<FoldRegion> newRegions = new ArrayList<>();
         int lineCount = buffer.lineCount();
-        for (FoldRule rule : foldRules) {
-            computeRegionsForRule(rule, lineCount, newRegions);
+        if (explicitFoldRanges != null) {
+            for (FoldRange range : explicitFoldRanges) {
+                if (range != null && range.startLine() >= 0 && range.startLine() < lineCount
+                        && range.endLine() > range.startLine() && range.endLine() < lineCount) {
+                    newRegions.add(new FoldRegion(range.startLine(), range.endLine(), range.collapsedByDefault()));
+                }
+            }
+        } else {
+            for (FoldRule rule : foldRules) {
+                computeRegionsForRule(rule, lineCount, newRegions);
+            }
         }
         if (preserveFoldedByLine) {
             for (int i = 0; i < newRegions.size(); i++) {
                 FoldRegion nr = newRegions.get(i);
                 for (FoldRegion old : foldRegions) {
-                    if (old.startLine() == nr.startLine() && old.endLine() == nr.endLine() && old.folded()) {
-                        newRegions.set(i, nr.withFolded(true));
+                    if (old.startLine() == nr.startLine()
+                            && (explicitFoldRanges != null || old.endLine() == nr.endLine())) {
+                        newRegions.set(i, nr.withFolded(old.folded()));
                         break;
                     }
                 }
@@ -477,6 +503,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
 
     protected void scheduleFoldRefresh() {
         if (!foldingEnabled) return;
+        if (explicitFoldRanges != null) return;
         foldingDebounceTimer = restartDebounce(foldingDebounceTimer, foldingDebounceMs, () -> {
             recomputeFoldRegions(!suppressFoldRestore);
             invalidateGeometry();
@@ -1200,6 +1227,9 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     protected void scheduleInlayHintsRefresh() {
+        if (currentInlayHintTask != null && !currentInlayHintTask.isDone()) {
+            currentInlayHintTask.cancel(false);
+        }
         inlayHintsDebounceTimer = restartDebounce(inlayHintsDebounceTimer, inlayHintsDebounceMs,
                 this::refreshInlayHints);
     }
@@ -1220,28 +1250,26 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
 
         final InlayHintProvider provider = inlayHintProvider;
         final String textSnapshot = buffer.getText();
+        final int documentVersion = buffer.getVersion();
         final TextBuffer bufferSnapshot = new TextBuffer(textSnapshot);
         final InlayHintContext ctx = new InlayHintContext(
                 bufferSnapshot,
                 0,
                 Math.max(0, bufferSnapshot.lineCount() - 1));
 
-        currentInlayHintTask = getProviderExecutor().submit(() -> {
-            try {
-                List<InlayHint> list = provider.getInlayHints(ctx);
-                final List<InlayHint> snapshot = list != null ? List.copyOf(list) : List.of();
-                SwingUtilities.invokeLater(() -> {
-                    if (version != inlayHintVersion.get()) return;
-                    if (!buffer.getText().equals(textSnapshot)) return;
-                    inlayHints.clear();
-                    inlayHints.addAll(snapshot);
-                    invalidateGeometry();
-                    revalidate();
-                    repaint();
-                });
-            } catch (Exception ignored) {
-            }
-        });
+        ExecutorService executor = getProviderExecutor();
+        CompletableFuture<List<InlayHint>> task = requestFromProvider(executor,
+                () -> provider.getInlayHintsAsync(ctx, executor));
+        currentInlayHintTask = task;
+        task.whenComplete((list, error) -> SwingUtilities.invokeLater(() -> {
+            if (version != inlayHintVersion.get() || task.isCancelled() || error != null) return;
+            if (buffer.getVersion() != documentVersion || !buffer.getText().equals(textSnapshot)) return;
+            inlayHints.clear();
+            if (list != null) inlayHints.addAll(list);
+            invalidateGeometry();
+            revalidate();
+            repaint();
+        }));
     }
 
 

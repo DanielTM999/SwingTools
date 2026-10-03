@@ -46,7 +46,10 @@ public class AutoCompletePopup {
     protected Color loadingSpinnerColor;
     protected LoadingIndicator loadingSpinner;
     protected Runnable acceptHandler;
+    protected java.util.function.Consumer<AutoCompleteItem> selectionHandler;
     protected boolean loading;
+    protected boolean updatingSelection;
+    protected List<AutoCompleteItem> lastItems = List.of();
 
     @Getter
     protected int triggerOffset;
@@ -127,7 +130,12 @@ public class AutoCompletePopup {
         popup.add(detailScroll, BorderLayout.SOUTH);
         popup.setFocusable(false);
 
-        list.addListSelectionListener(e -> updateDetail());
+        list.addListSelectionListener(e -> {
+            updateDetail();
+            if (!e.getValueIsAdjusting() && selectionHandler != null && !loading && !updatingSelection) {
+                selectionHandler.accept(list.getSelectedValue());
+            }
+        });
         list.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -189,6 +197,7 @@ public class AutoCompletePopup {
             return;
         }
         loading = false;
+        lastItems = List.copyOf(items);
         loadingSpinner.stop();
         ((CardLayout) centerPanel.getLayout()).show(centerPanel, COMPLETIONS_CARD);
         model.clear();
@@ -208,6 +217,21 @@ public class AutoCompletePopup {
         if (!canShowOnOwner()) {
             hide();
             return;
+        }
+        if (popup.isVisible() && !loading && triggerOffset == insertOffset && !lastItems.isEmpty()) {
+            String filter = prefix == null ? "" : prefix.toLowerCase(java.util.Locale.ROOT);
+            List<AutoCompleteItem> local = lastItems.stream()
+                    .filter(item -> item.label() != null
+                            && item.label().toLowerCase(java.util.Locale.ROOT).startsWith(filter))
+                    .toList();
+            if (!local.isEmpty()) {
+                model.clear();
+                local.forEach(model::addElement);
+                list.setSelectedIndex(0);
+                triggerPrefix = prefix == null ? "" : prefix;
+                updateDetail();
+                return;
+            }
         }
         model.clear();
         loading = true;
@@ -287,6 +311,19 @@ public class AutoCompletePopup {
         return list.getSelectedValue();
     }
 
+    public void replaceSelectedItem(AutoCompleteItem expected, AutoCompleteItem replacement) {
+        int index = list.getSelectedIndex();
+        if (index < 0 || list.getSelectedValue() != expected || replacement == null) return;
+        updatingSelection = true;
+        try {
+            model.set(index, replacement);
+            list.setSelectedIndex(index);
+        } finally {
+            updatingSelection = false;
+        }
+        updateDetail();
+    }
+
     public boolean isLoading() {
         return loading;
     }
@@ -321,6 +358,10 @@ public class AutoCompletePopup {
 
     public void setAcceptHandler(Runnable acceptHandler) {
         this.acceptHandler = acceptHandler;
+    }
+
+    public void setSelectionHandler(java.util.function.Consumer<AutoCompleteItem> selectionHandler) {
+        this.selectionHandler = selectionHandler;
     }
 
     protected Dimension resolveListSize(int itemCount) {
