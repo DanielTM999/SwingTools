@@ -878,6 +878,11 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
         @Override
         public void mousePressed(MouseEvent e) {
             updateLastMousePosition(e);
+            hoverSelectionInProgress = SwingUtilities.isLeftMouseButton(e) && !isPopupButton(e);
+            if (hoverSelectionInProgress && suppressHoverDocumentationWhileSelecting) {
+                if (hoverTimer != null) hoverTimer.stop();
+                hoverDocumentationVersion.incrementAndGet();
+            }
             requestFocusInWindow();
             hideAutoCompletePopup();
             hideSignatureHelp();
@@ -935,6 +940,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
 
         @Override
         public void mouseReleased(MouseEvent e) {
+            hoverSelectionInProgress = false;
             updateLastMousePosition(e);
             handlePopupTrigger(e);
         }

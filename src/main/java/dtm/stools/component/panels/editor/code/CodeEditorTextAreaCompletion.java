@@ -682,6 +682,13 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         if (!isAutoCompleteVisible() || autoCompleteProvider == null) return;
         int caretOff = caretOffset();
         int insertOff = autoCompletePopup.getTriggerOffset();
+        if (caretOff > insertOff && buffer.charAt(caretOff - 1) == '.') {
+            hideAutoCompletePopup();
+            if (shouldAttemptTypingTrigger('.')) {
+                triggerAutoComplete(CompletionContext.TriggerKind.TYPING);
+            }
+            return;
+        }
         if (caretOff < insertOff) {
             autoCompletePopup.hide();
             return;
@@ -743,8 +750,25 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         }
     }
 
+    public boolean isSuppressHoverDocumentationWhileSelecting() {
+        return suppressHoverDocumentationWhileSelecting;
+    }
+
+    public void setSuppressHoverDocumentationWhileSelecting(boolean suppress) {
+        suppressHoverDocumentationWhileSelecting = suppress;
+        if (suppress && isHoverDocumentationSuppressedBySelection()) {
+            hoverDocumentationVersion.incrementAndGet();
+            hideHoverDocumentation();
+        }
+    }
+
+    protected boolean isHoverDocumentationSuppressedBySelection() {
+        return suppressHoverDocumentationWhileSelecting
+                && (hoverSelectionInProgress || hasSelection() || hasExtraSelections());
+    }
+
     protected void showHoverDocumentation(int line, int col) {
-        if (hoverDocumentationProvider == null) return;
+        if (hoverDocumentationProvider == null || isHoverDocumentationSuppressedBySelection()) return;
         int version = hoverDocumentationVersion.incrementAndGet();
         CompletableFuture<HoverInfo> previous = currentHoverTask;
         if (previous != null && !previous.isDone()) previous.cancel(false);
@@ -766,6 +790,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
 
     protected void showHoverDocumentationResult(int version, String textSnapshot, int line, int col, HoverInfo info) {
         if (version != hoverDocumentationVersion.get()) return;
+        if (isHoverDocumentationSuppressedBySelection()) return;
         if (!buffer.getText().equals(textSnapshot)) return;
         if (info == null) {
             hideHoverDocumentation();

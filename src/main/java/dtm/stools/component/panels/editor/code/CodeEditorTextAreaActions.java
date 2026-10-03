@@ -460,6 +460,10 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
                 || previousState.selectionStartOffset() != state.selectionStartOffset()
                 || previousState.selectionEndOffset() != state.selectionEndOffset()) {
             scheduleSelectedTextOccurrencesRefresh();
+            if (state.selectionActive() && suppressHoverDocumentationWhileSelecting) {
+                hoverDocumentationVersion.incrementAndGet();
+                hideHoverDocumentation();
+            }
         }
         for (CodeEditorStateListener listener : stateListeners) {
             listener.onStateChanged(state);

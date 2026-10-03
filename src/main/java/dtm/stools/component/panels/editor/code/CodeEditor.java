@@ -1343,6 +1343,14 @@ public class CodeEditor extends BlockingPanel {
         textArea.setHoverDocumentationTextSelectionEnabled(enabled);
     }
 
+    public boolean isSuppressHoverDocumentationWhileSelecting() {
+        return textArea.isSuppressHoverDocumentationWhileSelecting();
+    }
+
+    public void setSuppressHoverDocumentationWhileSelecting(boolean suppress) {
+        textArea.setSuppressHoverDocumentationWhileSelecting(suppress);
+    }
+
     public void hideHoverDocumentation() {
         textArea.hideHoverDocumentation();
     }

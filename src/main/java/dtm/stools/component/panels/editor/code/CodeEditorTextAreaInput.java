@@ -214,7 +214,7 @@ public abstract class CodeEditorTextAreaInput extends CodeEditorTextAreaAnalysis
             l.onHover(hoverLine, hoverCol, offset);
         }
 
-        if (hoverDocumentationProvider != null) {
+        if (hoverDocumentationProvider != null && !isHoverDocumentationSuppressedBySelection()) {
             showHoverDocumentation(hoverLine, hoverCol);
         }
     }

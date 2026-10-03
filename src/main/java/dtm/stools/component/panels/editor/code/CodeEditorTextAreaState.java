@@ -612,6 +612,8 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     @Getter
     protected HoverDocumentationPopup hoverDocumentationPopup;
     protected boolean hoverDocumentationTextSelectionEnabled = true;
+    protected boolean suppressHoverDocumentationWhileSelecting = true;
+    protected boolean hoverSelectionInProgress;
     protected Rectangle hoverDocumentationTransitionBounds;
 
     @Getter
