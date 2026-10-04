@@ -225,21 +225,7 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
     }
 
     protected void scrollToCaret() {
-        FontMetrics fm = fontMetricsFor(getFont());
-        int lineHeight = fm.getHeight();
-
-        String lineText = buffer.lineAt(caretLine);
-
-        int cx = baseVisualXForColumn(
-                caretLine,
-                lineText,
-                caretCol,
-                fm
-        );
-
-        int cy = yOfBufferLine(caretLine);
-        int extra = hasCodeLens(caretLine) ? lineHeight : 0;
-        Rectangle caretBounds = new Rectangle(cx, cy - extra, CARET_WIDTH, lineHeight + extra);
+        Rectangle caretBounds = caretBoundsForScroll();
 
         JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
         if (viewport == null) {
@@ -256,6 +242,47 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         if (!targetPosition.equals(currentPosition)) {
             viewport.setViewPosition(targetPosition);
         }
+    }
+
+    protected void scrollSearchMatchToCenter(int startLine, int endLine) {
+        JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
+        if (viewport == null || viewport.getExtentSize().height <= 0) {
+            scrollToCaret();
+            return;
+        }
+
+        Dimension extent = viewport.getExtentSize();
+        Point current = viewport.getViewPosition();
+        Point target = calculateCaretScrollPosition(current, extent, caretBoundsForScroll());
+        int lineHeight = fontMetricsFor(getFont()).getHeight();
+        int matchTop = yOfBufferLine(startLine);
+        int matchBottom = yOfBufferLine(endLine) + lineHeight;
+        int matchCenter = matchBottom - matchTop > extent.height
+                ? matchTop + lineHeight / 2
+                : matchTop + (matchBottom - matchTop) / 2;
+        int maxY = Math.max(0, getHeight() - extent.height);
+        target.y = Math.max(0, Math.min(matchCenter - extent.height / 2, maxY));
+        if (!target.equals(current)) {
+            viewport.setViewPosition(target);
+        }
+    }
+
+    private Rectangle caretBoundsForScroll() {
+        FontMetrics fm = fontMetricsFor(getFont());
+        int lineHeight = fm.getHeight();
+
+        String lineText = buffer.lineAt(caretLine);
+
+        int cx = baseVisualXForColumn(
+                caretLine,
+                lineText,
+                caretCol,
+                fm
+        );
+
+        int cy = yOfBufferLine(caretLine);
+        int extra = hasCodeLens(caretLine) ? lineHeight : 0;
+        return new Rectangle(cx, cy - extra, CARET_WIDTH, lineHeight + extra);
     }
 
     private ViewAnchor activeViewAnchor;

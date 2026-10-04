@@ -1347,7 +1347,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         caretLine = endLine;
         caretCol = m.endOffset() - buffer.offsetOfLine(endLine);
         updateSearchPanelCount();
-        scrollToCaret();
+        scrollSearchMatchToCenter(startLine, endLine);
         resetCaretBlink();
         repaint();
     }

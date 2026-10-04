@@ -1,12 +1,15 @@
 package dtm.stools.component.panels.editor.code;
 
 import dtm.stools.component.panels.editor.code.search.SearchPanel;
+import dtm.stools.component.panels.editor.code.search.SearchOptions;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.Action;
 import javax.swing.JComponent;
 import javax.swing.KeyStroke;
+import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
@@ -91,6 +94,49 @@ class CodeEditorSearchPanelTest {
             area.removeNotify();
             return null;
         });
+    }
+
+    @Test
+    void searchArrowsCenterMatchesAndClampAtDocumentEdges() throws Exception {
+        onEdt(() -> {
+            StringBuilder text = new StringBuilder();
+            for (int line = 0; line < 50; line++) {
+                if (line > 0) text.append('\n');
+                text.append(line == 2 || line == 20 || line == 47 ? "needle" : "other");
+            }
+            CodeEditorTextArea area = new CodeEditorTextArea(text.toString());
+            area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            JViewport viewport = new JViewport();
+            viewport.setView(area);
+            viewport.setSize(320, 120);
+            Dimension preferred = area.getPreferredSize();
+            area.setSize(Math.max(preferred.width, 320), preferred.height);
+            area.searchUpdateQuery("needle", new SearchOptions());
+
+            area.searchFindNext();
+            assertMatchCentered(area, viewport, 20);
+
+            area.searchFindNext();
+            assertMatchCentered(area, viewport, 47);
+
+            area.searchFindNext();
+            assertMatchCentered(area, viewport, 2);
+
+            area.searchFindPrev();
+            assertMatchCentered(area, viewport, 47);
+
+            area.searchFindPrev();
+            assertMatchCentered(area, viewport, 20);
+            area.removeNotify();
+            return null;
+        });
+    }
+
+    private static void assertMatchCentered(CodeEditorTextArea area, JViewport viewport, int line) {
+        int lineHeight = area.getFontMetrics(area.getFont()).getHeight();
+        int centeredY = area.yOfBufferLine(line) + lineHeight / 2 - viewport.getExtentSize().height / 2;
+        int maxY = Math.max(0, area.getHeight() - viewport.getExtentSize().height);
+        assertEquals(Math.max(0, Math.min(centeredY, maxY)), viewport.getViewPosition().y);
     }
 
     private static void invokeShortcut(CodeEditorTextArea area, int keyCode) {
