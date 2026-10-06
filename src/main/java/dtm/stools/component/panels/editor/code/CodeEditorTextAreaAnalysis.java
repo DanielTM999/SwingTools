@@ -463,6 +463,8 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         return null;
     }
 
+    private final java.util.Set<String> initializedFoldKinds = new java.util.HashSet<>();
+
     protected void recomputeFoldRegions() {
         recomputeFoldRegions(true);
     }
@@ -478,7 +480,10 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
             for (FoldRange range : explicitFoldRanges) {
                 if (range != null && range.startLine() >= 0 && range.startLine() < lineCount
                         && range.endLine() > range.startLine() && range.endLine() < lineCount) {
-                    newRegions.add(new FoldRegion(range.startLine(), range.endLine(), range.collapsedByDefault()));
+                    boolean first = initializedFoldKinds.add(java.util.Objects.toString(range.kind(), "default"));
+                    newRegions.add(new FoldRegion(range.startLine(), range.endLine(), range.collapsedByDefault()
+                            && first && buffer.getVersion() == cleanBufferVersion
+                            && !(caretLine >= range.startLine() && caretLine <= range.endLine())));
                 }
             }
         } else {
@@ -767,6 +772,21 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         return target;
     }
 
+    private String displayedDiagnosticsText;
+
+    protected void rebaseDisplayedDiagnostics() {
+        diagnosticsVersion.incrementAndGet();
+        String next = buffer.getText();
+        if (!diagnostics.isEmpty() && displayedDiagnosticsText != null) {
+            var moved = dtm.stools.component.panels.editor.code.diagnostics.DiagnosticEdits.rebase(
+                    java.util.List.copyOf(diagnostics), displayedDiagnosticsText, next);
+            diagnostics.clear();
+            diagnostics.addAll(moved);
+            fireDiagnosticsChanged();
+        }
+        displayedDiagnosticsText = next;
+    }
+
     protected void scheduleDiagnosticsRefresh() {
         if (diagnosticsDebounceMs <= 0) {
             refreshDiagnosticsAsync();
@@ -801,6 +821,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
 
         final DiagnosticsProvider provider = diagnosticsProvider;
         final String textSnapshot = buffer.getText();
+        final long documentVersion = buffer.getVersion();
         final TextBuffer bufferSnapshot = new TextBuffer(textSnapshot);
         final PendingHighlightEdit edit = pendingDiagnosticsEdit;
         pendingDiagnosticsEdit = null;
@@ -822,7 +843,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
                     list = provider.getDiagnostics(new DiagnosticsContext(bufferSnapshot));
                 }
 
-                if (version != diagnosticsVersion.get()) return;
+                if (version != diagnosticsVersion.get() || documentVersion != buffer.getVersion()) return;
 
                 final List<Diagnostic> snapshot = list != null
                         ? List.copyOf(list)
@@ -831,10 +852,11 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
                 lastDiagnosticsText = textSnapshot;
 
                 SwingUtilities.invokeLater(() -> {
-                    if (version != diagnosticsVersion.get()) return;
+                    if (version != diagnosticsVersion.get() || documentVersion != buffer.getVersion()) return;
 
                     diagnostics.clear();
                     diagnostics.addAll(snapshot);
+                    displayedDiagnosticsText = textSnapshot;
                     fireDiagnosticsChanged();
                     repaint();
                 });

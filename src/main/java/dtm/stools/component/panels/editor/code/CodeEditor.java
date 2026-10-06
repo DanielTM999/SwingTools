@@ -84,6 +84,9 @@ public class CodeEditor extends BlockingPanel {
     private JLayeredPane editorOverlay;
     private final JPanel navigationHeader = new JPanel();
     private final JLabel breadcrumbLabel = new JLabel();
+    private List<DocumentSymbol> breadcrumbSymbols = List.of();
+    private boolean symbolNavigation;
+
     private final JLabel stickyScrollLabel = new JLabel();
     private boolean breadcrumbsEnabled = Boolean.parseBoolean(System.getProperty("orion.editor.breadcrumbs.enabled", "true"));
     private boolean stickyScrollEnabled = Boolean.parseBoolean(System.getProperty("orion.editor.stickyScroll.enabled", "true"));
@@ -850,6 +853,39 @@ public class CodeEditor extends BlockingPanel {
         updateNavigationHeader();
     }
 
+    public void setBreadcrumbSymbols(List<DocumentSymbol> symbols) {
+        List<DocumentSymbol> next = symbols == null ? List.of() : List.copyOf(symbols);
+        if (symbolNavigation && breadcrumbSymbols.equals(next)) return;
+        if (!symbolNavigation) {
+            symbolNavigation = true;
+            breadcrumbLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            breadcrumbLabel.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override public void mouseClicked(java.awt.event.MouseEvent event) {
+                    int x = breadcrumbLabel.getInsets().left;
+                    java.awt.FontMetrics metrics = breadcrumbLabel.getFontMetrics(breadcrumbLabel.getFont());
+                    for (var symbol : breadcrumbSymbols) {
+                        int end = x + metrics.stringWidth(java.util.Objects.toString(symbol.name(), ""));
+                        if (event.getX() >= x && event.getX() <= end) {
+                            var range = symbol.selectionRange() != null ? symbol.selectionRange() : symbol.range();
+                            if (range != null && range.start() != null) {
+                                setCaretPosition(range.start().line(), range.start().col());
+                                textArea.requestFocusInWindow();
+                            }
+                            return;
+                        }
+                        x = end + metrics.stringWidth(" \u203a ");
+                    }
+                }
+            });
+        }
+        breadcrumbSymbols = next;
+        String value = breadcrumbSymbols.stream().map(s -> java.util.Objects.toString(s.name(), ""))
+                .collect(java.util.stream.Collectors.joining(" \u203a "));
+        breadcrumbLabel.setToolTipText(value.isBlank() ? null : value);
+        setBreadcrumbText(value.isBlank() ? " " : value);
+        updateNavigationHeader();
+    }
+
     public void setBreadcrumbText(String value) {
         String text = value == null ? "" : value;
         if (text.equals(breadcrumbLabel.getText())) return;
@@ -865,8 +901,8 @@ public class CodeEditor extends BlockingPanel {
     }
 
     private void updateNavigationHeader() {
-        breadcrumbLabel.setVisible(breadcrumbsEnabled && !breadcrumbLabel.getText().isBlank());
-        stickyScrollLabel.setVisible(stickyScrollEnabled && !stickyScrollLabel.getText().isBlank());
+        breadcrumbLabel.setVisible(breadcrumbsEnabled && (symbolNavigation || !breadcrumbLabel.getText().isBlank()));
+        stickyScrollLabel.setVisible(!symbolNavigation && stickyScrollEnabled && !stickyScrollLabel.getText().isBlank());
         navigationHeader.setVisible(navigationHeader.getComponentCount() > 2
                 || breadcrumbLabel.isVisible() || stickyScrollLabel.isVisible());
         navigationHeader.revalidate();

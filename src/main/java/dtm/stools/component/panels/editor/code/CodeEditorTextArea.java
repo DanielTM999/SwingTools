@@ -69,6 +69,7 @@ public class CodeEditorTextArea extends CodeEditorTextAreaRename {
 
             @Override
             public void onTextChanged() {
+                rebaseDisplayedDiagnostics();
                 refreshSearchOnTextChange();
                 scheduleSelectedTextOccurrencesRefresh();
                 scheduleDocumentHighlightsRefresh();

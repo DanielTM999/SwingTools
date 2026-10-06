@@ -16,6 +16,20 @@ class CodeEditorCallCompletionTest {
 
     private static final String SOURCE = "class A {\n  void run() {\n    lista.ad\n  }\n}\n";
 
+    @Test void replacementRangeKeepsReceiverAndRemovesOnlyTargetWord() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            var range = new dtm.stools.component.panels.editor.code.api.Range(
+                    new dtm.stools.component.panels.editor.code.api.Position(2, 10),
+                    new dtm.stools.component.panels.editor.code.api.Position(2, 12));
+            var item = new AutoCompleteItem("add()", "add", null, null, null,
+                    AutoCompleteItem.Kind.METHOD, List.of(), false, null, range);
+            var editor = select(item);
+            assertTrue(editor.getBuffer().getText().contains("lista.add()"));
+            editor.getBuffer().undo();
+            assertEquals(SOURCE, editor.getBuffer().getText());
+        });
+    }
+
     @Test
     void caretMarkerPlacesTheCaretInsideTheParentheses() throws Exception {
         SwingUtilities.invokeAndWait(() -> {

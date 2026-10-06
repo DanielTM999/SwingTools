@@ -44,6 +44,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
     protected volatile CompletableFuture<SignatureHelp> currentSignatureHelpTask;
     protected volatile CompletableFuture<AutoCompleteItem> currentCompletionResolveTask;
     protected javax.swing.Timer completionResolveTimer;
+    private long displayedCompletionVersion = -1;
+    private int displayedCompletionCaret = -1;
 
     protected CodeEditorTextAreaCompletion(TextBuffer buffer) {
         super(buffer);
@@ -218,6 +220,8 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
                 return;
             }
             AutoCompletePopup p = getOrCreateAutoCompletePopup();
+            displayedCompletionVersion = buffer.getVersion();
+            displayedCompletionCaret = caretOffset();
             p.show(items, popupPoint.x, popupPoint.y, ctx.prefix(), ctx.prefixOffset());
         }));
     }
@@ -228,13 +232,15 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         if (previous != null && !previous.isDone()) previous.cancel(false);
         if (item == null || autoCompleteProvider == null) return;
         AutoCompleteProvider provider = autoCompleteProvider;
+        long resolutionVersion = buffer.getVersion();
         completionResolveTimer = new javax.swing.Timer(150, event -> {
             if (autoCompletePopup == null || !autoCompletePopup.isVisible() || autoCompletePopup.getSelectedItem() != item) return;
             CompletableFuture<AutoCompleteItem> task = provider.resolveItemAsync(item);
             if (task == null) return;
             currentCompletionResolveTask = task;
             task.whenComplete((resolved, error) -> SwingUtilities.invokeLater(() -> {
-                if (task.isCancelled() || error != null || resolved == null || autoCompletePopup == null) return;
+                if (task.isCancelled() || error != null || resolved == null || autoCompletePopup == null
+                        || currentCompletionResolveTask != task || buffer.getVersion() != resolutionVersion) return;
                 autoCompletePopup.replaceSelectedItem(item, resolved);
             }));
         });
@@ -259,12 +265,30 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         if (autoCompletePopup == null || !autoCompletePopup.isVisible()) return;
         if (autoCompletePopup.isLoading()) return;
         AutoCompleteItem item = autoCompletePopup.getSelectedItem();
-        if (item == null) {
+        if (item == null || item.insertText() == null || item.insertText().isEmpty()) {
             autoCompletePopup.hide();
+            return;
+        }
+        if (displayedCompletionVersion >= 0 && (displayedCompletionVersion != buffer.getVersion() || displayedCompletionCaret != caretOffset())) {
+            triggerAutoComplete(CompletionContext.TriggerKind.EXPLICIT);
             return;
         }
         int insertOff = autoCompletePopup.getTriggerOffset();
         int caretOff = caretOffset();
+        if (insertOff < 0 || insertOff > caretOff || caretOff > buffer.length()) {
+            hideAutoCompletePopup();
+            return;
+        }
+        if (item.replacementRange() != null) {
+            int start = offsetOf(item.replacementRange().start());
+            int end = offsetOf(item.replacementRange().end());
+            if (start < 0 || start > caretOff || end < caretOff || end > buffer.length()) {
+                hideAutoCompletePopup();
+                return;
+            }
+            insertOff = start;
+            caretOff = end;
+        }
         boolean hasAdditionalEdits = !resolveAdditionalEdits(item.additionalTextEdits()).isEmpty();
         if (hasAdditionalEdits) beginPreservingView();
         beginCompoundEdit();

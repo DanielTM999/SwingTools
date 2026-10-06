@@ -5,7 +5,12 @@ import dtm.stools.component.panels.editor.code.api.TextEdit;
 import javax.swing.Icon;
 import java.util.List;
 
-public record AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon, Kind kind, List<TextEdit> additionalTextEdits, boolean unused, Object data) {
+public record AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon, Kind kind, List<TextEdit> additionalTextEdits, boolean unused, Object data, dtm.stools.component.panels.editor.code.api.Range replacementRange) {
+
+    public AutoCompleteItem(String insertText, String label, String detail, String description, Icon icon,
+                            Kind kind, List<TextEdit> additionalTextEdits, boolean unused, Object data) {
+        this(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data, null);
+    }
 
     public static final String CARET_MARKER = "${0}";
 
@@ -72,11 +77,11 @@ public record AutoCompleteItem(String insertText, String label, String detail, S
 
     public AutoCompleteItem withUnused(boolean unused) {
         if (this.unused == unused) return this;
-        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data);
+        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data, replacementRange);
     }
 
     public AutoCompleteItem withData(Object data) {
-        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data);
+        return new AutoCompleteItem(insertText, label, detail, description, icon, kind, additionalTextEdits, unused, data, replacementRange);
     }
 
     public boolean isSnippet() {
