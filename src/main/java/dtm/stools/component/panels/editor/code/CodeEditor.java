@@ -83,7 +83,15 @@ public class CodeEditor extends BlockingPanel {
 
     private JLayeredPane editorOverlay;
     private final JPanel navigationHeader = new JPanel();
-    private final JLabel breadcrumbLabel = new JLabel();
+    private final JLabel breadcrumbLabel = new JLabel() {
+        @Override public String getToolTipText(java.awt.event.MouseEvent event) {
+            int index = breadcrumbIndexAt(event.getX());
+            if (breadcrumbFile != null && index == 0) return breadcrumbFile.toString();
+            return super.getToolTipText(event);
+        }
+    };
+    private java.nio.file.Path breadcrumbFile;
+    private List<String> breadcrumbNames = List.of();
     private List<DocumentSymbol> breadcrumbSymbols = List.of();
     private boolean symbolNavigation;
 
@@ -854,36 +862,67 @@ public class CodeEditor extends BlockingPanel {
     }
 
     public void setBreadcrumbSymbols(List<DocumentSymbol> symbols) {
+        setBreadcrumbSymbols(null, symbols);
+    }
+
+    public void setBreadcrumbSymbols(java.nio.file.Path file, List<DocumentSymbol> symbols) {
         List<DocumentSymbol> next = symbols == null ? List.of() : List.copyOf(symbols);
-        if (symbolNavigation && breadcrumbSymbols.equals(next)) return;
+        java.nio.file.Path normalized = file == null ? null : file.toAbsolutePath().normalize();
+        if (symbolNavigation && breadcrumbSymbols.equals(next)
+                && java.util.Objects.equals(breadcrumbFile, normalized)) return;
         if (!symbolNavigation) {
             symbolNavigation = true;
             breadcrumbLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            breadcrumbLabel.setMinimumSize(new java.awt.Dimension(0, breadcrumbLabel.getPreferredSize().height));
             breadcrumbLabel.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override public void mouseClicked(java.awt.event.MouseEvent event) {
-                    int x = breadcrumbLabel.getInsets().left;
-                    java.awt.FontMetrics metrics = breadcrumbLabel.getFontMetrics(breadcrumbLabel.getFont());
-                    for (var symbol : breadcrumbSymbols) {
-                        int end = x + metrics.stringWidth(java.util.Objects.toString(symbol.name(), ""));
-                        if (event.getX() >= x && event.getX() <= end) {
-                            var range = symbol.selectionRange() != null ? symbol.selectionRange() : symbol.range();
-                            if (range != null && range.start() != null) {
-                                setCaretPosition(range.start().line(), range.start().col());
-                                textArea.requestFocusInWindow();
-                            }
-                            return;
-                        }
-                        x = end + metrics.stringWidth(" \u203a ");
+                    int index = breadcrumbIndexAt(event.getX());
+                    if (index < 0) return;
+                    if (breadcrumbFile != null && index == 0) {
+                        setCaretPosition(0, 0);
+                    } else {
+                        var symbol = breadcrumbSymbols.get(index - (breadcrumbFile == null ? 0 : 1));
+                        var range = symbol.selectionRange() != null ? symbol.selectionRange() : symbol.range();
+                        if (range == null || range.start() == null) return;
+                        setCaretPosition(range.start().line(), range.start().col());
                     }
+                    textArea.requestFocusInWindow();
                 }
             });
         }
+        breadcrumbFile = normalized;
         breadcrumbSymbols = next;
-        String value = breadcrumbSymbols.stream().map(s -> java.util.Objects.toString(s.name(), ""))
-                .collect(java.util.stream.Collectors.joining(" \u203a "));
+        List<String> names = new java.util.ArrayList<>();
+        if (normalized != null) names.add(normalized.getFileName() == null ? normalized.toString() : normalized.getFileName().toString());
+        for (var symbol : next) names.add(java.util.Objects.toString(symbol.name(), ""));
+        breadcrumbNames = List.copyOf(names);
+        String value = String.join(" \u203a ", breadcrumbNames);
         breadcrumbLabel.setToolTipText(value.isBlank() ? null : value);
         setBreadcrumbText(value.isBlank() ? " " : value);
         updateNavigationHeader();
+    }
+
+    private int breadcrumbIndexAt(int mouseX) {
+        var metrics = breadcrumbLabel.getFontMetrics(breadcrumbLabel.getFont());
+        var insets = breadcrumbLabel.getInsets();
+        int x = insets.left;
+        int available = breadcrumbLabel.getWidth() - insets.left - insets.right;
+        int visibleEnd = breadcrumbLabel.getWidth() == 0 ? Integer.MAX_VALUE : x + available;
+        if (metrics.stringWidth(breadcrumbLabel.getText()) > available && breadcrumbLabel.getWidth() > 0) {
+            var view = new java.awt.Rectangle(0, 0, Math.max(0, available), breadcrumbLabel.getHeight());
+            String clipped = SwingUtilities.layoutCompoundLabel(breadcrumbLabel, metrics, breadcrumbLabel.getText(),
+                    null, SwingConstants.CENTER, SwingConstants.LEFT, SwingConstants.CENTER, SwingConstants.RIGHT,
+                    view, new java.awt.Rectangle(), new java.awt.Rectangle(), 0);
+            String prefix = clipped.endsWith("...") ? clipped.substring(0, clipped.length() - 3) : clipped;
+            visibleEnd = x + metrics.stringWidth(prefix);
+        }
+        if (mouseX >= visibleEnd) return -1;
+        for (int i = 0; i < breadcrumbNames.size(); i++) {
+            int end = x + metrics.stringWidth(breadcrumbNames.get(i));
+            if (mouseX >= x && mouseX < end) return i;
+            x = end + metrics.stringWidth(" \u203a ");
+        }
+        return -1;
     }
 
     public void setBreadcrumbText(String value) {
