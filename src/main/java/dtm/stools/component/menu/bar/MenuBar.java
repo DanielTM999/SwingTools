@@ -350,10 +350,10 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
             return captureMenuNode(sub);
         }
         if (component instanceof Section section) {
-            return MenuNode.section(section.getText());
+            return MenuNode.section(section.getText()).id(section.getName());
         }
-        if (component instanceof JSeparator) {
-            return MenuNode.separator();
+        if (component instanceof JSeparator separator) {
+            return MenuNode.separator().id(separator.getName());
         }
         if (component instanceof JCheckBoxMenuItem cb) {
             MenuNode n = MenuNode.check(idOf(cb), cb.getText(), cb.isSelected())
@@ -461,9 +461,13 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
                     if (icon != null) item.setIcon(icon);
                     installHoverHandlers(item, menu, child);
                 }
-                case SEPARATOR -> menu.addSeparator();
+                case SEPARATOR -> {
+                    menu.addSeparator();
+                    menu.getMenuComponent(menu.getMenuComponentCount() - 1).setName(child.getId());
+                }
                 case SECTION -> {
                     Section section = new Section(child.getText());
+                    section.setName(child.getId());
                     menu.add(section);
                     applyMenuItemStyle(section);
                 }
