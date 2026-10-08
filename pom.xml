@@ -8,6 +8,14 @@
     <artifactId>SwingTools</artifactId>
     <version>1.4.1</version>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
@@ -76,6 +84,14 @@
             <resource>
                 <directory>${project.basedir}/licenses</directory>
                 <targetPath>META-INF/licenses</targetPath>
+            </resource>
+            <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                    <include>LICENSE</include>
+                    <include>NOTICE</include>
+                </includes>
+                <targetPath>META-INF</targetPath>
             </resource>
         </resources>
         <plugins>

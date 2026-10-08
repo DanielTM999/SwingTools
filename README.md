@@ -1783,3 +1783,7 @@ public class DemoSwingTools extends Activity {
     }
 }
 ```
+
+## Licença
+
+SwingTools é distribuído sob a [Apache License 2.0](LICENSE). Veja também o arquivo [NOTICE](NOTICE). As dependências de runtime também usam licenças permissivas (Apache 2.0, MIT, BSD e Bouncy Castle); a lista completa é gerada em `licenses/THIRD-PARTY.txt` e empacotada no JAR em `META-INF/licenses/`.
