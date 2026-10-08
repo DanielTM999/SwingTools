@@ -102,7 +102,7 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
 public class PdfEditor extends BlockingPanel implements AutoCloseable {
-    public static final String TOOL_SELECT = "pdf.select", TOOL_AREA = "pdf.selectArea", TOOL_ERASER = "pdf.eraser";
+    public static final String TOOL_VIEW = "pdf.view", TOOL_SELECT = "pdf.select", TOOL_AREA = "pdf.selectArea", TOOL_ERASER = "pdf.eraser";
 
     private final ExecutorService workers = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "swingtools-pdf");
@@ -135,7 +135,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     private final java.util.Set<Integer> selectedPages = new java.util.TreeSet<>();
     private PdfPageGeometry[] pages = new PdfPageGeometry[0];
     private boolean modifiable = true, formFields;
-    private String activeTool = TOOL_SELECT, activeFactory;
+    private String activeTool = TOOL_VIEW, activeFactory;
     private PdfSelection selection = PdfSelection.empty();
     private PdfTextStyle textStyle = PdfTextStyle.defaults();
     private PdfShapeStyle shapeStyle = PdfShapeStyle.defaults();
@@ -427,10 +427,10 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
         if (factories.containsKey(id)) {
             activeFactory = id;
             if (!selection.isEmpty()) setSelection(PdfSelection.empty());
-        } else if (TOOL_SELECT.equals(id) || TOOL_AREA.equals(id) || TOOL_ERASER.equals(id)) {
+        } else if (TOOL_VIEW.equals(id) || TOOL_SELECT.equals(id) || TOOL_AREA.equals(id) || TOOL_ERASER.equals(id)) {
             activeFactory = null;
             activeTool = id;
-            if (TOOL_ERASER.equals(id) && !selection.isEmpty()) setSelection(PdfSelection.empty());
+            if ((TOOL_VIEW.equals(id) || TOOL_ERASER.equals(id)) && !selection.isEmpty()) setSelection(PdfSelection.empty());
         } else throw new IllegalArgumentException("Ferramenta desconhecida: " + id);
         canvas.setCursor(java.awt.Cursor.getDefaultCursor());
         commands.refresh();
@@ -449,7 +449,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
         catch (IOException | RuntimeException error) { reportError(error); }
         if (!factory.keepActive() && factory.id().equals(activeFactory)) {
             activeFactory = null;
-            activeTool = TOOL_SELECT;
+            activeTool = TOOL_VIEW;
             canvas.setCursor(java.awt.Cursor.getDefaultCursor());
             commands.refresh();
             refreshStatus();
@@ -1305,7 +1305,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
             factories.remove(factory.id());
             if (factory.id().equals(activeFactory)) {
                 activeFactory = null;
-                activeTool = TOOL_SELECT;
+                activeTool = TOOL_VIEW;
             }
         };
     }
@@ -1367,7 +1367,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
 
     private List<Action> toolActions() {
         List<Action> tools = new ArrayList<>();
-        for (String id : List.of(TOOL_SELECT, TOOL_AREA, TOOL_ERASER)) {
+        for (String id : List.of(TOOL_VIEW, TOOL_SELECT, TOOL_AREA, TOOL_ERASER)) {
             Action action = commands.get(id);
             if (action != null) tools.add(action);
         }

@@ -51,6 +51,9 @@ public final class PdfCommandCatalog {
     }
 
     private static void tools(PdfEditor editor, PdfCommands commands) {
+        commands.add(PdfEditor.TOOL_VIEW, "Visualizar", () -> editor.selectTool(PdfEditor.TOOL_VIEW)).icon("view")
+                .tip("Visualizar sem selecionar ou editar objetos")
+                .selected(() -> PdfEditor.TOOL_VIEW.equals(editor.getActiveTool()));
         commands.add(PdfEditor.TOOL_SELECT, "Selecionar", () -> editor.selectTool(PdfEditor.TOOL_SELECT)).icon("cursor")
                 .tip("Selecionar, mover, redimensionar e girar objetos; duplo clique edita texto")
                 .selected(() -> PdfEditor.TOOL_SELECT.equals(editor.getActiveTool()));

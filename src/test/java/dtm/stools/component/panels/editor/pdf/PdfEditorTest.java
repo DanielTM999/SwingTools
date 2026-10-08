@@ -52,6 +52,26 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PdfEditorTest {
+    @Test void viewingIsDefaultAndDoesNotSelectCanvasObjects() throws Throwable {
+        PdfEditor editor = createEditor();
+        try {
+            onEdt(() -> {
+                assertEquals(PdfEditor.TOOL_VIEW, editor.getActiveTool());
+                assertTrue(Boolean.TRUE.equals(editor.getCommands().get(PdfEditor.TOOL_VIEW).getValue(javax.swing.Action.SELECTED_KEY)));
+                editor.addShape(0, PdfShapeKind.RECTANGLE, new Rectangle2D.Float(100, 100, 60, 40));
+                var canvas = editor.getCanvas();
+                var click = new java.awt.event.MouseEvent(canvas, java.awt.event.MouseEvent.MOUSE_PRESSED,
+                        System.currentTimeMillis(), 0, 100, 100, 1, false, java.awt.event.MouseEvent.BUTTON1);
+                for (var listener : canvas.getMouseListeners()) listener.mousePressed(click);
+                assertTrue(editor.getSelection().isEmpty());
+                editor.selectTool(PdfEditor.TOOL_SELECT);
+                assertEquals(PdfEditor.TOOL_SELECT, editor.getActiveTool());
+                editor.selectTool(PdfEditor.TOOL_VIEW);
+                assertEquals(PdfEditor.TOOL_VIEW, editor.getActiveTool());
+            });
+        } finally { SwingUtilities.invokeAndWait(editor::close); }
+    }
+
     private static PdfEditor createEditor() throws Throwable {
         AtomicReference<PdfEditor> ref = new AtomicReference<>();
         SwingUtilities.invokeAndWait(() -> {
@@ -538,7 +558,7 @@ class PdfEditorTest {
                 editor.selectTool("pdf.factory.text");
                 PdfElementFactory text = editor.getActiveFactory();
                 editor.placeElement(text, new PdfPlacement(0, new java.awt.geom.Point2D.Float(80, 700), null));
-                assertEquals(PdfEditor.TOOL_SELECT, editor.getActiveTool());
+                assertEquals(PdfEditor.TOOL_VIEW, editor.getActiveTool());
                 var overlay = java.util.Arrays.stream(editor.getCanvas().getComponents())
                         .filter(component -> component instanceof dtm.stools.component.panels.editor.pdf.ui.PdfTextOverlay)
                         .map(component -> (dtm.stools.component.panels.editor.pdf.ui.PdfTextOverlay) component).findFirst().orElseThrow();

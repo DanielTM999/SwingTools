@@ -16,6 +16,8 @@ Crie e use o componente na EDT. `open`, `save`, `recognizePage`, `sign` e `valid
 
 ## Interface
 
+O modo **Visualizar** é a ferramenta padrão ao abrir o editor. Cliques e arrastes no PDF não selecionam nem alteram objetos. Para editar, escolha **Selecionar** ou outra ferramenta no ribbon ou no painel lateral. Esc retorna ao modo Visualizar quando não há gesto ou seleção ativa. Navegação pelas páginas e zoom continuam disponíveis.
+
 - **Ribbon** no mesmo padrão do `SheetEditor`: abas Arquivo, Página Inicial, Inserir, Organizar, Formulários, Assinar e Revisar, Exibir e a aba contextual Formato do Objeto (aparece quando uma anotação está selecionada). Os grupos usam botões grandes e pequenos e se adaptam à largura: primeiro compactam, depois viram um botão que abre o grupo e, por fim, vão para "Mais". Salvar, Desfazer e Refazer ficam no acesso rápido à direita das abas.
 - **Painel lateral** redimensionável, com três seções:
   - **Páginas:** miniaturas proporcionais com destaque da página visível; clicar navega e arrastar reordena; o botão direito gira, exclui, insere ou extrai.

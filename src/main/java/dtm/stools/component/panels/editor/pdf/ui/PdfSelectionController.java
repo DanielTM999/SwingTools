@@ -109,7 +109,7 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
     public void escape() {
         if (drag != PdfDragMode.NONE) { reset(); canvas.repaint(); return; }
         if (!editor.getSelection().isEmpty()) { editor.clearSelection(); return; }
-        editor.selectTool(PdfEditor.TOOL_SELECT);
+        editor.selectTool(PdfEditor.TOOL_VIEW);
     }
 
     private PdfPageLayout layout() { return canvas.getPageLayout(); }
@@ -124,6 +124,7 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         pressedElement = null;
         PdfPageLayout layout = layout();
         int at = layout.pageAt(press);
+        if (PdfEditor.TOOL_VIEW.equals(editor.getActiveTool())) return;
         if (SwingUtilities.isRightMouseButton(event)) { contextMenu(event, at); return; }
         if (!SwingUtilities.isLeftMouseButton(event)) return;
         String tool = editor.getActiveTool();
@@ -219,6 +220,7 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
     }
 
     @Override public void mouseReleased(MouseEvent event) {
+        if (PdfEditor.TOOL_VIEW.equals(editor.getActiveTool())) { reset(); return; }
         if (drag == PdfDragMode.NONE || press == null || !SwingUtilities.isLeftMouseButton(event)) { reset(); return; }
         current = event.getPoint();
         PdfDragMode mode = drag;
@@ -350,6 +352,12 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         int at = layout.pageAt(point);
         if (editor.getActiveFactory() != null) { canvas.setCursor(Cursor.getPredefinedCursor(at >= 0 ? editor.getActiveFactory().cursor() : Cursor.DEFAULT_CURSOR)); setHover(null, -1); return; }
         String tool = editor.getActiveTool();
+        if (PdfEditor.TOOL_VIEW.equals(tool)) {
+            brush = null;
+            canvas.setCursor(Cursor.getDefaultCursor());
+            setHover(null, -1);
+            return;
+        }
         brush = PdfEditor.TOOL_ERASER.equals(tool) && editor.getEraserMode() == PdfEraserMode.BRUSH && at >= 0 ? point : null;
         if (brush != null || brushShown) { brushShown = brush != null; canvas.repaint(canvas.getVisibleRect()); }
         if (PdfEditor.TOOL_ERASER.equals(tool) || PdfEditor.TOOL_AREA.equals(tool)) {

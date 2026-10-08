@@ -91,6 +91,12 @@ public final class PdfIcon implements Icon {
                 Path2D p = new Path2D.Double(); p.moveTo(3.5, 4); p.lineTo(4.5, 14.5); p.lineTo(11.5, 14.5); p.lineTo(12.5, 4); g.draw(p);
                 g.draw(new Line2D.Double(6.5, 6.5, 6.8, 12)); g.draw(new Line2D.Double(9.5, 6.5, 9.2, 12));
             }
+            case "view" -> {
+                page(g, fg);
+                g.setColor(blue);
+                g.draw(new Ellipse2D.Double(4, 6, 8, 5));
+                g.fill(new Ellipse2D.Double(7, 7, 2, 2));
+            }
             case "cursor" -> {
                 Path2D p = new Path2D.Double(); p.moveTo(3.5, 1.5); p.lineTo(3.5, 13); p.lineTo(6.5, 10); p.lineTo(9, 14.8);
                 p.lineTo(10.8, 14); p.lineTo(8.4, 9.3); p.lineTo(12.5, 9.3); p.closePath();

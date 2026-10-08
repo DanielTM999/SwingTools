@@ -23,7 +23,7 @@ public final class PdfRibbonLayout {
         PdfRibbonTab home = new PdfRibbonTab("home", "Página Inicial", List.of(
                 group("clipboard", "Área de Transferência", 30, "paste", large("pdf.paste"), small("pdf.cut"),
                         small("pdf.copy"), small("pdf.duplicate")),
-                group("tools", "Ferramentas", 100, "cursor", large("pdf.select"), large("pdf.selectArea"), large("pdf.eraser")),
+                group("tools", "Ferramentas", 100, "view", large("pdf.view"), large("pdf.select"), large("pdf.selectArea"), large("pdf.eraser")),
                 group("eraser", "Borracha", 25, "eraser", small("pdf.eraser.brush"), small("pdf.eraser.rect"),
                         component(ribbon::eraserSizeBox)),
                 group("editing", "Edição", 80, "delete", large("pdf.eraseSelection"), small("pdf.selectAll"),
