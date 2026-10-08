@@ -6,7 +6,7 @@
 
     <groupId>dtm.stools</groupId>
     <artifactId>SwingTools</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
@@ -17,12 +17,24 @@
         <flatlaf.extra.version>3.7.1</flatlaf.extra.version>
         <commonmark.version>0.28.0</commonmark.version>
         <junit.jupiter.version>5.11.4</junit.jupiter.version>
+        <pdfbox.version>3.0.8</pdfbox.version>
+        <bouncycastle.version>1.85</bouncycastle.version>
         <license-maven-plugin.version>2.7.1</license-maven-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <native.build.skip>false</native.build.skip>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
@@ -57,6 +69,15 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/licenses</directory>
+                <targetPath>META-INF/licenses</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -95,8 +116,10 @@
                             <goal>download-licenses</goal>
                         </goals>
                         <configuration>
-                            <licensesOutputDirectory>${project.build.outputDirectory}/licenses/dependencies</licensesOutputDirectory>
-                            <licensesOutputFile>${project.build.outputDirectory}/licenses/licenses.xml</licensesOutputFile>
+                            <licensesOutputDirectory>${project.basedir}/licenses/dependencies</licensesOutputDirectory>
+                            <licensesOutputFile>${project.basedir}/licenses/licenses.xml</licensesOutputFile>
+                            <excludedScopes>test,provided,system</excludedScopes>
+                            <cleanLicensesOutputDirectory>true</cleanLicensesOutputDirectory>
                             <errorRemedy>warn</errorRemedy>
                         </configuration>
                     </execution>
@@ -107,8 +130,18 @@
                             <goal>add-third-party</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/licenses</outputDirectory>
+                            <outputDirectory>${project.basedir}/licenses</outputDirectory>
                             <thirdPartyFilename>THIRD-PARTY.txt</thirdPartyFilename>
+                            <excludedScopes>test,provided,system</excludedScopes>
+                            <failOnBlacklist>true</failOnBlacklist>
+                            <excludedLicenses>
+                                <excludedLicense>GNU General Public License</excludedLicense>
+                                <excludedLicense>GPL</excludedLicense>
+                                <excludedLicense>GNU Lesser General Public License</excludedLicense>
+                                <excludedLicense>LGPL</excludedLicense>
+                                <excludedLicense>GNU Affero General Public License</excludedLicense>
+                                <excludedLicense>AGPL</excludedLicense>
+                            </excludedLicenses>
                         </configuration>
                     </execution>
                 </executions>

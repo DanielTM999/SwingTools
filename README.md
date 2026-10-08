@@ -1,6 +1,6 @@
 # SwingTools
 
-SwingTools é uma biblioteca Java Swing para criar aplicações desktop com uma camada de organização acima do Swing puro. Ela reúne ciclo de vida de janelas, controllers, binding por anotações, componentes visuais reutilizáveis, docking, abas, temas, integração nativa e três editores especializados: **CodeEditor, WordEditor e SheetEditor**.
+SwingTools é uma biblioteca Java Swing para criar aplicações desktop com uma camada de organização acima do Swing puro. Ela reúne ciclo de vida de janelas, controllers, binding por anotações, componentes visuais reutilizáveis, docking, abas, temas, integração nativa e quatro editores especializados: **CodeEditor, WordEditor, SheetEditor e PdfEditor**.
 
 O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer componentes prontos para interfaces desktop mais completas.
 
@@ -16,6 +16,7 @@ O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer
 | Editor de código | [CodeEditor](docs/CodeEditor.md) reúne edição de texto, busca, gutter, minimap e providers de linguagem. |
 | Editor de documentos | [WordEditor](docs/WordEditor.md) reúne ribbon, paginação, formatação, navegação e DOCX no subconjunto suportado. |
 | Editor de planilhas | [SheetEditor](docs/SheetEditor.md) reúne grade virtualizada, fórmulas, gráficos, tabelas e formatos de arquivo. |
+| Editor de PDF | [PdfEditor](docs/PdfEditor.md) visualiza, anota e edita PDFs com providers substituíveis para motor, OCR e assinaturas. |
 | Componentes de aplicação | [Formulários](docs/FormPanel.md), [tabelas](docs/GridView.md), [árvores](docs/TreeView.md), menus, dialogs e notificações evitam reconstruir fluxos comuns do zero. |
 | Personalização | [Temas JSON](docs/JsonLookAndFeel.md), [tokens visuais](docs/UiTokens.md), eventos, renderers e providers permitem adaptar aparência e comportamento. |
 | Integração desktop | [Seletor de arquivos nativo](docs/OsFilePicker.md), system tray e [painel OpenGL](docs/GraphicsGlPanel.md) cobrem recursos além dos controles Swing tradicionais. |

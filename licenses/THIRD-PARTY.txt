@@ -1,0 +1,17 @@
+
+Lists of 15 third-party dependencies.
+     (The Apache Software License, Version 2.0) Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.22 - https://github.com/FasterXML/jackson)
+     (The Apache Software License, Version 2.0) Jackson-core (com.fasterxml.jackson.core:jackson-core:2.22.2 - https://github.com/FasterXML/jackson-core)
+     (The Apache Software License, Version 2.0) jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.22.2 - https://github.com/FasterXML/jackson)
+     (The Apache License, Version 2.0) FlatLaf (com.formdev:flatlaf:3.7.1 - https://github.com/JFormDesigner/FlatLaf)
+     (The Apache License, Version 2.0) FlatLaf Extras (com.formdev:flatlaf-extras:3.7.1 - https://github.com/JFormDesigner/FlatLaf)
+     (MIT) Jsvg (com.github.weisj:jsvg:2.0.0 - https://github.com/weisJ/jsvg)
+     (Apache-2.0) Apache Commons Logging (commons-logging:commons-logging:1.4.0 - https://commons.apache.org/proper/commons-logging/)
+     (Apache-2.0) Apache FontBox (org.apache.pdfbox:fontbox:3.0.8 - http://pdfbox.apache.org/)
+     (Apache-2.0) Apache PDFBox (org.apache.pdfbox:pdfbox:3.0.8 - https://www.apache.org/pdfbox-parent/pdfbox/)
+     (Apache-2.0) Apache PDFBox io (org.apache.pdfbox:pdfbox-io:3.0.8 - https://www.apache.org/pdfbox-parent/pdfbox-io/)
+     (Bouncy Castle Licence) Bouncy Castle PKIX, CMS, EAC, TSP, PKCS, OCSP, CMP, and CRMF APIs (org.bouncycastle:bcpkix-jdk18on:1.85 - https://www.bouncycastle.org/download/bouncy-castle-java/)
+     (Bouncy Castle Licence) Bouncy Castle Provider (org.bouncycastle:bcprov-jdk18on:1.85 - https://www.bouncycastle.org/download/bouncy-castle-java/)
+     (Bouncy Castle Licence) Bouncy Castle ASN.1 Extension and Utility APIs (org.bouncycastle:bcutil-jdk18on:1.85 - https://www.bouncycastle.org/download/bouncy-castle-java/)
+     (BSD-2-Clause) commonmark-java core (org.commonmark:commonmark:0.28.0 - https://github.com/commonmark/commonmark-java/commonmark)
+     (The MIT License) Project Lombok (org.projectlombok:lombok:1.18.42 - https://projectlombok.org)

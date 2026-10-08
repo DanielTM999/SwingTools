@@ -2,7 +2,7 @@
 
 Esta pasta é a referência da **SwingTools 1.3.0**, compilada com Java 25. As páginas explicam como integrar cada recurso em uma aplicação Swing. O [README principal](../README.md) mostra instalação via JitPack, requisitos e uma visão geral; o [Guia do Desenvolvedor](Guia_do_Desenvolvedor.md) ensina a montar uma aplicação.
 
-As áreas mais completas da biblioteca são a composição de áreas de trabalho ([abas](TabbedPanel.md), [dock](DockPanel.md), [janelas internas](WindowPanel.md)), os três editores ([código](CodeEditor.md), [documentos](WordEditor.md), [planilhas](SheetEditor.md)) e os componentes de dados e formulários ([tabela](GridView.md), [árvore](TreeView.md), [formulário](FormPanel.md)). Use a tabela abaixo para partir da tarefa da aplicação.
+As áreas mais completas da biblioteca são a composição de áreas de trabalho ([abas](TabbedPanel.md), [dock](DockPanel.md), [janelas internas](WindowPanel.md)), os quatro editores ([código](CodeEditor.md), [documentos](WordEditor.md), [planilhas](SheetEditor.md), [PDF](PdfEditor.md)) e os componentes de dados e formulários ([tabela](GridView.md), [árvore](TreeView.md), [formulário](FormPanel.md)). Use a tabela abaixo para partir da tarefa da aplicação.
 
 ## Encontre o que precisa fazer
 
@@ -145,6 +145,7 @@ EventListenerComponent
 | `CodeEditor` | [CodeEditor.md](CodeEditor.md) | Editor de codigo extensivel |
 | `WordEditor` | [WordEditor.md](WordEditor.md) | Editor de documentos com ribbon, paginação, navegação, formatação e leitura/escrita do subconjunto DOCX suportado; veja também arquivos e providers |
 | `SheetEditor` | [SheetEditor.md](SheetEditor.md) | Planilha estilo Excel 365/Google Planilhas: formulas, funcoes, tabelas, graficos, tabela dinamica, XLSX/ODS/CSV e PDF |
+| `PdfEditor` | [PdfEditor.md](PdfEditor.md) | Visualizador/editor PDF extensível, com OCR e assinaturas por providers |
 | Contratos do `SheetEditor` | [SheetEditor_Contratos.md](SheetEditor_Contratos.md) | Providers de funcoes, dados externos, comandos, ribbon, popups, arquivos, colaboracao e IA |
 | Contratos do `CodeEditor` | [CodeEditor_Contratos.md](CodeEditor_Contratos.md) | Providers, diagnostics, autocomplete, CodeLens e modelos semanticos |
 | Graficos | [Graphics.md](Graphics.md) | Visao geral do pacote `graphics`, ciclo de vida, threading, input e nativos |
