@@ -63,12 +63,16 @@ public abstract class WordPropertiesPanel<T> extends JPanel implements Scrollabl
             setPreferredSize(new Dimension(110,26));
             addActionListener(e -> {
                 WordColors.show(this,"Cor",color == null ? Color.WHITE : new Color(color),
-                        chosen -> { color = chosen.getRGB() & 0xffffff; refresh(); }, optional ? this::clear : null);
+                        chosen -> setColor(chosen.getRGB() & 0xffffff), optional ? this::clear : null);
             });
             refresh();
         }
         public Integer color() { return color; }
-        public void clear() { if (optional) { color = null; refresh(); } }
+        public void setColor(Integer value) {
+            if(value==null&&!optional)return;
+            Integer old=color;color=value==null?null:value&0xffffff;refresh();firePropertyChange("color",old,color);
+        }
+        public void clear() { if (optional) setColor(null); }
         private void refresh() {
             setText(color == null ? "Nenhuma" : String.format("#%06X",color));
             setIcon(new Icon() {

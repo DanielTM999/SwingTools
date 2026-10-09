@@ -27,6 +27,9 @@ class WordDialogVisualTest {
                 try(WordEditor editor=new WordEditor()) {
                     List<WordPropertiesPanel<?>> panels=List.of(
                             new WordPageSetupPanel(WordPageSettings.A4),
+                            new WordParagraphPropertiesPanel(WordParagraphStyle.DEFAULT),
+                            new WordTableBandingPanel(WordTable.create(5,3,300)),
+                            new WordHeaderFooterPanel(WordHeaders.EMPTY,false),
                             new WordChartEditorPanel(WordChart.sample(),editor.getDocument(),editor.getObjectRegistry()),
                             new WordEquationEditorPanel(WordEquation.parse("x = (-b ± √(b^2-4a c))/(2a)",true)),
                             new WordDiagramEditorPanel(WordDiagram.of(WordDiagramLayout.BASIC_PROCESS,List.of("Planejar","Executar","Verificar")),editor.getDocument(),editor.getObjectRegistry()));

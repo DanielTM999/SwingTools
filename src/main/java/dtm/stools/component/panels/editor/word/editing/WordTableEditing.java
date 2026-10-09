@@ -7,6 +7,17 @@ public final class WordTableEditing {
     public record CellRef(int row, int cell) {}
     private WordTableEditing() {}
 
+    public static WordTable alternateRows(WordTable table,WordTableBanding banding) {
+        List<WordTableRow> rows=new ArrayList<>();int bodyRow=0;
+        for(int i=0;i<table.rows().size();i++) {
+            WordTableRow row=table.rows().get(i);
+            if(i<banding.firstRow()||i>banding.lastRow()||banding.preserveHeaderRows()&&row.header()) {rows.add(row);continue;}
+            Integer color=(bodyRow++/banding.rowsPerBand())%2==0?banding.firstColor():banding.secondColor();
+            rows.add(row.withCells(row.cells().stream().map(c->c.withFill(color)).toList()));
+        }
+        return table.withRows(rows);
+    }
+
     public static List<CellRef> cells(WordTable table, int firstRow, int firstColumn, int lastRow, int lastColumn) {
         List<CellRef> result = new ArrayList<>();
         for (int r = Math.max(0,firstRow); r <= Math.min(lastRow,table.rows().size()-1); r++) {

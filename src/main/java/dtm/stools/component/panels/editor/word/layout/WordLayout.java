@@ -21,13 +21,16 @@ public record WordLayout(WordDocument document,List<Page> pages,Map<String,Integ
         }
         public Page(int index,float width,float height,List<Line> lines) { this(index,width,height,lines,List.of(),List.of(),List.of(),index+1,null,null); }
     }
-    public record Line(int start,int end,float x,float baseline,TextLayout text,float width,Region region,boolean repeated,TextLayout marker,float markerX,String link) {
+    public record Line(int start,int end,float x,float baseline,TextLayout text,float width,Region region,boolean repeated,TextLayout marker,float markerX,String link,float boxTop,float boxHeight,boolean clipToBox) {
+        public Line(int start,int end,float x,float baseline,TextLayout text,float width,Region region,boolean repeated,TextLayout marker,float markerX,String link) {
+            this(start,end,x,baseline,text,width,region,repeated,marker,markerX,link,baseline-text.getAscent(),text.getAscent()+text.getDescent()+text.getLeading(),false);
+        }
         public Line(int start,int end,float x,float baseline,TextLayout text) { this(start,end,x,baseline,text,text.getAdvance(),Region.BODY,false,null,0,null); }
-        public float top() { return baseline-text.getAscent(); }
-        public float bottom() { return baseline+text.getDescent()+text.getLeading(); }
+        public float top() { return boxTop; }
+        public float bottom() { return boxTop+boxHeight; }
         public boolean positional() { return region==Region.BODY&&!repeated&&start>=0; }
-        public Line translate(float dx,float dy) { return new Line(start,end,x+dx,baseline+dy,text,width,region,repeated,marker,markerX+dx,link); }
-        public Line as(Region value,boolean repeat) { return new Line(value==Region.BODY&&!repeat?start:-1,value==Region.BODY&&!repeat?end:-1,x,baseline,text,width,value,repeat,marker,markerX,link); }
+        public Line translate(float dx,float dy) { return new Line(start,end,x+dx,baseline+dy,text,width,region,repeated,marker,markerX+dx,link,boxTop+dy,boxHeight,clipToBox); }
+        public Line as(Region value,boolean repeat) { return new Line(value==Region.BODY&&!repeat?start:-1,value==Region.BODY&&!repeat?end:-1,x,baseline,text,width,value,repeat,marker,markerX,link,boxTop,boxHeight,clipToBox); }
     }
     public record ObjectBox(int offset,WordInlineObject object,float x,float y,float width,float height,boolean floating,Region region,boolean repeated) {
         public Rectangle2D.Float bounds() { return new Rectangle2D.Float(x,y,width,height); }

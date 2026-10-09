@@ -13,8 +13,10 @@ import dtm.stools.component.panels.editor.word.provider.*;
 import dtm.stools.component.panels.editor.word.render.WordObjectRegistry;
 import dtm.stools.component.panels.editor.word.ui.*;
 import dtm.stools.component.panels.editor.word.ui.popup.WordHeaderFooterPanel;
+import dtm.stools.component.panels.editor.word.ui.popup.WordParagraphPropertiesPanel;
 import dtm.stools.component.panels.editor.word.ui.popup.WordPageSetupPanel;
 import dtm.stools.component.panels.editor.word.ui.popup.WordColors;
+import dtm.stools.component.panels.editor.word.ui.popup.WordTableBandingPanel;
 
 
 import dtm.stools.configs.UiTokens;
@@ -328,6 +330,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         action("word.list.continue","Continuar numeração",h,true,documentTools::continueNumbering);
         for(var alignment:WordParagraphStyle.Alignment.values())action("word.align."+alignment.name(),switch(alignment){case LEFT->"Esquerda";case CENTER->"Centro";case RIGHT->"Direita";case JUSTIFY->"Justificar";},h,true,()->session.formatParagraphs(s->s.withAlignment(alignment)));
         for(float spacing:new float[]{1f,1.15f,1.5f,2f})action("word.spacing."+(spacing==1.15f?"115":spacing==1.5f?"15":Integer.toString((int)spacing)),"Espaçamento "+spacing,h,true,()->session.formatParagraphs(s->s.withSpacing(s.before(),s.after(),spacing)));
+        action("word.paragraph.properties","Parágrafo…",h,true,this::paragraphProperties);
         action("word.shading","Sombreamento",h,true,()->{WordColors.show(this,"Sombreamento do parágrafo",Color.WHITE,c->run(()->session.formatParagraphs(s->s.withShading(c.getRGB()&0xffffff))),()->run(()->session.formatParagraphs(s->s.withShading(null))));});
         action("word.style.update","Atualizar estilo",h,true,()->documentTools.updateStyleFromSelection(Optional.ofNullable(getDocument().paragraphAt(session.getSelection().start()).style().styleId()).orElse(WordStyleSheet.NORMAL)));
         action("word.style.new","Novo estilo…",h,true,()->{String name=ask("Novo estilo","Nome do estilo");if(name!=null)documentTools.createStyle(name);});
@@ -386,6 +389,11 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         action("word.table.column.left","Coluna à esquerda",t,true,()->objects.insertColumn(false));action("word.table.column.right","Coluna à direita",t,true,()->objects.insertColumn(true));
         action("word.table.row.delete","Excluir linhas",t,true,objects::deleteRows);action("word.table.column.delete","Excluir colunas",t,true,objects::deleteColumns);
         action("word.table.delete","Excluir tabela",t,true,objects::deleteTable);
+        action("word.table.select.cell","Selecionar célula",t,false,objects::selectCell);
+        action("word.table.select.row","Selecionar linha",t,false,objects::selectRow);
+        action("word.table.select.column","Selecionar coluna",t,false,objects::selectColumn);
+        action("word.table.select.table","Selecionar tabela",t,false,objects::selectTable);
+        action("word.table.banding","Cores alternadas…",t,true,this::tableBanding);
         action("word.table.merge","Mesclar células",t,true,objects::mergeCells);action("word.table.split","Dividir célula",t,true,objects::splitCell);
         action("word.table.distribute","Distribuir colunas",t,true,objects::distributeColumns);
         action("word.table.header","Repetir cabeçalho",t,true,objects::toggleHeaderRow);
@@ -434,7 +442,7 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         for(var entry:commands.entrySet()){
             String group=commandGroups.get(entry.getKey());
             if("Tabela".equals(group)&&!entry.getKey().equals("word.table.properties"))entry.getValue().setEnabled(table&&!session.isReadOnly());
-            if("Tabela".equals(group)&&entry.getKey().equals("word.table.properties"))entry.getValue().setEnabled(table);
+            if("Tabela".equals(group)&&(entry.getKey().equals("word.table.properties")||entry.getKey().startsWith("word.table.select.")))entry.getValue().setEnabled(table);
             if("Objeto".equals(group))entry.getValue().setEnabled(object&&(!Boolean.TRUE.equals(entry.getValue().getValue("word.edit"))||!session.isReadOnly()));
         }
         WordTextStyle insertion=session.getInsertionStyle();
@@ -492,15 +500,22 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
     }
     @Override protected void onThemeChanged(){if(north==null)return;UiTokens.refresh();north.setBackground(UiTokens.surface());providerBar.setBackground(UiTokens.surface());status.setBackground(UiTokens.surface());status.setForeground(UiTokens.muted());if(defaultRibbon!=null)defaultRibbon.onThemeChanged();commentsPanel.setBackground(UiTokens.surface());repaint();}
     private void showContextMenu(int x,int y){
+        if(!canvas.selectForContextMenu(new Point(x,y)))return;
+        createContextMenu().show(canvas,x,y);
+    }
+    public JPopupMenu createContextMenu(){
+        ensureOpen();
         JPopupMenu menu=new JPopupMenu();for(String id:List.of("word.cut","word.copy","word.paste"))menu.add(commands.get(id));
         if(session.getSelectedObject().isPresent()){menu.addSeparator();menu.add(commands.get("word.object.properties"));menu.add(commands.get("word.object.delete"));}
         if(getDocument().tableAt(session.getSelection().caret()).isPresent()||session.getContentSelection() instanceof WordCellSelection){
-            menu.addSeparator();for(String id:List.of("word.table.row.below","word.table.column.right","word.table.merge","word.table.split","word.table.properties"))menu.add(commands.get(id));
+            menu.addSeparator();for(String id:List.of("word.table.select.cell","word.table.select.row","word.table.select.column","word.table.select.table"))menu.add(commands.get(id));
+            menu.addSeparator();for(String id:List.of("word.table.row.below","word.table.column.right","word.table.merge","word.table.split","word.table.banding","word.table.properties"))menu.add(commands.get(id));
+            menu.addSeparator();for(String id:List.of("word.table.row.delete","word.table.column.delete","word.table.delete"))menu.add(commands.get(id));
         }
         menu.addSeparator();menu.add(commands.get("word.insert.link"));menu.add(commands.get("word.comment.new"));
         menu.addSeparator();menu.add(commands.get("word.focus"));
         for(Registration r:providers.values())if(r.provider instanceof WordContextMenuProvider p)try{p.contribute(this,menu);}catch(Exception error){errorHandler.accept(error);}
-        menu.show(canvas,x,y);
+        return menu;
     }
 
     public Optional<WordSelection> find(String query,boolean matchCase,boolean regex,int from){
@@ -680,18 +695,35 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         String chosen=form("word.crossref.dialog","Referência cruzada","Inserir o texto do indicador:",list,()->(String)list.getSelectedItem(),"Inserir",false,true).orElse(null);
         if(chosen!=null)documentTools.insertCrossReference(chosen,false);
     }
+    public void paragraphProperties(){
+        ensureOpen();
+        WordParagraphPropertiesPanel panel=new WordParagraphPropertiesPanel(getDocument().paragraphAt(session.getSelection().start()).style());
+        var result=form("word.paragraph.dialog",panel.title(),"",panel,panel::result,"Aplicar",session.isReadOnly(),false);
+        if(session.isReadOnly()||result.isEmpty())return;
+        WordParagraphStyle value=result.get();
+        session.formatParagraphs(s->s.withSpacing(value.before(),value.after(),1).withLineSpacing(value.lineSpacingRule(),value.lineSpacing())
+                .withIndents(value.leftIndent(),value.rightIndent(),value.firstLineIndent()).withKeepWithNext(value.keepWithNext())
+                .withKeepLines(value.keepLines()).withWidowControl(value.widowControl()).withPageBreakBefore(value.pageBreakBefore()));
+    }
     private void pageSetup(){
         WordPageSetupPanel panel=new WordPageSetupPanel(documentTools.sectionSettings(session.getSelection().start()));
         Object result=form("word.page.dialog",panel.title(),"",panel,panel::result,"Aplicar",session.isReadOnly(),false).orElse(null);
-        if(result instanceof WordPageSettings settings)documentTools.setSectionSettings(settings);
+        if(!session.isReadOnly()&&result instanceof WordPageSettings settings)documentTools.setSectionSettings(settings);
+    }
+    private void tableBanding(){
+        WordTable table=objects.currentTable().orElseThrow().table();
+        WordTableBandingPanel panel=new WordTableBandingPanel(table);
+        form("word.table.banding.dialog",panel.title(),"",panel,panel::result,"Aplicar",session.isReadOnly(),false)
+                .ifPresent(value->{if(!session.isReadOnly())objects.alternateRows(value);});
     }
     public void editHeaderFooter(boolean footer){
         ensureOpen();
-        WordHeaderFooterPanel panel=new WordHeaderFooterPanel(getDocument().parts().headers(),footer);
+        int caret=session.getSelection().start();
+        WordPageSettings settings=getDocument().sectionSettingsAt(caret);
+        WordHeaderFooterPanel panel=new WordHeaderFooterPanel(getDocument().headersAt(caret),footer,settings.section().linkedHeaders(),settings==getDocument().sections().getFirst());
         Object result=form("word.headerFooter.dialog",footer?"Rodapé":"Cabeçalho","",panel,panel::result,"Aplicar",session.isReadOnly(),false).orElse(null);
         if(session.isReadOnly()||!(result instanceof WordHeaderFooterPanel.Result r))return;
-        documentTools.setHeaderFooterText(r.kind(),r.text(),r.alignment(),r.pageNumber());
-        documentTools.setHeaderOptions(r.differentFirst(),r.differentOddEven());
+        documentTools.applyHeaderFooter(r.kind(),r.text(),r.alignment(),r.pageNumber(),r.differentFirst(),r.differentOddEven(),r.linked(),r.textChanged());
     }
     public String ask(String title,String message){return ask(title,message,"");}
     public String ask(String title,String message,String initial){

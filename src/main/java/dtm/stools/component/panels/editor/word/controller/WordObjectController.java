@@ -189,6 +189,27 @@ public final class WordObjectController {
         });
     }
     public void insertRow(boolean below) { tableOperation("Inserir linha",(t,r) -> WordTableEditing.insertRow(t,below ? r[2] : r[0],below)); }
+    public void selectCell() {
+        WordTableLocation l=currentTable().orElseThrow();
+        session.selectCells(l.table().id(),l.row(),l.gridColumn(),l.row(),l.gridColumn()+l.cellValue().gridSpan()-1);
+    }
+    public void selectRow() {
+        WordTableLocation l=currentTable().orElseThrow();
+        session.selectCells(l.table().id(),l.row(),0,l.row(),l.table().gridColumns()-1);
+    }
+    public void selectColumn() {
+        WordTableLocation l=currentTable().orElseThrow();
+        session.selectCells(l.table().id(),0,l.gridColumn(),l.table().rows().size()-1,l.gridColumn()+l.cellValue().gridSpan()-1);
+    }
+    public void selectTable() {
+        WordTable table=currentTable().orElseThrow().table();
+        session.selectCells(table.id(),0,0,table.rows().size()-1,table.gridColumns()-1);
+    }
+    public void alternateRows(WordTableBanding banding) {
+        requireEditable();
+        UUID id=currentTable().orElseThrow().table().id();
+        session.execute("Cores alternadas",d->d.updateTable(id,t->WordTableEditing.alternateRows(t,banding)));
+    }
     public void deleteRows() { tableOperation("Excluir linhas",(t,r) -> WordTableEditing.deleteRows(t,r[0],r[2])); }
     public void insertColumn(boolean right) { tableOperation("Inserir coluna",(t,r) -> WordTableEditing.insertColumn(t,right ? r[3] : r[1],right)); }
     public void deleteColumns() { tableOperation("Excluir colunas",(t,r) -> WordTableEditing.deleteColumns(t,r[1],r[3])); }

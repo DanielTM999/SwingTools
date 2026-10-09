@@ -22,10 +22,13 @@ final class DocxReader {
             Map.entry("blue",0x0000FF),Map.entry("red",0xFF0000),Map.entry("darkBlue",0x000080),Map.entry("darkCyan",0x008080),Map.entry("darkGreen",0x008000),Map.entry("darkMagenta",0x800080),
             Map.entry("darkRed",0x800000),Map.entry("darkYellow",0x808000),Map.entry("darkGray",0x808080),Map.entry("lightGray",0xC0C0C0),Map.entry("black",0x000000),Map.entry("white",0xFFFFFF));
     private static final Set<String> RPR_KNOWN = Set.of("rStyle","rFonts","b","i","u","strike","color","sz","szCs","highlight","shd","vertAlign");
-    private static final Set<String> PPR_KNOWN = Set.of("pStyle","keepNext","pageBreakBefore","numPr","tabs","spacing","ind","jc","outlineLvl","shd","sectPr");
+    private static final Set<String> PPR_KNOWN = Set.of("pStyle","keepNext","keepLines","widowControl","pageBreakBefore","numPr","tabs","spacing","ind","jc","outlineLvl","shd","sectPr");
     private final OpcPackage.Limits limits;
     private DocxReadState state;
     private OpcPackage source;
+    private DocxReadContext mainContext;
+    private boolean oddEvenHeaders;
+    private final Map<Element,WordPageSettings> sectionSettings = new IdentityHashMap<>();
 
     DocxReader(OpcPackage.Limits limits) { this.limits = limits; }
 
@@ -75,27 +78,21 @@ final class DocxReader {
             evenAndOdd = eo != null && DocxStylesXml.on(OoxmlXml.attr(eo,"val"));
         }
         for (DocxRelationships.Relationship r : context.relationships.all()) if (r.kind().equals("customXml") && !r.external() && source.contains(r.target())) readCustomXml(r.target());
+        mainContext = context; oddEvenHeaders = evenAndOdd;
         Element finalSection = null;
         for (Element e : OoxmlXml.children(body)) if (e.getLocalName().equals("sectPr")) finalSection = e;
         WordPageSettings page = finalSection == null ? WordPageSettings.A4 : section(finalSection);
         state.settings = page;
+        List<Element> bodyElements=OoxmlXml.children(body);
+        for(int i=bodyElements.size()-1;i>=0;i--){
+            Element properties=OoxmlXml.path(bodyElements.get(i),"pPr","sectPr");
+            if(properties!=null){WordPageSettings settingsOfSection=section(properties);sectionSettings.put(properties,settingsOfSection);state.settings=settingsOfSection;}
+        }
+        state.settings=page;
         List<WordBlock> blocks = blocks(body,context);
         if (blocks.isEmpty() || !(blocks.getLast() instanceof WordParagraph)) blocks.add(WordParagraph.of(""));
-        WordHeaders headers = WordHeaders.EMPTY; Map<WordHeaders.Kind,String> headerRefs = new EnumMap<>(WordHeaders.Kind.class);
-        if (finalSection != null) {
-            for (Element ref : OoxmlXml.children(finalSection)) {
-                boolean header = ref.getLocalName().equals("headerReference");
-                if (!header && !ref.getLocalName().equals("footerReference")) continue;
-                String type = OoxmlXml.attr(ref,"type"), id = OoxmlXml.attr(ref,DocxNames.R,"id");
-                WordHeaders.Kind kind = switch (type) { case "first" -> header ? WordHeaders.Kind.FIRST_HEADER : WordHeaders.Kind.FIRST_FOOTER; case "even" -> header ? WordHeaders.Kind.EVEN_HEADER : WordHeaders.Kind.EVEN_FOOTER; default -> header ? WordHeaders.Kind.HEADER : WordHeaders.Kind.FOOTER; };
-                Optional<DocxRelationships.Relationship> r = context.relationship(id);
-                if (r.isEmpty() || r.get().external() || !source.contains(r.get().target())) continue;
-                DocxReadContext partContext = new DocxReadContext(source,r.get().target(),state);
-                List<WordBlock> content = blocks(OoxmlXml.parse(source.part(r.get().target())).getDocumentElement(),partContext);
-                headers = headers.with(kind,content); headerRefs.put(kind,id);
-            }
-            headers = headers.withOptions(OoxmlXml.child(finalSection,"titlePg") != null && DocxStylesXml.on(OoxmlXml.attr(OoxmlXml.child(finalSection,"titlePg"),"val")),evenAndOdd);
-        }
+        WordHeaders headers = WordHeaders.EMPTY.withOptions(false,evenAndOdd);
+        Map<WordHeaders.Kind,String> headerRefs = page.section().originalReferences();
         Map<String,WordNote> notes = new LinkedHashMap<>();
         readNotes(context,"footnotes","footnote",WordNote.Kind.FOOTNOTE,"f",notes);
         readNotes(context,"endnotes","endnote",WordNote.Kind.ENDNOTE,"e",notes);
@@ -156,9 +153,10 @@ final class DocxReader {
         return new WordTableOfContents(UUID.randomUUID(),title,max);
     }
 
-    WordPageSettings section(Element sectPr) {
-        WordPageSettings a = WordPageSettings.A4;
-        float width = a.width(), height = a.height(), top = a.top(), right = a.right(), bottom = a.bottom(), left = a.left(), header = 35.4f, footer = 35.4f, spacing = 36;
+    WordPageSettings section(Element sectPr) throws IOException {
+        if(sectionSettings.containsKey(sectPr))return sectionSettings.get(sectPr);
+        WordPageSettings a = state.settings;
+        float width = a.width(), height = a.height(), top = a.top(), right = a.right(), bottom = a.bottom(), left = a.left(), header = a.headerDistance(), footer = a.footerDistance(), spacing = 36;
         int columns = 1, start = 0;
         try {
             Element size = OoxmlXml.child(sectPr,"pgSz");
@@ -170,16 +168,56 @@ final class DocxReader {
                 if (twips(margin,"gutter",0) != 0) state.diagnostics.add("Margem de encadernação ignorada na composição");
             }
             Element cols = OoxmlXml.child(sectPr,"cols");
-            if (cols != null) { String num = OoxmlXml.attr(cols,"num"); if (!num.isEmpty()) columns = Math.max(1,Math.min(10,Integer.parseInt(num))); spacing = twips(cols,"space",spacing); }
+            if (cols != null) {
+                String num = OoxmlXml.attr(cols,"num"); if (!num.isEmpty()) columns = Integer.parseInt(num); spacing = twips(cols,"space",spacing);
+                if(num.isEmpty()&&!OoxmlXml.children(cols,"col").isEmpty())columns=OoxmlXml.children(cols,"col").size();
+                if(!OoxmlXml.children(cols,"col").isEmpty())state.diagnostics.add("Colunas com larguras individuais preservadas; composição usa colunas iguais");
+            }
             Element numbering = OoxmlXml.child(sectPr,"pgNumType");
             if (numbering != null && !OoxmlXml.attr(numbering,"start").isEmpty()) start = Math.max(0,Integer.parseInt(OoxmlXml.attr(numbering,"start")));
-            Element type = OoxmlXml.child(sectPr,"type");
-            if (type != null && !"nextPage".equals(OoxmlXml.attr(type,"val"))) state.diagnostics.add("Quebra de seção \"" + OoxmlXml.attr(type,"val") + "\" composta como próxima página");
-            return new WordPageSettings(width,height,top,right,bottom,left,columns,spacing,header,footer,start);
+            return new WordPageSettings(width,height,top,right,bottom,left,columns,spacing,header,footer,start)
+                    .withSection(sectionProperties(sectPr));
         } catch (IOException | IllegalArgumentException e) {
             state.diagnostics.add("Configuração de página inválida substituída por A4");
-            return WordPageSettings.A4;
+            state.blocking.add("Configuração de seção inválida: editar e salvar substituiria a geometria original");
+            return WordPageSettings.A4.withSection(sectionProperties(sectPr));
         }
+    }
+    private WordSectionProperties sectionProperties(Element section) throws IOException {
+        String value = OoxmlXml.attr(OoxmlXml.child(section,"type"),"val");
+        WordSectionProperties.BreakType type = switch (value) {
+            case "", "nextPage" -> WordSectionProperties.BreakType.NEXT_PAGE;
+            case "continuous" -> WordSectionProperties.BreakType.CONTINUOUS;
+            case "evenPage" -> WordSectionProperties.BreakType.EVEN_PAGE;
+            case "oddPage" -> WordSectionProperties.BreakType.ODD_PAGE;
+            case "nextColumn" -> WordSectionProperties.BreakType.NEXT_COLUMN;
+            default -> throw new IOException("Unsupported section break: " + value);
+        };
+        WordHeaders headers = WordHeaders.EMPTY.withOptions(OoxmlXml.child(section,"titlePg") != null
+                && DocxStylesXml.on(OoxmlXml.attr(OoxmlXml.child(section,"titlePg"),"val")),oddEvenHeaders);
+        Set<WordHeaders.Kind> linked = EnumSet.allOf(WordHeaders.Kind.class);
+        Map<WordHeaders.Kind,String> refs = new EnumMap<>(WordHeaders.Kind.class);
+        List<String> extras = new ArrayList<>();
+        for (Element ref : OoxmlXml.children(section)) {
+            boolean header = ref.getLocalName().equals("headerReference");
+            if (!header && !ref.getLocalName().equals("footerReference")) {
+                if(!Set.of("type","pgSz","pgMar","cols","pgNumType","titlePg").contains(ref.getLocalName()))
+                    state.diagnostics.add("Propriedade de seção preservada sem composição: " + ref.getNodeName());
+                extras.add(OoxmlXml.serialize(ref)); continue;
+            }
+            String refType = OoxmlXml.attr(ref,"type"), id = OoxmlXml.attr(ref,DocxNames.R,"id");
+            WordHeaders.Kind kind = switch (refType) {
+                case "first" -> header ? WordHeaders.Kind.FIRST_HEADER : WordHeaders.Kind.FIRST_FOOTER;
+                case "even" -> header ? WordHeaders.Kind.EVEN_HEADER : WordHeaders.Kind.EVEN_FOOTER;
+                default -> header ? WordHeaders.Kind.HEADER : WordHeaders.Kind.FOOTER;
+            };
+            var relationship = mainContext.relationship(id).orElseThrow(() -> new IOException("Missing header/footer relationship: " + id));
+            if (relationship.external() || !source.contains(relationship.target())) throw new IOException("Invalid header/footer part: " + id);
+            DocxReadContext partContext = new DocxReadContext(source,relationship.target(),state);
+            headers = headers.with(kind,blocks(OoxmlXml.parse(source.part(relationship.target())).getDocumentElement(),partContext));
+            refs.put(kind,id); linked.remove(kind);
+        }
+        return new WordSectionProperties(type,headers,linked,refs,extras);
     }
     private static float twips(Element e, String name, float fallback) throws IOException {
         String v = OoxmlXml.attr(e,name); return v.isEmpty() ? fallback : DocxStylesXml.number(v)/20;
@@ -217,12 +255,15 @@ final class DocxReader {
         if (pPr == null) return style;
         List<String> extras = new ArrayList<>(); List<WordTabStop> tabs = new ArrayList<>(style.tabs());
         float before = style.before(), after = style.after(), line = style.lineSpacing(), left = style.leftIndent(), right = style.rightIndent(), first = style.firstLineIndent();
-        WordParagraphStyle.Alignment alignment = style.alignment(); boolean keep = style.keepWithNext(), pageBreak = style.pageBreakBefore(); int heading = style.headingLevel();
+        WordParagraphStyle.Alignment alignment = style.alignment(); boolean keep = style.keepWithNext(), keepLines = style.keepLines(), widow = style.widowControl(), pageBreak = style.pageBreakBefore(); int heading = style.headingLevel();
+        WordParagraphStyle.LineSpacingRule rule = style.lineSpacingRule();
         WordListRef list = null; Integer shading = style.shading();
         for (Element e : OoxmlXml.children(pPr)) {
             if (!DocxNames.isWord(e.getNamespaceURI()) || !PPR_KNOWN.contains(e.getLocalName())) { extras.add(OoxmlXml.serialize(e)); continue; }
             switch (e.getLocalName()) {
                 case "keepNext" -> keep = DocxStylesXml.on(OoxmlXml.attr(e,"val"));
+                case "keepLines" -> keepLines = DocxStylesXml.on(OoxmlXml.attr(e,"val"));
+                case "widowControl" -> widow = DocxStylesXml.on(OoxmlXml.attr(e,"val"));
                 case "pageBreakBefore" -> pageBreak = DocxStylesXml.on(OoxmlXml.attr(e,"val"));
                 case "numPr" -> {
                     String id = OoxmlXml.attr(OoxmlXml.child(e,"numId"),"val"), level = OoxmlXml.attr(OoxmlXml.child(e,"ilvl"),"val");
@@ -244,11 +285,8 @@ final class DocxReader {
                 case "spacing" -> {
                     if (!OoxmlXml.attr(e,"before").isEmpty()) before = Math.max(0,DocxStylesXml.number(OoxmlXml.attr(e,"before"))/20);
                     if (!OoxmlXml.attr(e,"after").isEmpty()) after = Math.max(0,DocxStylesXml.number(OoxmlXml.attr(e,"after"))/20);
-                    if (!OoxmlXml.attr(e,"line").isEmpty()) {
-                        String rule = OoxmlXml.attr(e,"lineRule");
-                        if (Set.of("","auto").contains(rule)) line = Math.max(0.5f,Math.min(10,DocxStylesXml.number(OoxmlXml.attr(e,"line"))/240));
-                        else { line = Math.max(0.5f,Math.min(10,DocxStylesXml.number(OoxmlXml.attr(e,"line"))/20/13.8f)); state.diagnostics.add("Espaçamento exato/mínimo de linhas aproximado"); extras.add(OoxmlXml.serialize(e)); }
-                    }
+                    if (!OoxmlXml.attr(e,"lineRule").isEmpty() || !OoxmlXml.attr(e,"line").isEmpty()) rule = DocxStylesXml.lineRule(OoxmlXml.attr(e,"lineRule"));
+                    if (!OoxmlXml.attr(e,"line").isEmpty()) line = DocxStylesXml.number(OoxmlXml.attr(e,"line"))/(rule == WordParagraphStyle.LineSpacingRule.AUTO ? 240 : 20);
                 }
                 case "ind" -> {
                     String l = OoxmlXml.attr(e,"left"); if (l.isEmpty()) l = OoxmlXml.attr(e,"start");
@@ -265,7 +303,7 @@ final class DocxReader {
             }
         }
         try {
-            return new WordParagraphStyle(alignment,before,after,line,left,right,first,pageBreak,heading,styleId,list,tabs,keep,shading,extras);
+            return new WordParagraphStyle(alignment,before,after,line,left,right,first,pageBreak,heading,styleId,list,tabs,keep,shading,extras,rule,keepLines,widow);
         } catch (IllegalArgumentException e) { throw new IOException("Invalid paragraph properties",e); }
     }
 

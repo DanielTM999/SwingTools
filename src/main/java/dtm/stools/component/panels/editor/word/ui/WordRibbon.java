@@ -58,7 +58,8 @@ public final class WordRibbon extends JPanel {
                 group("Alterações","word.change.accept","word.change.reject","word.change.next","word.change.acceptAll","word.change.rejectAll"),group("Comparar","word.compare")));
         tabs.addTab("Exibir",page(group("Modos","word.view.pages","word.view.continuous"),group("Mostrar","word.navigation","word.comments.panel","word.focus"),zoomGroup()));
         contextual.put("Tabela",page(group("Linhas e colunas","word.table.row.above","word.table.row.below","word.table.column.left","word.table.column.right","word.table.row.delete","word.table.column.delete","word.table.delete"),
-                group("Mesclar","word.table.merge","word.table.split","word.table.distribute"),group("Formatação","word.table.header","word.table.fill","word.table.valign.top","word.table.valign.center","word.table.valign.bottom","word.table.properties")));
+                group("Seleção","word.table.select.cell","word.table.select.row","word.table.select.column","word.table.select.table"),
+                group("Mesclar","word.table.merge","word.table.split","word.table.distribute"),group("Estilo","word.table.banding"),group("Formatação","word.table.header","word.table.fill","word.table.valign.top","word.table.valign.center","word.table.valign.bottom","word.table.properties")));
         contextual.put("Imagem",page(group("Imagem","word.object.properties","word.image.replace","word.object.rotate","word.object.alt","word.object.delete"),arrangeGroup()));
         contextual.put("Gráfico",page(group("Gráfico","word.chart.data","word.object.properties","word.object.delete"),arrangeGroup()));
         contextual.put("Equação",page(group("Equação","word.equation.edit","word.object.delete")));
@@ -198,7 +199,7 @@ public final class WordRibbon extends JPanel {
         for(String id:List.of("word.bullets","word.numbering","word.indent.less","word.indent.more","word.list.restart"))top.add(button(id));
         JPanel bottom=new JPanel(new FlowLayout(FlowLayout.LEADING,3,0));bottom.setOpaque(false);
         for(String id:List.of("word.align.LEFT","word.align.CENTER","word.align.RIGHT","word.align.JUSTIFY","word.shading"))bottom.add(button(id));
-        JButton spacing=menu("Espaçamento",menu("word.spacing.1","word.spacing.115","word.spacing.15","word.spacing.2"));
+        JButton spacing=menu("Espaçamento",menu("word.spacing.1","word.spacing.115","word.spacing.15","word.spacing.2","word.paragraph.properties"));
         spacing.putClientProperty("word.fullText",null);spacing.setText(null);spacing.setToolTipText("Espaçamento entre linhas");
         spacing.getAccessibleContext().setAccessibleName("Espaçamento entre linhas");spacing.setPreferredSize(UIScale.scale(new Dimension(30,30)));top.add(spacing);
         rows.add(top);rows.add(bottom);return group("Parágrafo",rows);

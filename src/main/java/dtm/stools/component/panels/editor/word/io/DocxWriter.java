@@ -37,8 +37,9 @@ final class DocxWriter {
             Map.entry(0x800000,"darkRed"),Map.entry(0x808000,"darkYellow"),Map.entry(0x808080,"darkGray"),Map.entry(0xC0C0C0,"lightGray"),Map.entry(0x000000,"black"));
 
     private final class Part {
-        final String name; final DocxRelationships rels;
-        Part(String name, DocxRelationships rels) { this.name = name; this.rels = rels; }
+        final String name,originalName; final DocxRelationships rels;
+        Part(String name, DocxRelationships rels) { this(name,rels,name); }
+        Part(String name, DocxRelationships rels,String originalName) { this.name = name; this.rels = rels; this.originalName=originalName; }
         String media(String resourceId) throws IOException {
             WordResource resource = document.resources().get(resourceId).orElseThrow(() -> new IOException("Missing image resource " + resourceId));
             String target = mediaNames.computeIfAbsent(resourceId,id -> "word/media/st" + id + "." + resource.extension());
@@ -63,7 +64,7 @@ final class DocxWriter {
     private final Map<String,Integer> sequences = new HashMap<>();
     private final Set<String> openComments = new LinkedHashSet<>();
     private int docPr = 1, markId = 1, chartCounter, partCounter;
-    private String headerXmlRefs = "";
+    private final Map<WordPageSettings,Deque<String>> sectionHeaderRefs = new IdentityHashMap<>();
 
     DocxWriter(WordDocument document, WordImportResult origin, WordObjectRegistry registry) {
         this.document = document; this.origin = origin; this.registry = registry == null ? WordObjectRegistry.defaults() : registry;
@@ -225,8 +226,7 @@ final class DocxWriter {
         WordParagraphStyle s = p.style();
         Map<String,String> elements = new LinkedHashMap<>();
         if (s.styleId() != null) elements.put("pStyle","<w:pStyle w:val=\"" + OoxmlXml.escape(s.styleId()) + "\"/>");
-        if (s.keepWithNext()) elements.put("keepNext","<w:keepNext/>");
-        if (s.pageBreakBefore()) elements.put("pageBreakBefore","<w:pageBreakBefore/>");
+        elements.put("pageBreakBefore","<w:pageBreakBefore w:val=\"" + (s.pageBreakBefore() ? 1 : 0) + "\"/>");
         if (s.list() != null) elements.put("numPr","<w:numPr><w:ilvl w:val=\"" + s.list().level() + "\"/><w:numId w:val=\"" + OoxmlXml.escape(s.list().listId()) + "\"/></w:numPr>");
         if (s.shading() != null) elements.put("shd","<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"" + hex(s.shading()) + "\"/>");
         if (!s.tabs().isEmpty()) {
@@ -238,7 +238,10 @@ final class DocxWriter {
             }
             elements.put("tabs",t.append("</w:tabs>").toString());
         }
-        elements.put("spacing","<w:spacing w:before=\"" + DocxStylesXml.twips(s.before()) + "\" w:after=\"" + DocxStylesXml.twips(s.after()) + "\" w:line=\"" + Math.round(s.lineSpacing()*240) + "\" w:lineRule=\"auto\"/>");
+        elements.put("keepNext","<w:keepNext w:val=\"" + (s.keepWithNext() ? 1 : 0) + "\"/>");
+        elements.put("keepLines","<w:keepLines w:val=\"" + (s.keepLines() ? 1 : 0) + "\"/>");
+        elements.put("widowControl","<w:widowControl w:val=\"" + (s.widowControl() ? 1 : 0) + "\"/>");
+        elements.put("spacing","<w:spacing w:before=\"" + DocxStylesXml.twips(s.before()) + "\" w:after=\"" + DocxStylesXml.twips(s.after()) + "\" w:line=\"" + DocxStylesXml.lineValue(s.lineSpacing(),s.lineSpacingRule()) + "\" w:lineRule=\"" + DocxStylesXml.lineRuleXml(s.lineSpacingRule()) + "\"/>");
         elements.put("ind","<w:ind w:left=\"" + DocxStylesXml.twips(s.leftIndent()) + "\" w:right=\"" + DocxStylesXml.twips(s.rightIndent()) + "\" " + (s.firstLineIndent() < 0 ? "w:hanging=\"" : "w:firstLine=\"") + DocxStylesXml.twips(Math.abs(s.firstLineIndent())) + "\"/>");
         elements.put("jc","<w:jc w:val=\"" + DocxStylesXml.jc(s.alignment()) + "\"/>");
         int styleHeading = s.styleId() == null ? 0 : document.styles().resolveParagraph(s.styleId()).headingLevel();
@@ -296,7 +299,7 @@ final class DocxWriter {
         WordObjectRun run = (WordObjectRun)inline;
         WordInlineObject object = run.object();
         WordImportResult.OriginalObject original = origin == null ? null : origin.originals().get(object.id());
-        if (original != null && original.parsed().equals(object) && original.part().equals(part.name)) {
+        if (original != null && original.parsed().equals(object) && original.part().equals(part.originalName)) {
             if (object instanceof WordEquation) b.append(original.xml());
             else b.append("<w:r>").append(rPr(run.style(),deleted)).append(original.xml()).append("</w:r>");
             return;
@@ -466,46 +469,116 @@ final class DocxWriter {
         b.append("</w:sdtContent></w:sdt>");
     }
 
+    private static final List<String> SECT_ORDER = List.of("headerReference","footerReference","footnotePr","endnotePr","type","pgSz","pgMar","paperSrc","pgBorders","lnNumType","pgNumType","cols","formProt","vAlign","noEndnote","titlePg","textDirection","bidi","rtlGutter","docGrid","printerSettings","sectPrChange");
+
     private String sectPr(WordPageSettings s) {
-        StringBuilder b = new StringBuilder("<w:sectPr>").append(headerXmlRefs);
-        b.append("<w:pgSz w:w=\"").append(DocxStylesXml.twips(s.width())).append("\" w:h=\"").append(DocxStylesXml.twips(s.height())).append('"').append(s.landscape() ? " w:orient=\"landscape\"" : "").append("/>");
-        b.append("<w:pgMar w:top=\"").append(DocxStylesXml.twips(s.top())).append("\" w:right=\"").append(DocxStylesXml.twips(s.right())).append("\" w:bottom=\"").append(DocxStylesXml.twips(s.bottom()))
-                .append("\" w:left=\"").append(DocxStylesXml.twips(s.left())).append("\" w:header=\"").append(DocxStylesXml.twips(s.headerDistance())).append("\" w:footer=\"").append(DocxStylesXml.twips(s.footerDistance())).append("\" w:gutter=\"0\"/>");
-        if (s.pageNumberStart() > 0) b.append("<w:pgNumType w:start=\"").append(s.pageNumberStart()).append("\"/>");
-        b.append("<w:cols w:space=\"").append(DocxStylesXml.twips(s.columnSpacing())).append('"').append(s.columns() > 1 ? " w:num=\"" + s.columns() + "\"" : "").append("/>");
-        if (document.parts().headers().differentFirst()) b.append("<w:titlePg/>");
-        return b.append("</w:sectPr>").toString();
+        Map<String,String> generated = new LinkedHashMap<>();
+        generated.put("type","<w:type w:val=\"" + switch (s.section().breakType()) {
+            case NEXT_PAGE -> "nextPage"; case CONTINUOUS -> "continuous"; case EVEN_PAGE -> "evenPage";
+            case ODD_PAGE -> "oddPage"; case NEXT_COLUMN -> "nextColumn";
+        } + "\"/>");
+        generated.put("pgSz","<w:pgSz w:w=\"" + DocxStylesXml.twips(s.width()) + "\" w:h=\"" + DocxStylesXml.twips(s.height()) + "\" w:orient=\"" + (s.landscape() ? "landscape" : "portrait") + "\"/>");
+        generated.put("pgMar","<w:pgMar w:top=\"" + DocxStylesXml.twips(s.top()) + "\" w:right=\"" + DocxStylesXml.twips(s.right()) + "\" w:bottom=\"" + DocxStylesXml.twips(s.bottom())
+                + "\" w:left=\"" + DocxStylesXml.twips(s.left()) + "\" w:header=\"" + DocxStylesXml.twips(s.headerDistance()) + "\" w:footer=\"" + DocxStylesXml.twips(s.footerDistance()) + "\" w:gutter=\"0\"/>");
+        if (s.pageNumberStart() > 0) generated.put("pgNumType","<w:pgNumType w:start=\"" + s.pageNumberStart() + "\"/>");
+        generated.put("cols","<w:cols w:space=\"" + DocxStylesXml.twips(s.columnSpacing()) + "\" w:num=\"" + s.columns() + "\"/>");
+        boolean first = s.section().equals(WordSectionProperties.DEFAULT) ? document.parts().headers().differentFirst() : s.section().headers().differentFirst();
+        generated.put("titlePg","<w:titlePg w:val=\"" + (first ? 1 : 0) + "\"/>");
+        List<String> extras = new ArrayList<>();
+        for (String extra : s.section().extras()) {
+            String name = localName(extra);
+            if (name.equals("headerReference") || name.equals("footerReference")) continue;
+            if(name.equals("cols"))checkColumnGeometry(s,extra);
+            if (generated.containsKey(name)) {
+                try { generated.put(name,mergeSectionElement(extra,generated.get(name),name)); }
+                catch (IOException e) { throw new IllegalArgumentException("Cannot preserve section property: " + name,e); }
+            } else if (name.equals("pgNumType")) {
+                try { extras.add(mergeSectionElement(extra,"<w:pgNumType/>",name)); }
+                catch (IOException e) { throw new IllegalArgumentException(e); }
+            } else extras.add(extra);
+        }
+        Deque<String> refs=sectionHeaderRefs.get(s);
+        String headerReferences=refs==null||refs.isEmpty()?"":refs.removeFirst();
+        return "<w:sectPr>" + headerReferences + ordered(generated,extras,SECT_ORDER) + "</w:sectPr>";
+    }
+
+    private String mergeSectionElement(String original, String generated, String name) throws IOException {
+        Element old = OoxmlXml.parse(("<root" + namespaces() + ">" + original + "</root>").getBytes(StandardCharsets.UTF_8)).getDocumentElement();
+        Element element = OoxmlXml.children(old).getFirst();
+        Element fresh = OoxmlXml.parse(("<root" + namespaces() + ">" + generated + "</root>").getBytes(StandardCharsets.UTF_8)).getDocumentElement();
+        Element value = OoxmlXml.children(fresh).getFirst();
+        if (name.equals("pgNumType")) element.removeAttributeNS(ns,"start");
+        var attrs = value.getAttributes();
+        for (int i = 0; i < attrs.getLength(); i++) {
+            var a = attrs.item(i);
+            if(name.equals("pgMar")&&a.getLocalName().equals("gutter")&&element.hasAttributeNS(a.getNamespaceURI(),"gutter"))continue;
+            element.setAttributeNS(a.getNamespaceURI(),a.getNodeName(),a.getNodeValue());
+        }
+        return OoxmlXml.serialize(element);
+    }
+
+    private List<WordPageSettings> sections(WordDocument doc) {
+        List<WordPageSettings> result = new ArrayList<>();
+        for (WordBlock block : doc.blocks()) if (block instanceof WordParagraph p && p.sectionBreak() != null) result.add(p.sectionBreak());
+        result.add(doc.pageSettings()); return result;
+    }
+
+    private void checkColumnGeometry(WordPageSettings settings,String xml) {
+        if(origin==null)return;
+        try {
+            Element root=OoxmlXml.parse(("<root"+namespaces()+">"+xml+"</root>").getBytes(StandardCharsets.UTF_8)).getDocumentElement();
+            if(OoxmlXml.children(OoxmlXml.children(root).getFirst(),"col").isEmpty())return;
+            for(WordPageSettings previous:sections(origin.document()))if(previous.section().extras().equals(settings.section().extras())){
+                if(previous.columns()!=settings.columns()||previous.columnSpacing()!=settings.columnSpacing()
+                        ||previous.contentWidth()!=settings.contentWidth())
+                    throw new IllegalArgumentException("Não é possível alterar a geometria de colunas com larguras individuais sem um editor para essas colunas");
+                return;
+            }
+        } catch(IOException e){throw new IllegalArgumentException("Não foi possível preservar as colunas originais",e);}
     }
 
     private void headers(Part main) throws IOException {
-        WordHeaders headers = document.parts().headers();
-        StringBuilder refs = new StringBuilder(), footers = new StringBuilder();
-        boolean unchanged = origin != null && headers.equals(origin.document().parts().headers());
-        for (WordHeaders.Kind kind : WordHeaders.Kind.values()) {
-            boolean header = kind.name().endsWith("HEADER");
-            String type = kind.name().startsWith("FIRST") ? "first" : kind.name().startsWith("EVEN") ? "even" : "default";
-            String id;
-            if (unchanged) { id = origin.headerReferences().get(kind); if (id == null) continue; }
-            else {
-                List<WordBlock> blocks = headers.get(kind);
-                if (blocks.isEmpty()) continue;
-                String name;
-                do { name = "word/st" + (header ? "header" : "footer") + (++partCounter) + ".xml"; } while (parts.containsKey(name));
-                Part part = new Part(name,new DocxRelationships(name));
-                StringBuilder b = new StringBuilder();
-                List<WordBlock> content = new ArrayList<>(blocks);
-                if (!(content.getLast() instanceof WordParagraph)) content.add(WordParagraph.of(""));
-                blocks(b,content,part,false);
-                String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<w:" + (header ? "hdr" : "ftr") + namespaces() + ">" + b + "</w:" + (header ? "hdr" : "ftr") + ">";
-                byte[] bytes = xml.getBytes(StandardCharsets.UTF_8); OoxmlXml.parse(bytes);
-                parts.put(name,bytes);
-                if (!part.rels.isEmpty()) parts.put(DocxRelationships.relsName(name),part.rels.bytes());
-                overrides.put(name,header ? DocxNames.CT_HEADER : DocxNames.CT_FOOTER);
-                id = main.rels.add(header ? DocxNames.REL_HEADER : DocxNames.REL_FOOTER,name,false);
+        List<WordPageSettings> sections = sections(document);
+        for (int index = 0; index < sections.size(); index++) {
+            WordPageSettings settings = sections.get(index);
+            WordSectionProperties section = settings.section();
+            WordHeaders headers = section.headers();
+            boolean legacy = index == 0 && section.equals(WordSectionProperties.DEFAULT);
+            if (legacy) headers = document.parts().headers();
+            StringBuilder refs = new StringBuilder(), footers = new StringBuilder();
+            for (WordHeaders.Kind kind : WordHeaders.Kind.values()) {
+                if (section.linkedHeaders().contains(kind) && !(legacy && !headers.get(kind).isEmpty())) continue;
+                boolean header = kind.name().endsWith("HEADER");
+                String type = kind.name().startsWith("FIRST") ? "first" : kind.name().startsWith("EVEN") ? "even" : "default";
+                String id = section.originalReferences().get(kind);
+                boolean unchanged = false;
+                if (origin != null) for (WordPageSettings previous : sections(origin.document())) {
+                    String previousId=previous.section().originalReferences().get(kind);
+                    if(previousId!=null&&(id==null||id.equals(previousId))&&headers.get(kind).equals(previous.section().headers().get(kind))){
+                        id=previousId;unchanged=true;break;
+                    }
+                }
+                if (!unchanged) {
+                    String name;
+                    do { name = "word/st" + (header ? "header" : "footer") + (++partCounter) + ".xml"; } while (parts.containsKey(name));
+                    String originalPart=origin==null||id==null?null:main.rels.get(id).filter(r->!r.external()).map(DocxRelationships.Relationship::target).orElse(null);
+                    Part part = originalPart==null?new Part(name,new DocxRelationships(name))
+                            :new Part(name,DocxRelationships.read(origin.source(),originalPart).copy(name),originalPart);
+                    StringBuilder b = new StringBuilder();
+                    List<WordBlock> content = new ArrayList<>(headers.get(kind));
+                    if (content.isEmpty() || !(content.getLast() instanceof WordParagraph)) content.add(WordParagraph.of(""));
+                    blocks(b,content,part,false);
+                    String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<w:" + (header ? "hdr" : "ftr") + namespaces() + ">" + b + "</w:" + (header ? "hdr" : "ftr") + ">";
+                    byte[] bytes = xml.getBytes(StandardCharsets.UTF_8); OoxmlXml.parse(bytes);
+                    parts.put(name,bytes);
+                    if (!part.rels.isEmpty()) parts.put(DocxRelationships.relsName(name),part.rels.bytes());
+                    overrides.put(name,header ? DocxNames.CT_HEADER : DocxNames.CT_FOOTER);
+                    id = main.rels.add(header ? DocxNames.REL_HEADER : DocxNames.REL_FOOTER,name,false);
+                }
+                (header ? refs : footers).append("<w:").append(header ? "headerReference" : "footerReference").append(" w:type=\"").append(type).append("\" r:id=\"").append(id).append("\"/>");
             }
-            (header ? refs : footers).append("<w:").append(header ? "headerReference" : "footerReference").append(" w:type=\"").append(type).append("\" r:id=\"").append(id).append("\"/>");
+            sectionHeaderRefs.computeIfAbsent(settings,ignored->new ArrayDeque<>()).addLast(refs.toString() + footers);
         }
-        headerXmlRefs = refs.toString() + footers;
     }
 
     private void notes(Part main, WordNote.Kind kind) throws IOException {

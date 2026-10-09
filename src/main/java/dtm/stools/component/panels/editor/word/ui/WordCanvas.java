@@ -74,6 +74,13 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         installInput();
         addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){if(viewMode==WordViewMode.CONTINUOUS)scheduleLayoutIfShowing();}});
     }
+    private void selectPageSection(WordLayout.Page page){
+        if(!isLayoutCurrent())return;
+        WordDocument doc=session.getDocument();
+        for(int i=0;i<doc.paragraphs().size();i++)if(doc.sectionSettingsAt(doc.paragraphStart(i))==page.settings()){
+            int offset=doc.paragraphStart(i);session.setSelection(offset,offset);return;
+        }
+    }
     public WordSession getSession(){return session;}
     public WordRenderer getRenderer(){return renderer;}
     public WordLayout getLayoutSnapshot(){return snapshot;}
@@ -192,9 +199,12 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     public int hitTest(Point point){
         if(!isLayoutCurrent())return session.getSelection().caret();
         PageHit hit=pageAt(point);if(hit==null)return 0;
+        var cell=tableCellAt(point);
+        int[] cellRange=cell.map(l->session.getDocument().cellRange(l.table().id(),l.row(),l.cell())).orElse(null);
         WordLayout.Line best=null;double bestScore=Double.MAX_VALUE;
         for(var line:hit.page().lines()){
             if(!line.positional())continue;
+            if(cellRange!=null&&(line.start()<cellRange[0]||line.end()>cellRange[1]))continue;
             double dy=hit.y()<line.top()?line.top()-hit.y():hit.y()>line.bottom()?hit.y()-line.bottom():0;
             float left=line.x(),right=line.x()+Math.max(line.text().getAdvance(),4);
             double dx=hit.x()<left-2?left-hit.x():hit.x()>right+2?hit.x()-right:0;
@@ -202,6 +212,7 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
             if(score<bestScore){bestScore=score;best=line;}
         }
         if(best==null){
+            if(cellRange!=null)return cellRange[0];
             WordLayout.Page page=hit.page();
             for(int i=page.index();i>=0;i--){var lines=snapshot.pages().get(i).lines().stream().filter(WordLayout.Line::positional).toList();if(!lines.isEmpty())return lines.getLast().end();}
             return 0;
@@ -211,6 +222,31 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         var document=session.getDocument();
         if(!document.isBoundary(offset))offset=document.previousBoundary(offset);
         return offset;
+    }
+    public java.util.Optional<WordTableLocation> tableCellAt(Point point) {
+        if(!isLayoutCurrent())return java.util.Optional.empty();
+        PageHit hit=pageAt(point);if(hit==null)return java.util.Optional.empty();
+        WordLayout.CellBox best=null;
+        for(var cell:hit.page().cells())if(cell.bounds().contains(hit.x(),hit.y())&&(best==null||cell.depth()>best.depth()))best=cell;
+        if(best==null)return java.util.Optional.empty();
+        WordTable table=session.getDocument().findTable(best.tableId()).orElseThrow();
+        return java.util.Optional.of(new WordTableLocation(table,best.row(),best.cell(),best.gridColumn()));
+    }
+    public boolean selectForContextMenu(Point point) {
+        if(!isLayoutCurrent())return false;
+        PageHit hit=pageAt(point);if(hit==null)return false;
+        var object=objectAt(hit);
+        if(object!=null&&!object.object().textual()) {session.selectObject(object.offset());return true;}
+        var location=tableCellAt(point);
+        var content=session.getContentSelection();
+        if(location.isPresent()&&content instanceof WordCellSelection cells) {
+            WordTableLocation l=location.get();
+            if(cells.tableId().equals(l.table().id())&&l.row()>=cells.firstRow()&&l.row()<=cells.lastRow()
+                    &&l.gridColumn()>=cells.firstColumn()&&l.gridColumn()<=cells.lastColumn())return true;
+        }
+        int offset=hitTest(point);WordSelection range=content.range();
+        if(!(content instanceof WordCellSelection)&&!range.isEmpty()&&offset>=range.start()&&offset<=range.end())return true;
+        session.setSelection(offset,offset);return true;
     }
     public Rectangle caretBounds(){return boundsAt(session.getSelection().caret());}
     public Rectangle boundsAt(int offset){
@@ -405,15 +441,21 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
                     if(hit.y()>=line.top()&&hit.y()<=line.bottom()&&hit.x()>=line.x()&&hit.x()<=line.x()+line.text().getAdvance()){linkHandler.accept(line.link());return;}
                 }
                 if(e.getClickCount()>=2){
-                    for(var line:hit.page().lines())if((line.region()==WordLayout.Region.HEADER||line.region()==WordLayout.Region.FOOTER)&&hit.y()>=line.top()-4&&hit.y()<=line.bottom()+4){regionHandler.accept(line.region());return;}
+                    for(var line:hit.page().lines())if((line.region()==WordLayout.Region.HEADER||line.region()==WordLayout.Region.FOOTER)&&hit.y()>=line.top()-4&&hit.y()<=line.bottom()+4){selectPageSection(hit.page());regionHandler.accept(line.region());return;}
                     WordPageSettings s=hit.page().settings();
-                    if(s!=null&&(hit.y()<s.top()||hit.y()>hit.page().height()-s.bottom())){regionHandler.accept(hit.y()<s.top()?WordLayout.Region.HEADER:WordLayout.Region.FOOTER);return;}
+                    if(s!=null&&(hit.y()<s.top()||hit.y()>hit.page().height()-s.bottom())){selectPageSection(hit.page());regionHandler.accept(hit.y()<s.top()?WordLayout.Region.HEADER:WordLayout.Region.FOOTER);return;}
                 }
                 int offset=hitTest(e.getPoint());
                 if(e.isControlDown()){
                     var doc=session.getDocument();String link=offset<doc.length()?doc.styleAt(offset).link():null;
                     if(link==null&&offset>0)link=doc.styleAt(offset-1).link();
                     if(link!=null){linkHandler.accept(link);return;}
+                    var cell=tableCellAt(e.getPoint());
+                    if(cell.isPresent()) {
+                        WordTableLocation l=cell.get();
+                        session.selectCells(l.table().id(),l.row(),l.gridColumn(),l.row(),l.gridColumn()+l.cellValue().gridSpan()-1);
+                        drag=Drag.NONE;return;
+                    }
                 }
                 drag=Drag.TEXT;
                 session.setSelection(e.isShiftDown()?session.getSelection().anchor():offset,offset);
@@ -511,7 +553,7 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
             case KeyEvent.VK_BACK_SPACE,KeyEvent.VK_DELETE -> {
                 if(!session.isReadOnly()){
                     boolean forward=e.getKeyCode()==KeyEvent.VK_DELETE;
-                    if(selection.isEmpty()){
+                    if(selection.isEmpty()&&!(content instanceof WordCellSelection)){
                         int from=forward?caret:doc.previousBoundary(caret),to=forward?doc.nextBoundary(caret):caret;
                         if(from==to){e.consume();return;}
                         if(!doc.sameContainer(from,to)){e.consume();return;}

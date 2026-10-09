@@ -45,25 +45,15 @@ public final class WordDocumentController {
     public void restartNumbering(int start) { requireEditable(); int caret = session.getSelection().start(); session.execute("Reiniciar numeração",d -> WordLists.restart(d,caret,start)); }
     public void continueNumbering() { requireEditable(); int caret = session.getSelection().start(); session.execute("Continuar numeração",d -> WordLists.continuePrevious(d,caret)); }
 
-    public WordPageSettings sectionSettings(int offset) {
-        WordDocument d = session.getDocument();
-        for (int i = d.paragraphIndex(offset); i < d.paragraphs().size(); i++) {
-            int[] path = d.pathOf(i);
-            if (path.length == 1 && d.paragraphs().get(i).sectionBreak() != null) return d.paragraphs().get(i).sectionBreak();
-        }
-        return d.pageSettings();
-    }
+    public WordPageSettings sectionSettings(int offset) { return session.getDocument().sectionSettingsAt(offset); }
     public void setSectionSettings(WordPageSettings settings) {
         requireEditable(); Objects.requireNonNull(settings);
-        WordDocument d = session.getDocument(); int caret = session.getSelection().start();
-        for (int i = d.paragraphIndex(caret); i < d.paragraphs().size(); i++) {
-            WordParagraph p = d.paragraphs().get(i);
-            if (d.pathOf(i).length == 1 && p.sectionBreak() != null) { session.execute("Configurar página",doc -> doc.replaceParagraphs(Map.of(p.id(),p.withSectionBreak(settings)))); return; }
-        }
-        session.execute("Configurar página",doc -> doc.withPageSettings(settings));
+        int caret=session.getSelection().start();
+        session.execute("Configurar página",d->d.withSectionSettingsAt(caret,settings));
     }
-    public void insertSectionBreak() {
-        requireEditable();
+    public void insertSectionBreak() { insertSectionBreak(WordSectionProperties.BreakType.NEXT_PAGE); }
+    public void insertSectionBreak(WordSectionProperties.BreakType type) {
+        requireEditable(); Objects.requireNonNull(type);
         WordDocument d = session.getDocument(); int caret = session.getSelection().start();
         if (d.depth(caret) > 0) throw new IllegalStateException("Quebras de seção não podem ficar dentro de tabelas");
         WordPageSettings current = sectionSettings(caret);
@@ -71,33 +61,74 @@ public final class WordDocumentController {
         int index = split.paragraphIndex(caret);
         WordParagraph before = split.paragraphs().get(index);
         WordDocument next = split.replaceParagraphs(Map.of(before.id(),before.withSectionBreak(current)));
-        session.execute("Quebra de seção",doc -> next,new WordSelection(caret+1,caret+1));
+        WordPageSettings following=next.sectionSettingsAt(caret+1);
+        WordSectionProperties section=following.section().withBreakType(type);
+        for(WordHeaders.Kind kind:WordHeaders.Kind.values())section=section.withLinked(kind,true);
+        next=next.withSectionSettingsAt(caret+1,following.withPageNumberStart(0).withSection(section));
+        WordDocument result=next;
+        session.execute("Quebra de seção",doc -> result,new WordSelection(caret+1,caret+1));
     }
     public void insertPageBreak() { requireEditable(); session.insertObject(WordBreak.of(WordBreak.Kind.PAGE)); }
     public void insertColumnBreak() { requireEditable(); session.insertObject(WordBreak.of(WordBreak.Kind.COLUMN)); }
 
     public void setHeaderFooter(WordHeaders.Kind kind, List<? extends WordBlock> blocks) {
         requireEditable();
-        session.execute("Cabeçalho e rodapé",d -> d.withParts(d.parts().withHeaders(d.parts().headers().with(kind,blocks))));
+        int caret=session.getSelection().start();
+        session.execute("Cabeçalho e rodapé",d -> {
+            WordPageSettings settings=d.sectionSettingsAt(caret);
+            WordSectionProperties section=settings.section().withHeaders(settings.section().headers().with(kind,blocks)).withLinked(kind,false);
+            return d.withSectionSettingsAt(caret,settings.withSection(section));
+        });
     }
     public void setHeaderFooterText(WordHeaders.Kind kind, String text, WordParagraphStyle.Alignment alignment, boolean pageNumber) {
-        WordDocument d = session.getDocument();
-        String styleId = kind.name().endsWith("HEADER") ? "Header" : "Footer";
-        WordTextStyle style = d.styles().resolveText(styleId).withSize(9).withColor(0x595959);
-        List<WordBlock> blocks = new ArrayList<>();
-        String[] lines = WordDocument.normalize(text == null ? "" : text).split("\n",-1);
-        for (int i = 0; i < lines.length; i++) {
-            List<WordInline> runs = new ArrayList<>();
-            if (!lines[i].isEmpty()) runs.add(new WordRun(lines[i],style));
-            if (pageNumber && i == lines.length-1) { runs.add(new WordRun((lines[i].isEmpty() ? "" : "  •  ") + "Página ",style)); runs.add(new WordObjectRun(WordField.of(WordField.Kind.PAGE,""),style)); runs.add(new WordRun(" de ",style)); runs.add(new WordObjectRun(WordField.of(WordField.Kind.NUM_PAGES,""),style)); }
+        requireEditable();
+        ensureTextHeader(session.getDocument().headersAt(session.getSelection().start()).get(kind));
+        setHeaderFooter(kind,headerText(session.getDocument(),kind,text,alignment,pageNumber));
+    }
+    private static void ensureTextHeader(List<WordBlock> blocks) {
+        for(WordBlock block:blocks) {
+            if(!(block instanceof WordParagraph p))throw new IllegalStateException("Este cabeçalho contém conteúdo que o formulário de texto não pode editar.");
+            for(WordInline run:p.runs())if(run instanceof WordObjectRun o&&!(o.object() instanceof WordField f
+                    &&(f.kind()==WordField.Kind.PAGE||f.kind()==WordField.Kind.NUM_PAGES)))
+                throw new IllegalStateException("Este cabeçalho contém objetos que o formulário de texto não pode editar.");
+        }
+    }
+    private static List<WordBlock> headerText(WordDocument d,WordHeaders.Kind kind,String text,WordParagraphStyle.Alignment alignment,boolean pageNumber) {
+        String styleId=kind.name().endsWith("HEADER")?"Header":"Footer";
+        WordTextStyle style=d.styles().resolveText(styleId).withSize(9).withColor(0x595959);
+        List<WordBlock> blocks=new ArrayList<>();
+        String[] lines=WordDocument.normalize(text==null?"":text).split("\n",-1);
+        for(int i=0;i<lines.length;i++) {
+            List<WordInline> runs=new ArrayList<>();
+            if(!lines[i].isEmpty())runs.add(new WordRun(lines[i],style));
+            if(pageNumber&&i==lines.length-1){runs.add(new WordRun((lines[i].isEmpty()?"":"  •  ")+"Página ",style));runs.add(new WordObjectRun(WordField.of(WordField.Kind.PAGE,""),style));runs.add(new WordRun(" de ",style));runs.add(new WordObjectRun(WordField.of(WordField.Kind.NUM_PAGES,""),style));}
             blocks.add(new WordParagraph(UUID.randomUUID(),runs,d.styles().resolveParagraph(styleId).withAlignment(alignment)));
         }
-        boolean empty = (text == null || text.isBlank()) && !pageNumber;
-        setHeaderFooter(kind,empty ? List.of() : blocks);
+        return (text==null||text.isBlank())&&!pageNumber?List.of():blocks;
     }
     public void setHeaderOptions(boolean differentFirst, boolean differentOddEven) {
-        requireEditable();
-        session.execute("Opções de cabeçalho",d -> d.withParts(d.parts().withHeaders(d.parts().headers().withOptions(differentFirst,differentOddEven))));
+        requireEditable();int caret=session.getSelection().start();
+        session.execute("Opções de cabeçalho",d -> {
+            WordPageSettings settings=d.sectionSettingsAt(caret);
+            WordSectionProperties section=settings.section().withHeaders(settings.section().headers().withOptions(differentFirst,differentOddEven));
+            return d.withSectionSettingsAt(caret,settings.withSection(section))
+                    .withParts(d.parts().withHeaders(d.parts().headers().withOptions(d.parts().headers().differentFirst(),differentOddEven)));
+        });
+    }
+    public void applyHeaderFooter(WordHeaders.Kind kind,String text,WordParagraphStyle.Alignment alignment,boolean pageNumber,
+                                 boolean differentFirst,boolean differentOddEven,boolean linked,boolean replaceText) {
+        requireEditable();int caret=session.getSelection().start();
+        session.execute("Cabeçalho e rodapé",d -> {
+            WordPageSettings settings=d.sectionSettingsAt(caret);WordSectionProperties section=settings.section();
+            WordHeaders own=section.headers();
+            if(!linked) {
+                if(replaceText){ensureTextHeader(d.headersAt(caret).get(kind));own=own.with(kind,headerText(d,kind,text,alignment,pageNumber));}
+                else if(section.linkedHeaders().contains(kind))own=own.with(kind,d.headersAt(caret).get(kind));
+            }
+            section=section.withHeaders(own.withOptions(differentFirst,differentOddEven)).withLinked(kind,linked);
+            return d.withSectionSettingsAt(caret,settings.withSection(section))
+                    .withParts(d.parts().withHeaders(d.parts().headers().withOptions(d.parts().headers().differentFirst(),differentOddEven)));
+        });
     }
 
     public void insertFootnote(String text, WordNote.Kind kind) {

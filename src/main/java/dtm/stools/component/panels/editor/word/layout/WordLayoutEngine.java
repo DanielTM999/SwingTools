@@ -154,7 +154,7 @@ public class WordLayoutEngine {
         final Map<String,Integer> sequences=new HashMap<>();
         final Info collected=new Info();
         final PageFlow body=new PageFlow();
-        PageBuilder page;WordPageSettings settings;int nextNumber=1;int knownTotal;
+        PageBuilder page;WordPageSettings settings;WordHeaders activeHeaders;boolean pendingSectionStart;int nextNumber=1;int knownTotal;
 
         LayoutRun(WordDocument doc,boolean continuous,float continuousWidth,Info info){this.doc=doc;this.continuous=continuous;this.continuousWidth=continuousWidth;this.info=info;collected.noteNumbers.putAll(info.noteNumbers);collected.endnotes.addAll(info.endnotes);}
         Info collected(){collected.totalPages=pages.size();return collected;}
@@ -166,18 +166,30 @@ public class WordLayoutEngine {
             for(int i=blocks.size()-1;i>=0;i--){if(blocks.get(i) instanceof WordParagraph p&&p.sectionBreak()!=null){current=p.sectionBreak();index++;}settingsOf[i]=current;section[i]=index;}
             settings=settingsOf.length>0?settingsOf[0]:doc.pageSettings();
             if(settings.pageNumberStart()>0) nextNumber=settings.pageNumberStart();
+            activeHeaders=settings.section().resolveHeaders(doc.parts().headers(),doc.parts().headers().differentOddEven());
+            if(settings.section().equals(WordSectionProperties.DEFAULT))activeHeaders=doc.parts().headers();
             newPage(true);
             int[] offset={0};int currentSection=section.length>0?section[0]:0;
             for(int i=0;i<blocks.size();i++) {
                 checkCancelled();
                 if(section[i]!=currentSection) {
-                    currentSection=section[i];settings=settingsOf[i];
-                    if(!continuous){finishPage();if(settings.pageNumberStart()>0)nextNumber=settings.pageNumberStart();newPage(true);}
+                    currentSection=section[i];
+                    transition(settingsOf[i]);
                 }
                 if(!continuous&&blocks.get(i) instanceof WordParagraph p&&p.style().keepWithNext()&&!body.atTop()&&i+1<blocks.size()){
-                    BoxFlow probe=measure(List.of(p),body.width(),Region.BODY,body.pageNumber());
-                    float next=blocks.get(i+1) instanceof WordParagraph n?Math.max(14,n.style().before()+16*n.style().lineSpacing()):32;
-                    if(!body.fits(probe.height()+next))body.breakPage(false);
+                    float required=0;
+                    for(int j=i;j<blocks.size()&&section[j]==currentSection;j++) {
+                        WordBlock next=blocks.get(j);
+                        if(j>i&&next instanceof WordParagraph n&&n.style().pageBreakBefore())break;
+                        BoxFlow probe=measure(List.of(next),body.width(),Region.BODY,body.pageNumber());
+                        if(next instanceof WordParagraph n&&!n.style().keepWithNext()){
+                            int minimum=n.style().keepLines()?probe.lines.size():Math.min(n.style().widowControl()?2:1,probe.lines.size());
+                            required+=minimum==probe.lines.size()?probe.height():minimum>0?probe.lines.get(minimum).top():probe.height();
+                            break;
+                        }
+                        required+=probe.height();
+                    }
+                    if(!body.fits(required))body.breakPage(true);
                 }
                 block(blocks.get(i),offset,body,true,0);
             }
@@ -196,17 +208,109 @@ public class WordLayoutEngine {
             return new WordLayout(doc,result,collected.bookmarkPages);
         }
 
+        void transition(WordPageSettings next) {
+            WordPageSettings previous=settings;
+            WordHeaders resolved=next.section().resolveHeaders(activeHeaders,doc.parts().headers().differentOddEven());
+            WordSectionProperties.BreakType type=next.section().breakType();
+            boolean samePaper=Math.abs(previous.width()-next.width())<0.1f&&Math.abs(previous.height()-next.height())<0.1f
+                    &&Math.abs(previous.top()-next.top())<0.1f&&Math.abs(previous.bottom()-next.bottom())<0.1f
+                    &&Math.abs(previous.left()-next.left())<0.1f&&Math.abs(previous.right()-next.right())<0.1f;
+            if(continuous){settings=next;activeHeaders=resolved;return;}
+            if(type==WordSectionProperties.BreakType.CONTINUOUS&&samePaper){
+                balanceColumns(previous);
+                float top=Math.max(page.y,page.maxY);
+                settings=next;activeHeaders=resolved;page.column=0;page.columnTop=top;page.y=top;
+                page.segmentLineStart=page.lines.size();
+                pendingSectionStart=true;
+                if(next.pageNumberStart()>0)nextNumber=next.pageNumberStart();
+                return;
+            }
+            if(type==WordSectionProperties.BreakType.NEXT_COLUMN&&samePaper&&page.column+1<previous.columns()){
+                settings=next;activeHeaders=resolved;page.column++;page.y=page.columnTop;pendingSectionStart=true;return;
+            }
+            finishPage();
+            if(type==WordSectionProperties.BreakType.EVEN_PAGE||type==WordSectionProperties.BreakType.ODD_PAGE){
+                int parity=type==WordSectionProperties.BreakType.EVEN_PAGE?0:1;
+                if((pages.size()+1)%2!=parity){newPage(false);finishPage();}
+            }
+            settings=next;activeHeaders=resolved;
+            if(next.pageNumberStart()>0)nextNumber=next.pageNumberStart();
+            newPage(true);
+        }
+
+        private record BalanceLine(Line line,float gap,int column) {}
+
+        void balanceColumns(WordPageSettings previous) {
+            if(previous.columns()<2||!page.objects.isEmpty()||!page.cells.isEmpty()||!page.notes.isEmpty()
+                    ||!page.decorations.isEmpty()||page.lines.size()==page.segmentLineStart)return;
+            List<BalanceLine> lines=new ArrayList<>();float lastBottom=page.columnTop,lastTop=page.columnTop,total=0;int column=0;
+            for(int i=page.segmentLineStart;i<page.lines.size();i++) {
+                Line line=page.lines.get(i);
+                if(!line.positional())return;
+                if(i>page.segmentLineStart&&line.top()<lastTop+0.01f){column++;lastBottom=page.columnTop;}
+                float gap=Math.max(0,line.top()-lastBottom);
+                lines.add(new BalanceLine(line,gap,column));total+=gap+line.boxHeight();lastTop=line.top();lastBottom=line.bottom();
+            }
+            float trailing=Math.max(0,page.y-lastBottom),low=total/previous.columns(),high=page.maxY-page.columnTop;
+            if(high<=0||balancedCuts(lines,high,previous.columns())==null)return;
+            for(int i=0;i<24;i++) {
+                float middle=(low+high)/2;
+                if(balancedCuts(lines,middle,previous.columns())==null)low=middle;else high=middle;
+            }
+            List<Integer> cuts=balancedCuts(lines,high+0.01f,previous.columns());
+            if(cuts==null)return;
+            float max=page.columnTop;int from=0;
+            for(int c=0;c<cuts.size();c++) {
+                float y=page.columnTop;int end=cuts.get(c);
+                for(int i=from;i<end;i++) {
+                    BalanceLine item=lines.get(i);y+=item.gap();
+                    float dx=(c-item.column())*(previous.columnWidth()+previous.columnSpacing());
+                    page.lines.set(page.segmentLineStart+i,item.line().translate(dx,y-item.line().top()));
+                    y+=item.line().boxHeight();
+                }
+                max=Math.max(max,y);from=end;
+            }
+            page.y=page.maxY=max+trailing;
+        }
+
+        List<Integer> balancedCuts(List<BalanceLine> lines,float height,int columns) {
+            List<Integer> cuts=new ArrayList<>();int from=0;
+            while(from<lines.size()&&cuts.size()<columns) {
+                int end=from;float used=0;
+                while(end<lines.size()&&used+lines.get(end).gap()+lines.get(end).line().boxHeight()<=height+0.001f) {
+                    used+=lines.get(end).gap()+lines.get(end).line().boxHeight();end++;
+                }
+                if(end==lines.size()){cuts.add(end);return cuts;}
+                while(end>from&&!columnBoundary(lines,from,end))end--;
+                if(end==from)return null;
+                cuts.add(end);from=end;
+            }
+            return null;
+        }
+
+        boolean columnBoundary(List<BalanceLine> lines,int from,int end) {
+            WordParagraph left=doc.paragraphAt(lines.get(end-1).line().start()),right=doc.paragraphAt(lines.get(end).line().start());
+            if(!left.id().equals(right.id()))return !left.style().keepWithNext();
+            if(left.style().keepLines())return false;
+            if(!left.style().widowControl())return true;
+            int before=0,after=0;
+            for(int i=end-1;i>=from&&doc.paragraphAt(lines.get(i).line().start()).id().equals(left.id());i--)before++;
+            for(int i=end;i<lines.size()&&doc.paragraphAt(lines.get(i).line().start()).id().equals(left.id());i++)after++;
+            return before>=2&&after>=2;
+        }
+
         void newPage(boolean sectionStart) {
-            page=new PageBuilder(pages.size(),nextNumber++,settings,sectionStart);
+            sectionStart=sectionStart||pendingSectionStart;pendingSectionStart=false;
+            page=new PageBuilder(pages.size(),nextNumber++,settings,sectionStart,activeHeaders);
             pages.add(page);
             page.bodyTop=settings.top();page.bodyBottom=continuous?Float.MAX_VALUE:settings.height()-settings.bottom();
             if(!continuous) {
-                List<WordBlock> header=doc.parts().headers().header(page.number,sectionStart),footer=doc.parts().headers().footer(page.number,sectionStart);
+                List<WordBlock> header=page.headers.header(page.number,sectionStart),footer=page.headers.footer(page.number,sectionStart);
                 if(!header.isEmpty()) page.bodyTop=Math.max(settings.top(),settings.headerDistance()+measure(header,settings.contentWidth(),Region.HEADER,page.number).height()+6);
                 if(!footer.isEmpty()) page.bodyBottom=Math.min(page.bodyBottom,settings.height()-settings.footerDistance()-measure(footer,settings.contentWidth(),Region.FOOTER,page.number).height()-6);
                 if(page.bodyBottom-page.bodyTop<72) page.bodyBottom=page.bodyTop+72;
             }
-            page.y=page.bodyTop;
+            page.y=page.columnTop=page.maxY=page.bodyTop;
         }
         void finishPage() {
             if(page==null) return;
@@ -218,7 +322,7 @@ public class WordLayoutEngine {
             }
         }
         void headerFooter(PageBuilder p) {
-            List<WordBlock> header=doc.parts().headers().header(p.number,p.sectionStart),footer=doc.parts().headers().footer(p.number,p.sectionStart);
+            List<WordBlock> header=p.headers.header(p.number,p.sectionStart),footer=p.headers.footer(p.number,p.sectionStart);
             if(!header.isEmpty()){BoxFlow h=measure(header,p.settings.contentWidth(),Region.HEADER,p.number);h.emit(new Collector(p,Region.HEADER),p.settings.left(),p.settings.headerDistance(),false);}
             if(!footer.isEmpty()){BoxFlow f=measure(footer,p.settings.contentWidth(),Region.FOOTER,p.number);f.emit(new Collector(p,Region.FOOTER),p.settings.left(),p.settings.height()-p.settings.footerDistance()-f.height(),false);}
         }
@@ -260,6 +364,19 @@ public class WordLayoutEngine {
         void paragraph(WordParagraph p,int start,WordLayoutFlow flow,boolean positional,String link) {
             WordParagraphStyle style=p.style();
             if(style.pageBreakBefore()&&flow.paginated()&&!flow.atTop()) flow.breakPage(false);
+            BoxFlow preview=null;
+            boolean explicitBreak=p.runs().stream().anyMatch(r->r instanceof WordObjectRun o&&o.object() instanceof WordBreak b&&b.kind()!=WordBreak.Kind.LINE);
+            if(flow.paginated()&&!explicitBreak&&(style.keepLines()||style.widowControl())){
+                preview=new BoxFlow(flow.width(),flow.region(),flow.pageNumber());
+                paragraph(p,0,preview,false,link);
+                if(style.keepLines()&&!flow.fits(preview.height())&&!flow.atTop())flow.breakPage(true);
+                if(style.widowControl()&&preview.lines.size()>1&&!flow.atTop()){
+                    int fit=fittingLines(preview,0,flow.remaining());
+                    if(fit<2||(preview.lines.size()==3&&fit==2))flow.breakPage(true);
+                }
+            }
+            if(!style.widowControl())preview=null;
+            int plannedBreak=preview==null?Integer.MAX_VALUE:widowBreak(preview,0,flow.remaining());
             flow.setY(flow.y()+style.before());
             boolean body=positional&&flow.region()==Region.BODY;
             if(body){if(style.headingLevel()>0)collected.headingPages.put(p.id(),flow.pageNumber());for(String b:p.bookmarks())collected.bookmarkPages.put(b,flow.pageNumber());}
@@ -287,11 +404,15 @@ public class WordLayoutEngine {
             while(measurer.getPosition()<Math.max(1,text.length())) {
                 checkCancelled();
                 int lineStart=measurer.getPosition();
+                if(flow.paginated()&&lineStart>=plannedBreak&&!flow.atTop()){
+                    flow.breakPage(true);shadeTop=flow.y();
+                    plannedBreak=widowBreak(preview,lineStart,flow.remaining());
+                }
                 float indent=firstLine?(markerText!=null&&first<0?0:first):0;
                 TextLayout markerLayout=null;
                 if(firstLine&&markerText!=null&&!markerText.isEmpty()){markerLayout=new TextLayout(markerText,emptyStyle.withVerticalAlign(WordTextStyle.VerticalAlign.BASELINE).font(),FONT_CONTEXT);if(first>=0)indent=first+markerLayout.getAdvance()+4;}
                 float x=flow.left()+left+indent,available=Math.max(12,flow.width()-left-right-indent);
-                float[] slot=flow.slot(flow.y(),baseSize*1.3f*style.lineSpacing(),x,available);
+                float[] slot=flow.slot(flow.y(),style.lineHeight(baseSize*1.3f,baseSize,false),x,available);
                 if(!Float.isNaN(slot[2])&&guard++<60){flow.setY(slot[2]);continue;}
                 x=slot[0];available=Math.max(12,slot[1]);
                 int limit=text.length();for(int b:breaks)if(b>=lineStart){limit=b+1;break;}
@@ -306,14 +427,15 @@ public class WordLayoutEngine {
                 boolean hasObject=false;
                 for(int i=lineStart;i<Math.min(lineEnd,text.length());i++) if(text.charAt(i)==WordObjectRun.PLACEHOLDER){WordObjectRun o=p.objectAt(i);if(o!=null&&!o.object().textual()&&!o.object().placement().floating())hasObject=true;}
                 float natural=line.getAscent()+line.getDescent()+line.getLeading();
-                float height=hasObject?natural+(style.lineSpacing()-1)*baseSize*1.2f:natural*style.lineSpacing();
-                if(flow.paginated()&&!flow.fits(height)&&!flow.atTop()&&guard++<400){flow.breakPage(false);measurer.setPosition(lineStart);shadeTop=flow.y();continue;}
+                float height=style.lineHeight(natural,baseSize,hasObject);
+                if(flow.paginated()&&!flow.fits(height)&&!flow.atTop()&&guard++<400){flow.breakPage(true);measurer.setPosition(lineStart);shadeTop=flow.y();plannedBreak=preview==null?Integer.MAX_VALUE:widowBreak(preview,lineStart,flow.remaining());continue;}
                 float visible=line.getVisibleAdvance();
                 float shift=switch(style.alignment()){case RIGHT->Math.max(0,available-visible);case CENTER->Math.max(0,(available-visible)/2);default->0;};
                 float baseline=flow.y()+line.getAscent();
+                if(style.lineSpacingRule()!=WordParagraphStyle.LineSpacingRule.AUTO)baseline+=(height>=natural?(height-natural)/2:height-natural);
                 int absStart=start<0?-1:start+Math.min(lineStart,text.length()),absEnd=start<0?-1:start+Math.min(lineEnd,text.length());
                 float markerX=flow.left()+left+first;
-                flow.addLine(new Line(absStart,absEnd,x+shift,baseline,line,available,flow.region(),false,markerLayout,markerX,link));
+                flow.addLine(new Line(absStart,absEnd,x+shift,baseline,line,available,flow.region(),false,markerLayout,markerX,link,flow.y(),height,style.lineSpacingRule()==WordParagraphStyle.LineSpacingRule.EXACT));
                 for(int i=lineStart;i<Math.min(lineEnd,text.length());i++) {
                     if(text.charAt(i)!=WordObjectRun.PLACEHOLDER) continue;
                     WordObjectRun run=p.objectAt(i);if(run==null) continue;
@@ -336,6 +458,25 @@ public class WordLayoutEngine {
                 for(char c:text.toCharArray()){shown.append(c==WordObjectRun.PLACEHOLDER?labels.getOrDefault(k,""):String.valueOf(c));k++;}
                 for(String b:p.bookmarks()) collected.bookmarkTexts.put(b,shown.toString());
             }
+        }
+
+        int fittingLines(BoxFlow preview,int from,float remaining) {
+            float origin=from==0?0:preview.lines.get(from).top();
+            int count=0;
+            for(int i=from;i<preview.lines.size();i++){
+                if(preview.lines.get(i).bottom()-origin>remaining+0.01f)break;
+                count++;
+            }
+            return count;
+        }
+        int widowBreak(BoxFlow preview,int offset,float remaining) {
+            if(preview==null)return Integer.MAX_VALUE;
+            int from=0;while(from<preview.lines.size()&&preview.lines.get(from).start()<offset)from++;
+            if(from>=preview.lines.size())return Integer.MAX_VALUE;
+            int fit=fittingLines(preview,from,remaining),total=preview.lines.size()-from;
+            if(total-fit==1&&fit>=2)fit--;
+            if(fit==0||fit>=total)return Integer.MAX_VALUE;
+            return preview.lines.get(from+fit).start();
         }
 
         void prepareObjects(WordParagraph p,WordLayoutFlow flow,float maxWidth,Map<Integer,java.awt.font.GraphicAttribute> graphics,Map<Integer,String> labels,boolean body) {
@@ -553,17 +694,17 @@ public class WordLayoutEngine {
 
         final class PageFlow implements WordLayoutFlow {
             public float y(){return page.y;}
-            public void setY(float value){page.y=value;}
-            public float left(){return continuous?page.settings.left():page.settings.left()+page.column*(page.settings.columnWidth()+page.settings.columnSpacing());}
-            public float width(){return continuous?continuousWidth:page.settings.columnWidth();}
-            public float top(){return page.settings.top();}
+            public void setY(float value){page.y=value;page.maxY=Math.max(page.maxY,value);}
+            public float left(){return continuous?settings.left():settings.left()+page.column*(settings.columnWidth()+settings.columnSpacing());}
+            public float width(){return continuous?continuousWidth:settings.columnWidth();}
+            public float top(){return page.columnTop;}
             public boolean paginated(){return !continuous;}
-            public boolean atTop(){return page.y<=page.bodyTop+0.5f;}
+            public boolean atTop(){return page.y<=page.columnTop+0.5f;}
             public float remaining(){return continuous?Float.MAX_VALUE:page.bodyBottom-page.noteReserve-page.y;}
             public boolean fits(float height){return continuous||page.y+height<=page.bodyBottom-page.noteReserve+0.01f;}
             public void breakPage(boolean columnOnly) {
                 if(continuous) return;
-                if(columnOnly&&page.column<page.settings.columns()-1){page.column++;page.y=page.bodyTop;return;}
+                if(columnOnly&&page.column<settings.columns()-1){page.column++;page.y=page.columnTop;return;}
                 finishPage();newPage(false);
             }
             public float[] slot(float top,float height,float x,float width) {
@@ -597,11 +738,11 @@ public class WordLayoutEngine {
     private record FloatBox(Rectangle2D.Float bounds,WordPlacement.Wrap wrap) {}
 
     private static final class PageBuilder {
-        final int index,number;final WordPageSettings settings;final boolean sectionStart;
+        final int index,number;final WordPageSettings settings;final boolean sectionStart;final WordHeaders headers;
         final List<Line> lines=new ArrayList<>();final List<Decoration> decorations=new ArrayList<>();final List<ObjectBox> objects=new ArrayList<>();
         final List<CellBox> cells=new ArrayList<>();final List<FloatBox> floats=new ArrayList<>();final List<String> notes=new ArrayList<>();
-        float bodyTop,bodyBottom,y,noteReserve;int column;
-        PageBuilder(int index,int number,WordPageSettings settings,boolean sectionStart){this.index=index;this.number=number;this.settings=settings;this.sectionStart=sectionStart;}
+        float bodyTop,bodyBottom,columnTop,maxY,y,noteReserve;int column,segmentLineStart;
+        PageBuilder(int index,int number,WordPageSettings settings,boolean sectionStart,WordHeaders headers){this.index=index;this.number=number;this.settings=settings;this.sectionStart=sectionStart;this.headers=headers;}
     }
 
     private static final class Collector implements WordLayoutFlow {

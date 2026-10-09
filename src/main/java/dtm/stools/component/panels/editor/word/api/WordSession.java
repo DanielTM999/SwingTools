@@ -73,7 +73,6 @@ public class WordSession {
             boolean forward=anchor<caret;
             if(ta>common){int[] r=d.tableRange(d.tableAt(anchor,common).orElseThrow().table().id());anchor=forward?r[0]:r[1];}
             if(tc>common){int[] r=d.tableRange(d.tableAt(caret,common).orElseThrow().table().id());caret=forward?r[1]:r[0];}
-            if(!d.sameContainer(anchor,caret)) return normalize(d,anchor,caret);
         }
         if(Math.abs(caret-anchor)==1) { WordObjectRun run=d.objectAt(Math.min(anchor,caret)); if(run!=null&&!run.object().textual()) return new WordObjectSelection(Math.min(anchor,caret),run.object().id()); }
         return new WordSelection(anchor,caret);

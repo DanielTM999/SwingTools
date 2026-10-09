@@ -42,7 +42,7 @@ public final class WordStyles {
         WordTextStyle t = paragraph.runs().isEmpty() ? WordTextStyle.DEFAULT : paragraph.runs().getFirst().style();
         WordParagraphStyle p = paragraph.style();
         WordStyleProperties props = new WordStyleProperties(t.family(),t.size(),t.bold(),t.italic(),t.underline(),t.color(),p.alignment(),p.before(),p.after(),p.lineSpacing(),
-                p.leftIndent(),p.firstLineIndent(),p.headingLevel(),p.keepWithNext());
+                p.leftIndent(),p.firstLineIndent(),p.headingLevel(),p.keepWithNext(),p.lineSpacingRule(),p.keepLines(),p.widowControl(),p.pageBreakBefore());
         return new WordNamedStyle(id,name,basedOn,props);
     }
 }

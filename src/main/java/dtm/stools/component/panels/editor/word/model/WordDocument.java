@@ -328,6 +328,35 @@ public final class WordDocument {
         int[] last = cellRange(tableId,lastRow,table.rows().get(lastRow).cells().size()-1);
         return new int[]{first[0],last[1]};
     }
+    public WordPageSettings sectionSettingsAt(int offset) {
+        for (int i=paragraphIndex(offset);i<paragraphs().size();i++) {
+            WordParagraph p=paragraphs().get(i);
+            if(pathOf(i).length==1&&p.sectionBreak()!=null)return p.sectionBreak();
+        }
+        return pageSettings;
+    }
+    public WordDocument withSectionSettingsAt(int offset, WordPageSettings value) {
+        Objects.requireNonNull(value);
+        for(int i=paragraphIndex(offset);i<paragraphs().size();i++) {
+            WordParagraph p=paragraphs().get(i);
+            if(pathOf(i).length==1&&p.sectionBreak()!=null)return replaceParagraphs(Map.of(p.id(),p.withSectionBreak(value)));
+        }
+        return withPageSettings(value);
+    }
+    public List<WordPageSettings> sections() {
+        List<WordPageSettings> result=new ArrayList<>();
+        for(WordBlock block:blocks)if(block instanceof WordParagraph p&&p.sectionBreak()!=null)result.add(p.sectionBreak());
+        result.add(pageSettings);return List.copyOf(result);
+    }
+    public WordHeaders headersAt(int offset) {
+        WordPageSettings target=sectionSettingsAt(offset);
+        WordHeaders headers=parts.headers();
+        for(WordPageSettings settings:sections()) {
+            if(!settings.section().equals(WordSectionProperties.DEFAULT))headers=settings.section().resolveHeaders(headers,parts.headers().differentOddEven());
+            if(settings==target)return headers;
+        }
+        return headers;
+    }
     public Set<String> usedResourceIds() {
         Set<String> ids = new HashSet<>();
         for (WordObjectRef ref : objects()) {
@@ -335,6 +364,7 @@ public final class WordDocument {
             if (ref.object() instanceof WordCustomObject custom && custom.previewResourceId() != null) ids.add(custom.previewResourceId());
         }
         for (List<WordBlock> part : parts.headers().parts().values()) collectResources(part,ids);
+        for (WordPageSettings section : sections()) for (List<WordBlock> part : section.section().headers().parts().values()) collectResources(part,ids);
         return ids;
     }
     private static void collectResources(List<WordBlock> blocks, Set<String> ids) {
@@ -367,10 +397,28 @@ public final class WordDocument {
     private WordDocument splice(int start, int end, List<WordBlock> middle, boolean ownStyles, WordParts nextParts) {
         int first = paragraphIndex(start), last = paragraphIndex(end);
         int[] a = paths.get(first), b = paths.get(last);
-        if (!sameContainer(start,end)) throw new IllegalArgumentException("Range crosses table cells; use cell operations");
         WordParagraph pa = paragraphs.get(first), pb = paragraphs.get(last);
         List<WordInline> prefix = pa.slice(0,start - starts[first]), suffix = pb.slice(end - starts[last],pb.length());
         int i = a[a.length-1], j = b[b.length-1];
+        int[] target = a;
+        if (!sameContainer(start,end)) {
+            int ta=(a.length-1)/3,tb=(b.length-1)/3,common=0;
+            while(common<ta&&common<tb&&a[3*common]==b[3*common]
+                    &&a[3*common+1]==b[3*common+1]&&a[3*common+2]==b[3*common+2]) common++;
+            if(common<ta&&common<tb&&a[3*common]==b[3*common])
+                throw new IllegalArgumentException("Range crosses table cells; use cell operations");
+            if(ta>common) {
+                WordTable table=tableAt(start,common).orElseThrow().table();
+                if(start!=tableRange(table.id())[0]) throw new IllegalArgumentException("Range starts inside a table");
+                prefix=List.of();
+            }
+            if(tb>common) {
+                WordTable table=tableAt(end,common).orElseThrow().table();
+                if(end!=tableRange(table.id())[1]) throw new IllegalArgumentException("Range ends inside a table");
+                suffix=List.of();
+            }
+            i=a[3*common];j=b[3*common];target=Arrays.copyOf(a,3*common+1);
+        }
         List<WordBlock> merged = new ArrayList<>();
         if (!(middle.getLast() instanceof WordParagraph)) { middle = new ArrayList<>(middle); middle.add(new WordParagraph(UUID.randomUUID(),List.of(),pa.style())); }
         for (int k = 0; k < middle.size(); k++) {
@@ -385,10 +433,11 @@ public final class WordDocument {
             WordParagraphStyle style = isFirst ? pa.style() : ownStyles ? p.style() : pa.style();
             merged.add(new WordParagraph(isFirst ? pa.id() : p.id(),runs,style,isFirst ? pa.bookmarks() : p.bookmarks(),isLast ? pb.sectionBreak() : null));
         }
-        List<WordBlock> result = update(blocks,a,0,container -> {
-            List<WordBlock> copy = new ArrayList<>(container.subList(0,i));
+        int from=i,to=j;
+        List<WordBlock> result = update(blocks,target,0,container -> {
+            List<WordBlock> copy = new ArrayList<>(container.subList(0,from));
             copy.addAll(merged);
-            copy.addAll(container.subList(j+1,container.size()));
+            copy.addAll(container.subList(to+1,container.size()));
             return copy;
         });
         return new WordDocument(result,pageSettings,nextParts);

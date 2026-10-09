@@ -51,6 +51,7 @@ final class DocxStylesXml {
     private static String emptyToNull(String v) { return v == null || v.isBlank() ? null : v; }
     static WordStyleProperties properties(Element rPr, Element pPr) throws IOException {
         String family = null; Float size = null; Boolean bold = null, italic = null, underline = null, keep = null; Integer color = null, heading = null;
+        WordParagraphStyle.LineSpacingRule rule = null; Boolean keepLines = null, widow = null, pageBreak = null;
         WordParagraphStyle.Alignment alignment = null; Float before = null, after = null, line = null, left = null, first = null;
         if (rPr != null) for (Element e : OoxmlXml.children(rPr)) {
             String v = OoxmlXml.attr(e,"val");
@@ -70,7 +71,8 @@ final class DocxStylesXml {
                 case "spacing" -> {
                     if (!OoxmlXml.attr(e,"before").isEmpty()) before = number(OoxmlXml.attr(e,"before"))/20;
                     if (!OoxmlXml.attr(e,"after").isEmpty()) after = number(OoxmlXml.attr(e,"after"))/20;
-                    if (!OoxmlXml.attr(e,"line").isEmpty() && Set.of("","auto").contains(OoxmlXml.attr(e,"lineRule"))) line = Math.max(0.5f,Math.min(10,number(OoxmlXml.attr(e,"line"))/240));
+                    if (!OoxmlXml.attr(e,"lineRule").isEmpty() || !OoxmlXml.attr(e,"line").isEmpty()) rule = lineRule(OoxmlXml.attr(e,"lineRule"));
+                    if (!OoxmlXml.attr(e,"line").isEmpty()) line = number(OoxmlXml.attr(e,"line"))/(rule == WordParagraphStyle.LineSpacingRule.AUTO ? 240 : 20);
                 }
                 case "ind" -> {
                     String l = OoxmlXml.attr(e,"left"); if (l.isEmpty()) l = OoxmlXml.attr(e,"start");
@@ -80,10 +82,13 @@ final class DocxStylesXml {
                 }
                 case "outlineLvl" -> { int lvl = (int)number(OoxmlXml.attr(e,"val")); heading = lvl >= 0 && lvl < 9 ? lvl+1 : 0; }
                 case "keepNext" -> keep = on(OoxmlXml.attr(e,"val"));
+                case "keepLines" -> keepLines = on(OoxmlXml.attr(e,"val"));
+                case "pageBreakBefore" -> pageBreak = on(OoxmlXml.attr(e,"val"));
+                case "widowControl" -> widow = on(OoxmlXml.attr(e,"val"));
                 default -> { }
             }
         }
-        try { return new WordStyleProperties(family,size,bold,italic,underline,color,alignment,before,after,line,left,first,heading,keep); }
+        try { return new WordStyleProperties(family,size,bold,italic,underline,color,alignment,before,after,line,left,first,heading,keep,rule,keepLines,widow,pageBreak); }
         catch (IllegalArgumentException e) { throw new IOException("Invalid style properties",e); }
     }
     static WordParagraphStyle.Alignment alignment(String v) {
@@ -108,12 +113,16 @@ final class DocxStylesXml {
     }
     static String pPr(WordStyleProperties p) {
         StringBuilder b = new StringBuilder();
-        if (Boolean.TRUE.equals(p.keepWithNext())) b.append("<w:keepNext/>");
-        if (p.before() != null || p.after() != null || p.lineSpacing() != null) {
+        if (p.keepWithNext() != null) b.append("<w:keepNext w:val=\"").append(p.keepWithNext() ? 1 : 0).append("\"/>");
+        if (p.keepLines() != null) b.append("<w:keepLines w:val=\"").append(p.keepLines() ? 1 : 0).append("\"/>");
+        if (p.pageBreakBefore() != null) b.append("<w:pageBreakBefore w:val=\"").append(p.pageBreakBefore() ? 1 : 0).append("\"/>");
+        if (p.widowControl() != null) b.append("<w:widowControl w:val=\"").append(p.widowControl() ? 1 : 0).append("\"/>");
+        if (p.before() != null || p.after() != null || p.lineSpacing() != null || p.lineSpacingRule() != null) {
             b.append("<w:spacing");
             if (p.before() != null) b.append(" w:before=\"").append(twips(p.before())).append('"');
             if (p.after() != null) b.append(" w:after=\"").append(twips(p.after())).append('"');
-            if (p.lineSpacing() != null) b.append(" w:line=\"").append(Math.round(p.lineSpacing()*240)).append("\" w:lineRule=\"auto\"");
+            if (p.lineSpacing() != null) b.append(" w:line=\"").append(lineValue(p.lineSpacing(),p.lineSpacingRule())).append('"');
+            if (p.lineSpacingRule() != null || p.lineSpacing() != null) b.append(" w:lineRule=\"").append(lineRuleXml(p.lineSpacingRule())).append('"');
             b.append("/>");
         }
         if (p.leftIndent() != null || p.firstLineIndent() != null) {
@@ -136,13 +145,28 @@ final class DocxStylesXml {
         if (p.underline() != null) b.append("<w:u w:val=\"").append(p.underline() ? "single" : "none").append("\"/>");
         return b.isEmpty() ? "" : "<w:rPr>" + b + "</w:rPr>";
     }
+    static WordParagraphStyle.LineSpacingRule lineRule(String value) throws IOException {
+        return switch (value) {
+            case "", "auto" -> WordParagraphStyle.LineSpacingRule.AUTO;
+            case "exact" -> WordParagraphStyle.LineSpacingRule.EXACT;
+            case "atLeast" -> WordParagraphStyle.LineSpacingRule.AT_LEAST;
+            default -> throw new IOException("Unsupported line spacing rule: " + value);
+        };
+    }
+    static String lineRuleXml(WordParagraphStyle.LineSpacingRule rule) {
+        if (rule == null) return "auto";
+        return switch (rule) { case AUTO -> "auto"; case EXACT -> "exact"; case AT_LEAST -> "atLeast"; };
+    }
+    static int lineValue(float value, WordParagraphStyle.LineSpacingRule rule) {
+        return Math.round(value * (rule == null || rule == WordParagraphStyle.LineSpacingRule.AUTO ? 240 : 20));
+    }
     static String jc(WordParagraphStyle.Alignment a) { return switch (a) { case LEFT -> "left"; case CENTER -> "center"; case RIGHT -> "right"; case JUSTIFY -> "both"; }; }
     static String twips(float n) { return Integer.toString(Math.round(n*20)); }
 
     static byte[] writeStyles(WordStyleSheet sheet, byte[] original, WordStyleSheet originalSheet, String ns) throws IOException {
         WordStyleProperties text = new WordStyleProperties(sheet.defaultText().family(),sheet.defaultText().size(),null,null,null,null,null,null,null,null,null,null,null,null);
         WordParagraphStyle dp = sheet.defaultParagraph();
-        WordStyleProperties paragraph = new WordStyleProperties(null,null,null,null,null,null,null,dp.before(),dp.after(),dp.lineSpacing(),null,null,null,null);
+        WordStyleProperties paragraph = new WordStyleProperties(null,null,null,null,null,null,null,dp.before(),dp.after(),dp.lineSpacing(),null,null,null,dp.keepWithNext(),dp.lineSpacingRule(),dp.keepLines(),dp.widowControl(),dp.pageBreakBefore());
         if (original != null) {
             Document document = OoxmlXml.parse(original); Element root = document.getDocumentElement();
             Map<String,Element> existing = new HashMap<>();

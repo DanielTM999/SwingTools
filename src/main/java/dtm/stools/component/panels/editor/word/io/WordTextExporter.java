@@ -73,6 +73,10 @@ public final class WordTextExporter {
         out.append('<').append(tag).append(" style=\"white-space:pre-wrap;text-align:").append(s.alignment().name().toLowerCase(Locale.ROOT))
                 .append(";margin:").append(s.before()).append("pt ").append(s.rightIndent()).append("pt ").append(s.after()).append("pt ")
                 .append(s.leftIndent()).append("pt;text-indent:").append(s.firstLineIndent()).append("pt;line-height:").append(s.lineSpacing());
+        if(s.lineSpacingRule()!=WordParagraphStyle.LineSpacingRule.AUTO)out.append("pt");
+        if(s.keepLines())out.append(";break-inside:avoid");
+        if(s.keepWithNext())out.append(";break-after:avoid");
+        out.append(s.widowControl()?";widows:2;orphans:2":";widows:1;orphans:1");
         if (s.shading() != null) out.append(";background:#").append(hex(s.shading()));
         if (s.pageBreakBefore()) out.append(";page-break-before:always");
         out.append("\">");

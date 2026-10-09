@@ -21,6 +21,8 @@ public class WordRenderer {
             for(var d:page.decorations()) if(d.kind()==WordLayout.Decoration.Kind.FILL){g.setColor(new Color(d.color()));g.fill(d.shape());}
             for(var o:page.objects()) if(o.behindText()) paintObject(g,page,o);
             for(var line:page.lines()) {
+                Shape previousClip=g.getClip();
+                if(line.clipToBox())g.clip(new java.awt.geom.Rectangle2D.Float(0,line.top(),page.width(),line.boxHeight()));
                 if(selection!=null&&line.positional()&&selectionColor!=null) {
                     int from=Math.max(line.start(),selection.start()),to=Math.min(line.end(),selection.end());
                     if(from<to) {
@@ -31,6 +33,7 @@ public class WordRenderer {
                 g.setColor(Color.BLACK);
                 if(line.marker()!=null) line.marker().draw(g,line.markerX(),line.baseline());
                 line.text().draw(g,line.x(),line.baseline());
+                g.setClip(previousClip);
             }
             for(var d:page.decorations()) {
                 if(d.kind()==WordLayout.Decoration.Kind.FILL) continue;
@@ -49,6 +52,13 @@ public class WordRenderer {
     }
     protected void paintObject(Graphics2D g,WordLayout.Page page,WordLayout.ObjectBox box) {
         if(box.object().textual()) return;
-        registry.paint(g,box.object(),box.bounds(),page.document());
+        Graphics2D objectGraphics=(Graphics2D)g.create();
+        try {
+            if(!box.floating())for(var line:page.lines())if(line.clipToBox()&&line.region()==box.region()
+                    &&(box.interactive()?box.offset()>=line.start()&&box.offset()<line.end():box.y()<line.bottom()&&box.y()+box.height()>line.top())){
+                objectGraphics.clip(new java.awt.geom.Rectangle2D.Float(0,line.top(),page.width(),line.boxHeight()));break;
+            }
+            registry.paint(objectGraphics,box.object(),box.bounds(),page.document());
+        } finally { objectGraphics.dispose(); }
     }
 }

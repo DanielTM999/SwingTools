@@ -67,7 +67,8 @@ O host padrão usa o ciclo modal síncrono do Swing, com desenho na EDT, e herda
 ## Funcionalidades atuais
 
 - Parágrafos e trechos formatados, fonte, tamanho, negrito, itálico, sublinhado, tachado e cores no modelo.
-- Alinhamento, espaçamento, recuos, títulos, tamanho da página e margens.
+- Alinhamento, espaçamento automático/exato/mínimo, recuos, títulos, controle de viúvas/órfãs e regras de manter parágrafos juntos.
+- Seções com tamanho, orientação, margens, colunas, numeração e cabeçalhos/rodapés próprios.
 - Texto Unicode, seleção por limites de grafemas, entrada IME e exposição via `AccessibleText`.
 - Desfazer/refazer, comandos transacionais e snapshots imutáveis.
 - Paginação Java2D, zoom independente da composição e modo contínuo.
@@ -104,23 +105,57 @@ Os arquivos são processados fora da EDT. A publicação de resultados ocorre na
 
 `save` grava exatamente o snapshot capturado. Edições posteriores permanecem marcadas como não salvas. A substituição exige suporte a movimento atômico no sistema de arquivos; se não houver, a tarefa falha conservando o destino anterior.
 
-## Compatibilidade DOCX desta entrega
+## Compatibilidade DOCX
+
+O alvo de interoperabilidade é DOCX local, tanto do Microsoft Word quanto exportado pelo Google Docs. Não há acesso online ao Google Docs nem leitura de `.doc` binário ou documentos com macros.
 
 | Conteúdo | Situação |
 |---|---|
-| Texto, caracteres Unicode e formatação direta suportada | Leitura, edição e escrita |
-| Parágrafos com propriedades suportadas e seção final simples | Leitura, edição e escrita |
+| Texto Unicode, formatação direta e estilos de parágrafo/caractere suportados | Leitura, edição e escrita |
+| Espaçamento automático, exato e mínimo; manter com o próximo, manter linhas juntas e viúvas/órfãs | Modelo, estilos herdados, composição, formulário e DOCX |
+| Seções: próxima página, contínua, página par/ímpar e próxima coluna | Leitura, composição e escrita; geometria, colunas e numeração por seção |
+| Cabeçalhos/rodapés por seção, primeira página e páginas pares/ímpares | Conteúdo independente por variante e vínculo com a seção anterior |
+| Listas, tabelas, imagens e objetos reconhecidos pelo codec | Suporte existente; propriedades avançadas ainda podem ser aproximadas ou preservadas sem editor |
 | Namespace WordprocessingML Transitional/Strict | Reconhecimento e manutenção do namespace; sem certificação de conformidade integral |
-| Partes opacas não alteradas | Preservadas no pacote |
+| Conteúdo/partes não suportados e não alterados | Preservação do XML, partes e relacionamentos; apresentação pode ser parcial |
 | Arquivo importado sem alterações | Salvamento dos bytes originais |
-| Estilos externos, configurações avançadas, listas, tabelas, imagens e outros objetos | Importação protegida; apresentação parcial com diagnósticos, sem editor completo |
-| PDF | Ponto de extensão disponível; adaptador PDFBox ainda pendente |
+| Assinatura digital, proteção de edição ou geometria de seção inválida | Somente leitura, com motivo específico |
+| PDF | Exportador PDFBox em `WordPdfExportProvider` |
 
-Qualquer marcação reconhecida como não suportada torna a sessão importada somente leitura. A visualização pode conter apenas o texto disponível ou marcadores de objetos; ela não representa a aparência completa do documento original. O codec rejeita a gravação de um modelo alterado que descartaria conteúdo protegido. O aplicativo pode explicitamente criar um novo documento com o texto extraído, mas essa é uma conversão com perda.
+Diagnósticos de conteúdo preservado não tornam automaticamente todo o documento somente leitura. `getDiagnostics()` informa aproximações e conteúdo sem editor; `WordImportResult.blockingReasons()` informa impedimentos de edição. O codec rejeita alterações de geometria em colunas com larguras individuais, pois o modelo atual compõe colunas iguais. Margem de encadernação e outras propriedades de seção ainda sem composição são preservadas com diagnóstico.
 
-Os testes atuais usam arquivos gerados e fixtures programáticas. A homologação com a versão congelada do Word do Microsoft 365, seus arquivos reais e a galeria completa ainda não foi realizada.
+### Seleção e aparência de tabelas
 
-`getDiagnostics()` retorna as limitações de importação. `getFontSubstitutions()` informa as substituições de fontes feitas pelo JDK. Fontes não são distribuídas com o componente.
+Clique dentro de uma tabela para abrir a aba **Tabela**. O grupo **Seleção** permite selecionar uma célula inteira, uma linha, uma coluna ou a tabela. **Ctrl+clique** dentro de uma célula também seleciona a célula inteira; clicar e arrastar normalmente continua selecionando texto. Os mesmos comandos estão disponíveis no menu do botão direito, que usa a tabela sob o ponteiro.
+
+Para remover a estrutura, use **Excluir tabela** na aba ou no menu do botão direito. **Delete/Backspace** sobre células selecionadas limpa seu conteúdo. Todas as alterações de conteúdo podem ser desfeitas e refeitas.
+
+**Tabela → Estilo → Cores alternadas…** aplica duas cores alternadas à tabela inteira ou a um intervalo definido pelos campos **Linha inicial** e **Linha final**. A numeração começa em 1 e inclui o cabeçalho; linhas fora do intervalo mantêm seus preenchimentos. A alternância começa pela primeira cor no intervalo escolhido, desconsiderando cabeçalhos preservados. Há paletas azul, verde e cinza, cores personalizadas, alternância a cada uma ou mais linhas e opção de preservar as cores das linhas marcadas como cabeçalho. O formulário mostra uma prévia. Esse recurso é opcional: novas tabelas continuam usando o formato padrão. As cores são gravadas como preenchimentos das células e preservadas no DOCX; após inserir ou reorganizar linhas, reaplique o comando para atualizar a alternância.
+
+### Parágrafos e seções
+
+**Página Inicial → Espaçamento → Parágrafo…** abre espaçamento antes/depois, recuos, espaçamento entre linhas e regras de paginação. Os atalhos de espaçamento continuam selecionando múltiplos automáticos. Em **Layout → Configurar página**, as opções se aplicam à seção da seleção; **Início da seção** escolhe seu tipo de quebra. Uma quebra contínua mantém a página quando a geometria do papel é compatível; uma troca de tamanho/orientação inicia outra página. Colunas de texto simples são equilibradas ao terminar uma seção contínua; balanceamento com tabelas, objetos ou notas permanece uma limitação.
+
+O espaçamento exato usa pontos e recorta conteúdo que excede a caixa da linha. O mínimo usa o maior valor entre a medida natural e o mínimo solicitado. Regras de manter linhas juntas e viúvas/órfãs cedem quando o conteúdo não cabe em uma página, evitando paginação sem progresso. Quebras explícitas de página/coluna prevalecem.
+
+Cabeçalhos e rodapés editam a seção atual. O formulário permite desvincular cada variante da seção anterior, mantendo seu conteúdo herdado. Alterar apenas opções ou vínculo conserva a formatação e os objetos existentes. Conteúdo com objetos que o formulário de texto não consegue editar permanece protegido contra substituição por texto. Aplicar o formulário gera uma única entrada no histórico. Páginas pares/ímpares diferentes são uma configuração global do DOCX; primeira página diferente é uma configuração de cada seção.
+
+```java
+var document = editor.getDocument();
+var paragraph = document.paragraphAt(0).style()
+        .withLineSpacing(WordParagraphStyle.LineSpacingRule.EXACT, 18)
+        .withKeepLines(true).withWidowControl(true);
+var section = document.sectionSettingsAt(0);
+var continuous = section.withSection(section.section()
+        .withBreakType(WordSectionProperties.BreakType.CONTINUOUS));
+var effectiveHeaders = document.headersAt(0);
+```
+
+`WordPageSettings.section()` contém o tipo de início, cabeçalhos próprios, vínculos, referências originais e propriedades XML preservadas. As propriedades ficam no parágrafo que termina a seção; a última seção usa `WordDocument.pageSettings()`. `sectionSettingsAt`, `withSectionSettingsAt`, `sections` e `headersAt` permitem trabalhar com esse modelo. `WordParts.headers()` continua sendo a base global para documentos criados pela API antiga e para a opção de páginas pares/ímpares. Os construtores anteriores de `WordPageSettings`, `WordParagraphStyle`, `WordStyleProperties` e `WordLayout.Line` continuam disponíveis.
+
+`WordFidelityTest` cobre edição e reabertura, herança e desligamento explícito de regras, caixas de linhas, páginas pares/ímpares, continuidade, balanceamento de texto, cabeçalhos vinculados/independentes, imagens, preservação de XML e histórico. Os testes de UI e os testes visuais também incluem os formulários novos. As fixtures são programáticas; homologação visual com arquivos reais e versões identificadas do Word e do Google Docs ainda não foi realizada. Fontes instaladas influenciam quebra de linha e paginação; `getFontSubstitutions()` informa substituições do JDK.
+
+As regras de espaçamento e início de seção seguem a referência oficial de [SpacingBetweenLines](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.spacingbetweenlines.line) e [SectionType](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.sectiontype).
 
 ## Extensões
 
