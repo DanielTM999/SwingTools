@@ -59,6 +59,8 @@ public record CellAddress(int row, int column) implements Comparable<CellAddress
     public String toA1() { return columnName(column) + (row + 1); }
     public String toAbsolute() { return "$" + columnName(column) + "$" + (row + 1); }
 
-    @Override public int compareTo(CellAddress o) { return row != o.row ? Integer.compare(row, o.row) : Integer.compare(column, o.column); }
-    @Override public String toString() { return toA1(); }
+    @Override
+    public int compareTo(CellAddress o) { return row != o.row ? Integer.compare(row, o.row) : Integer.compare(column, o.column); }
+    @Override
+    public String toString() { return toA1(); }
 }

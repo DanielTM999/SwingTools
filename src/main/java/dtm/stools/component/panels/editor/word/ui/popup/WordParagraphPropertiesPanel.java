@@ -27,8 +27,10 @@ public final class WordParagraphPropertiesPanel extends WordPropertiesPanel<Word
         });
     }
     private void check(JCheckBox box,boolean selected){box.setOpaque(false);box.setSelected(selected);row(null,box);}
-    @Override public String title(){return "Parágrafo";}
-    @Override public WordParagraphStyle result(){
+    @Override
+    public String title(){return "Parágrafo";}
+    @Override
+    public WordParagraphStyle result(){
         return current.withSpacing(value(before),value(after),1)
                 .withLineSpacing(WordParagraphStyle.LineSpacingRule.values()[rule.getSelectedIndex()],value(line))
                 .withIndents(value(left),value(right),value(first)).withKeepWithNext(keepNext.isSelected())

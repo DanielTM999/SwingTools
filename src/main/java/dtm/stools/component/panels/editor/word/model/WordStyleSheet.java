@@ -86,6 +86,8 @@ public final class WordStyleSheet {
         return result.withStyleId(styleId);
     }
     public String nextStyle(String styleId) { return get(styleId).map(WordNamedStyle::next).orElse(styleId != null && styleId.startsWith("Heading") || "Title".equals(styleId) || "Subtitle".equals(styleId) ? NORMAL : styleId); }
-    @Override public boolean equals(Object o) { return o instanceof WordStyleSheet s && s.styles.equals(styles) && s.defaultText.equals(defaultText) && s.defaultParagraph.equals(defaultParagraph); }
-    @Override public int hashCode() { return Objects.hash(styles,defaultText,defaultParagraph); }
+    @Override
+    public boolean equals(Object o) { return o instanceof WordStyleSheet s && s.styles.equals(styles) && s.defaultText.equals(defaultText) && s.defaultParagraph.equals(defaultParagraph); }
+    @Override
+    public int hashCode() { return Objects.hash(styles,defaultText,defaultParagraph); }
 }

@@ -33,10 +33,13 @@ public final class PdfIcon implements Icon {
     public static PdfIcon large(String name) { return new PdfIcon(name, 28); }
 
     public String name() { return name; }
-    @Override public int getIconWidth() { return size; }
-    @Override public int getIconHeight() { return size; }
+    @Override
+    public int getIconWidth() { return size; }
+    @Override
+    public int getIconHeight() { return size; }
 
-    @Override public void paintIcon(Component component, Graphics original, int x, int y) {
+    @Override
+    public void paintIcon(Component component, Graphics original, int x, int y) {
         Graphics2D g = (Graphics2D) original.create();
         try {
             g.translate(x, y);

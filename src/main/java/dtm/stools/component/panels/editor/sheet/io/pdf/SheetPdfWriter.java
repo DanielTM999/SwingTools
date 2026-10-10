@@ -114,8 +114,11 @@ public final class SheetPdfWriter {
 
         void ascii(String s) throws IOException { write(s.getBytes(StandardCharsets.ISO_8859_1)); }
 
-        @Override public void write(int b) throws IOException { out.write(b); count++; }
-        @Override public void write(byte[] b, int off, int len) throws IOException { out.write(b, off, len); count += len; }
-        @Override public void flush() throws IOException { out.flush(); }
+        @Override
+        public void write(int b) throws IOException { out.write(b); count++; }
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException { out.write(b, off, len); count += len; }
+        @Override
+        public void flush() throws IOException { out.flush(); }
     }
 }

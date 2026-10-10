@@ -15,15 +15,18 @@ public class ColorButton extends JButton {
         this.argb = initial;
         this.noneLabel = noneLabel;
         setIcon(new Icon() {
-            @Override public void paintIcon(Component c, Graphics g, int x, int y) {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
                 if (argb == null) { g.setColor(Color.GRAY); g.drawRect(x, y, 27, 13); g.drawLine(x, y + 13, x + 27, y); return; }
                 g.setColor(new Color(argb, true));
                 g.fillRect(x, y, 28, 14);
                 g.setColor(Color.DARK_GRAY);
                 g.drawRect(x, y, 27, 13);
             }
-            @Override public int getIconWidth() { return 28; }
-            @Override public int getIconHeight() { return 14; }
+            @Override
+            public int getIconWidth() { return 28; }
+            @Override
+            public int getIconHeight() { return 14; }
         });
         setText(initial == null ? noneLabel : null);
         addActionListener(e -> {

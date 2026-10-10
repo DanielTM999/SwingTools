@@ -128,9 +128,12 @@ public class FormatCellsPanel extends JPanel {
         decimals.addChangeListener(e -> rebuildNumber());
         thousands.addActionListener(e -> rebuildNumber());
         code.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { updatePreview(); }
-            @Override public void removeUpdate(DocumentEvent e) { updatePreview(); }
-            @Override public void changedUpdate(DocumentEvent e) { updatePreview(); }
+            @Override
+            public void insertUpdate(DocumentEvent e) { updatePreview(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { updatePreview(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { updatePreview(); }
         });
         return p;
     }

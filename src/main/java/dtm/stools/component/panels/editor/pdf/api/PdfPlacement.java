@@ -11,7 +11,10 @@ public record PdfPlacement(int page, Point2D.Float point, Rectangle2D.Float boun
         stroke = stroke == null ? new float[0] : stroke.clone();
     }
     public boolean dragged() { return bounds.width >= 4 && bounds.height >= 4; }
-    @Override public Point2D.Float point() { return (Point2D.Float) point.clone(); }
-    @Override public Rectangle2D.Float bounds() { return (Rectangle2D.Float) bounds.clone(); }
-    @Override public float[] stroke() { return stroke.clone(); }
+    @Override
+    public Point2D.Float point() { return (Point2D.Float) point.clone(); }
+    @Override
+    public Rectangle2D.Float bounds() { return (Rectangle2D.Float) bounds.clone(); }
+    @Override
+    public float[] stroke() { return stroke.clone(); }
 }

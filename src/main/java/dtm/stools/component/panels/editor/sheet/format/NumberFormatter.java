@@ -31,7 +31,8 @@ public class NumberFormatter {
     private final Locale locale;
     private final boolean date1904;
     private final Map<String, Format> cache = new LinkedHashMap<>(64, .75f, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, Format> e) { return size() > 512; }
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Format> e) { return size() > 512; }
     };
 
     public NumberFormatter() { this(Locale.forLanguageTag("pt-BR"), false); }
@@ -355,7 +356,8 @@ public class NumberFormatter {
         final Kind kind;
         final String text;
         Token(Kind kind, String text) { this.kind = kind; this.text = text; }
-        @Override public String toString() { return kind + ":" + text; }
+        @Override
+        public String toString() { return kind + ":" + text; }
     }
 
     static final class Section {

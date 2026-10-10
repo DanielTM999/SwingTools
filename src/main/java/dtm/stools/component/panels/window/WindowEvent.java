@@ -51,16 +51,21 @@ public class WindowEvent implements EventComponent {
         return type.isInstance(value) ? type.cast(value) : null;
     }
 
-    @Override public Component getComponent() { return source; }
-    @Override public Object getValue() { return window; }
+    @Override
+    public Component getComponent() { return source; }
+    @Override
+    public Object getValue() { return window; }
 
     @SuppressWarnings("unchecked")
-    @Override public <T> T tryGetValue() {
+    @Override
+    public <T> T tryGetValue() {
         try { return (T) window; } catch (Exception ignored) { return null; }
     }
 
-    @Override public String getEventType() { return eventType; }
-    @Override public Map<String, Object> getProperties() { return properties; }
+    @Override
+    public String getEventType() { return eventType; }
+    @Override
+    public Map<String, Object> getProperties() { return properties; }
 
     private static Rectangle copy(Rectangle rectangle) {
         return rectangle == null ? null : new Rectangle(rectangle);

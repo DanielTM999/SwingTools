@@ -8,5 +8,6 @@ public record WordOpaqueBlock(UUID id, String label, String xml, String previewT
         Objects.requireNonNull(id); Objects.requireNonNull(label); Objects.requireNonNull(xml);
         previewText = previewText == null ? "" : previewText;
     }
-    @Override public String plainText() { return previewText; }
+    @Override
+    public String plainText() { return previewText; }
 }

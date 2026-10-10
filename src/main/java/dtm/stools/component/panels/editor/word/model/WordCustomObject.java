@@ -22,12 +22,18 @@ public record WordCustomObject(String id, String customType, Map<String,String> 
     public static WordCustomObject of(String customType, Map<String,String> data, float width, float height) {
         return new WordCustomObject(WordIds.next(),customType,data,width,height,"",WordPlacement.INLINE,null);
     }
-    @Override public String type() { return customType; }
-    @Override public WordCustomObject withId(String value) { return new WordCustomObject(value,customType,data,width,height,altText,placement,previewResourceId); }
-    @Override public WordCustomObject resize(float w, float h) { return new WordCustomObject(id,customType,data,w,h,altText,placement,previewResourceId); }
-    @Override public WordCustomObject withPlacement(WordPlacement value) { return new WordCustomObject(id,customType,data,width,height,altText,value,previewResourceId); }
-    @Override public WordCustomObject withAltText(String value) { return new WordCustomObject(id,customType,data,width,height,value,placement,previewResourceId); }
+    @Override
+    public String type() { return customType; }
+    @Override
+    public WordCustomObject withId(String value) { return new WordCustomObject(value,customType,data,width,height,altText,placement,previewResourceId); }
+    @Override
+    public WordCustomObject resize(float w, float h) { return new WordCustomObject(id,customType,data,w,h,altText,placement,previewResourceId); }
+    @Override
+    public WordCustomObject withPlacement(WordPlacement value) { return new WordCustomObject(id,customType,data,width,height,altText,value,previewResourceId); }
+    @Override
+    public WordCustomObject withAltText(String value) { return new WordCustomObject(id,customType,data,width,height,value,placement,previewResourceId); }
     public WordCustomObject withData(Map<String,String> value) { return new WordCustomObject(id,customType,value,width,height,altText,placement,previewResourceId); }
     public WordCustomObject withPreview(String resourceId) { return new WordCustomObject(id,customType,data,width,height,altText,placement,resourceId); }
-    @Override public String plainText() { return altText.isBlank() ? "[" + customType + "]" : "[" + altText + "]"; }
+    @Override
+    public String plainText() { return altText.isBlank() ? "[" + customType + "]" : "[" + altText + "]"; }
 }

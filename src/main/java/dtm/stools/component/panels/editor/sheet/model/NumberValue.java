@@ -36,5 +36,6 @@ public record NumberValue(double value) implements CellValue {
         return s;
     }
 
-    @Override public String toString() { return general(value); }
+    @Override
+    public String toString() { return general(value); }
 }

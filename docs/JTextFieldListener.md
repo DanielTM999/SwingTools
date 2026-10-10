@@ -31,6 +31,20 @@ JTextField
 
 Subclasses podem usar `dispachEvent(...)` para emitir eventos e `registerValidEvents(...)` para limitar eventos aceitos.
 
+## Apresentação do campo
+
+`setLabel(String)` define o rótulo e o nome acessível. `setFieldLayoutManager(FieldLayoutManager)` instala uma estratégia visual no próprio campo; `null` restaura a apresentação convencional. Os getters correspondentes permitem consultar as propriedades.
+
+```java
+MaskedTextField cpf = new MaskedTextField("###.###.###-##", 20);
+cpf.setLabel("CPF");
+MaterialLayout material = new MaterialLayout();
+cpf.setFieldLayoutManager(material);
+material.setError("CPF inválido");
+```
+
+O contrato fica em `dtm.stools.component.inputfields.textfield.layout`. Consulte [MaterialLayout](MaterialLayout.md) para configuração, ciclo de vida e criação de outras estratégias. As subclasses herdam a API; máscaras e eventos continuam sob responsabilidade do campo.
+
 ## Exemplo de subclasse
 
 ```java

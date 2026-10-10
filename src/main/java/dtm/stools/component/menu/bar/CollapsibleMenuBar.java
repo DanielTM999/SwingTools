@@ -431,14 +431,17 @@ public class CollapsibleMenuBar extends MenuBar {
     protected void watchMenu(Menu menu) {
         if (!watchedMenus.add(menu)) return;
         menu.addMenuListener(new MenuListener() {
-            @Override public void menuSelected(MenuEvent e) {
+            @Override
+            public void menuSelected(MenuEvent e) {
             }
 
-            @Override public void menuDeselected(MenuEvent e) {
+            @Override
+            public void menuDeselected(MenuEvent e) {
                 scheduleAutoCollapse();
             }
 
-            @Override public void menuCanceled(MenuEvent e) {
+            @Override
+            public void menuCanceled(MenuEvent e) {
                 scheduleAutoCollapse();
             }
         });
@@ -597,12 +600,14 @@ public class CollapsibleMenuBar extends MenuBar {
 
     private void installMenuSync() {
         addContainerListener(new ContainerAdapter() {
-            @Override public void componentAdded(ContainerEvent e) {
+            @Override
+            public void componentAdded(ContainerEvent e) {
                 if (syncingInternally) return;
                 syncCollapsedMenus();
             }
 
-            @Override public void componentRemoved(ContainerEvent e) {
+            @Override
+            public void componentRemoved(ContainerEvent e) {
                 if (syncingInternally) return;
                 syncCollapsedMenus();
             }

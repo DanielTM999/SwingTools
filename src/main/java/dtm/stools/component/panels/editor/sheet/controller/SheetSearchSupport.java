@@ -28,7 +28,8 @@ final class SheetSearchSupport implements SheetSearchContext {
 
     SheetSearchSupport(SheetEditor editor) { this.editor = editor; }
 
-    @Override public Component owner() { return editor; }
+    @Override
+    public Component owner() { return editor; }
 
     private Pattern pattern(String query, SheetSearchOptions o) {
         String q = o.regex() ? query : wildcard(query);

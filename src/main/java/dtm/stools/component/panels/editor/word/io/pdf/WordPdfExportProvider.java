@@ -31,10 +31,13 @@ public final class WordPdfExportProvider implements WordExportProvider {
         if (!Double.isFinite(dpi) || dpi < 72 || dpi > 600) throw new IllegalArgumentException("DPI must be 72..600");
         this.id = Objects.requireNonNull(id); this.dpi = dpi; this.renderer = Objects.requireNonNull(renderer);
     }
-    @Override public String id() { return id; }
-    @Override public String extension() { return "pdf"; }
+    @Override
+    public String id() { return id; }
+    @Override
+    public String extension() { return "pdf"; }
 
-    @Override public void export(WordDocument document, WordLayout layout, OutputStream output) throws IOException {
+    @Override
+    public void export(WordDocument document, WordLayout layout, OutputStream output) throws IOException {
         List<Integer> offsets = new ArrayList<>();
         ByteCounter out = new ByteCounter(output);
         out.write("%PDF-1.4\n%âãÏÓ\n".getBytes(StandardCharsets.ISO_8859_1));
@@ -85,8 +88,11 @@ public final class WordPdfExportProvider implements WordExportProvider {
     private static final class ByteCounter extends OutputStream {
         private final OutputStream target; int count;
         ByteCounter(OutputStream target) { this.target = target; }
-        @Override public void write(int b) throws IOException { target.write(b); count++; }
-        @Override public void write(byte[] b, int off, int len) throws IOException { target.write(b,off,len); count += len; }
-        @Override public void flush() throws IOException { target.flush(); }
+        @Override
+        public void write(int b) throws IOException { target.write(b); count++; }
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException { target.write(b,off,len); count += len; }
+        @Override
+        public void flush() throws IOException { target.flush(); }
     }
 }

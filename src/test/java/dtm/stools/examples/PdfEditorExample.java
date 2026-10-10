@@ -21,7 +21,8 @@ public final class PdfEditorExample {
             frame.setLocationRelativeTo(null);
             frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override public void windowClosed(java.awt.event.WindowEvent event) { editor.close(); }
+                @Override
+                public void windowClosed(java.awt.event.WindowEvent event) { editor.close(); }
             });
             frame.setVisible(true);
             if (args.length > 0) editor.open(Path.of(args[0]));

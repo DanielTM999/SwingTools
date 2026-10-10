@@ -32,7 +32,8 @@ import java.util.Locale;
 
 public final class FunctionAutocomplete {
     public record Item(String name, String insert, String detail, boolean function) {
-        @Override public String toString() { return name; }
+        @Override
+        public String toString() { return name; }
     }
 
     private final JWindow window;
@@ -49,7 +50,8 @@ public final class FunctionAutocomplete {
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setVisibleRowCount(8);
         list.setCellRenderer(new DefaultListCellRenderer() {
-            @Override public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
+            @Override
+            public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
                 JLabel c = (JLabel) super.getListCellRendererComponent(l, v, i, s, f);
                 Item it = (Item) v;
                 c.setText((it.function() ? "ƒx  " : "▭  ") + it.name());
@@ -57,7 +59,9 @@ public final class FunctionAutocomplete {
                 return c;
             }
         });
-        list.addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { if (e.getClickCount() == 2) accept(); } });
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) { if (e.getClickCount() == 2) accept(); } });
         list.addListSelectionListener(e -> { Item it = list.getSelectedValue(); detail.setText(it == null ? " " : "<html><div style='width:260px'>" + it.detail() + "</div></html>"); });
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createLineBorder(UiTokens.border()));

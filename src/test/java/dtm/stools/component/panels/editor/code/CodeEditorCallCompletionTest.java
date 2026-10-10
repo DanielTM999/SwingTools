@@ -16,7 +16,8 @@ class CodeEditorCallCompletionTest {
 
     private static final String SOURCE = "class A {\n  void run() {\n    lista.ad\n  }\n}\n";
 
-    @Test void replacementRangeKeepsReceiverAndRemovesOnlyTargetWord() throws Exception {
+    @Test
+    void replacementRangeKeepsReceiverAndRemovesOnlyTargetWord() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             var range = new dtm.stools.component.panels.editor.code.api.Range(
                     new dtm.stools.component.panels.editor.code.api.Position(2, 10),

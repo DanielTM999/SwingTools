@@ -1581,26 +1581,31 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
 
         private void installMenuEvents() {
             addMenuListener(new MenuListener() {
-                @Override public void menuSelected(MenuEvent e) {
+                @Override
+                public void menuSelected(MenuEvent e) {
                     owner.dispatchMenuEvent(MENU_OPEN, Menu.this);
                     repaint();
                 }
-                @Override public void menuDeselected(MenuEvent e) {
+                @Override
+                public void menuDeselected(MenuEvent e) {
                     owner.dispatchMenuEvent(MENU_CLOSE, Menu.this);
                     repaint();
                 }
-                @Override public void menuCanceled(MenuEvent e) {
+                @Override
+                public void menuCanceled(MenuEvent e) {
                     owner.dispatchMenuEvent(MENU_CLOSE, Menu.this);
                     repaint();
                 }
             });
 
             addMouseListener(new MouseAdapter() {
-                @Override public void mouseEntered(MouseEvent e) {
+                @Override
+                public void mouseEntered(MouseEvent e) {
                     hovered = true;
                     repaint();
                 }
-                @Override public void mouseExited(MouseEvent e) {
+                @Override
+                public void mouseExited(MouseEvent e) {
                     hovered = false;
                     repaint();
                 }
@@ -1689,8 +1694,10 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
 
         private void installHover() {
             addMouseListener(new MouseAdapter() {
-                @Override public void mouseEntered(MouseEvent e) { hovered = true; repaint(); }
-                @Override public void mouseExited(MouseEvent e) { hovered = false; repaint(); }
+                @Override
+                public void mouseEntered(MouseEvent e) { hovered = true; repaint(); }
+                @Override
+                public void mouseExited(MouseEvent e) { hovered = false; repaint(); }
             });
         }
     }

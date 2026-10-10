@@ -10,7 +10,8 @@ import static dtm.stools.component.panels.editor.word.WordEditorTest.edt;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WordTableGridChooserTest {
-    @Test void repeatedPopupCreationHasStableAccessibleContextAndInsertsChosenDimensions() throws Exception {
+    @Test
+    void repeatedPopupCreationHasStableAccessibleContextAndInsertsChosenDimensions() throws Exception {
         edt(()->{
             for(int[] size:new int[][]{{1,1},{3,5},{8,10}})try(WordEditor editor=new WordEditor()) {
                 AtomicInteger calls=new AtomicInteger();

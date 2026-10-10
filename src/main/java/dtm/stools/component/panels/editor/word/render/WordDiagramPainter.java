@@ -10,7 +10,8 @@ import java.util.List;
 public final class WordDiagramPainter implements WordObjectPainter {
     private record Item(String text, List<String> children) {}
 
-    @Override public void paint(Graphics2D graphics, WordInlineObject object, Rectangle2D.Float bounds, WordDocument document) {
+    @Override
+    public void paint(Graphics2D graphics, WordInlineObject object, Rectangle2D.Float bounds, WordDocument document) {
         if (!(object instanceof WordDiagram diagram)) return;
         Graphics2D g = (Graphics2D)graphics.create();
         try {

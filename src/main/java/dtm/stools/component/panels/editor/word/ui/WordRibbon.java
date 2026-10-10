@@ -12,7 +12,9 @@ import java.util.*;
 import java.util.List;
 
 public final class WordRibbon extends JPanel {
-    private record StyleItem(String id, String name) { @Override public String toString() { return name; } }
+    private record StyleItem(String id, String name) {
+        @Override
+        public String toString() { return name; } }
     private final WordEditor editor;
     private final JTabbedPane tabs = new JTabbedPane();
     private final Map<String,JComponent> contextual = new LinkedHashMap<>();
@@ -275,7 +277,8 @@ public final class WordRibbon extends JPanel {
             if (selected != null && tabs.indexOfComponent(selected) >= 0) tabs.setSelectedComponent(selected);
         } finally { updating = false; }
     }
-    @Override public void updateUI() { super.updateUI(); }
+    @Override
+    public void updateUI() { super.updateUI(); }
     public void onThemeChanged() {
         setBackground(UiTokens.surface()); title.setForeground(UiTokens.foreground());
         tabs.setBackground(UiTokens.surface());

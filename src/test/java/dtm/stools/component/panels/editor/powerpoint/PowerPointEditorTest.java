@@ -32,7 +32,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PowerPointEditorTest {
-    @Test void chooseOpenConfirmsBeforeReplacingUnsavedExample(@TempDir Path folder)throws Exception {
+    @Test
+    void chooseOpenConfirmsBeforeReplacingUnsavedExample(@TempDir Path folder)throws Exception {
         Path file=folder.resolve("opened.pptx");
         Presentation incoming=Presentation.create().withSlide(0,Presentation.create().slides().getFirst()
                 .addObject(PptObject.text("From file",10,10,200,80)));
@@ -46,16 +47,24 @@ class PowerPointEditorTest {
             editor.insertText("Unsaved example");
             editor.getSession().addListener(()->{if(!editor.getSession().isDirty())opened.countDown();});
             editor.addProvider(new PowerPointDialogProvider(){
-                @Override public String id(){return "test.confirm";}
-                @Override public Optional<String> editText(Component owner,String current){return Optional.empty();}
-                @Override public Optional<Color> chooseColor(Component owner,String title,Color current){return Optional.empty();}
-                @Override public boolean confirmDiscardChanges(Component owner){confirmations.incrementAndGet();return allowDiscard.get();}
+                @Override
+                public String id(){return "test.confirm";}
+                @Override
+                public Optional<String> editText(Component owner,String current){return Optional.empty();}
+                @Override
+                public Optional<Color> chooseColor(Component owner,String title,Color current){return Optional.empty();}
+                @Override
+                public boolean confirmDiscardChanges(Component owner){confirmations.incrementAndGet();return allowDiscard.get();}
             });
             editor.addProvider(new PowerPointFileDialogProvider(){
-                @Override public String id(){return "test.files";}
-                @Override public Optional<Path> chooseOpen(Component owner){pickerCalls.incrementAndGet();return Optional.of(file);}
-                @Override public Optional<Path> chooseSave(Component owner,Path current){return Optional.empty();}
-                @Override public Optional<Path> chooseMedia(Component owner,PptObject.Kind kind){return Optional.empty();}
+                @Override
+                public String id(){return "test.files";}
+                @Override
+                public Optional<Path> chooseOpen(Component owner){pickerCalls.incrementAndGet();return Optional.of(file);}
+                @Override
+                public Optional<Path> chooseSave(Component owner,Path current){return Optional.empty();}
+                @Override
+                public Optional<Path> chooseMedia(Component owner,PptObject.Kind kind){return Optional.empty();}
             });
         });
         PowerPointEditor editor=holder.get();
@@ -76,7 +85,8 @@ class PowerPointEditorTest {
             });
         }finally{SwingUtilities.invokeAndWait(editor::close);}
     }
-    @Test void sessionHistoryAndSelection(){
+    @Test
+    void sessionHistoryAndSelection(){
         PowerPointSession session=new PowerPointSession();
         PptObject text=PptObject.text("Hello",10,20,300,80);
         session.edit(doc->doc.withSlide(0,doc.slides().getFirst().addObject(text)));
@@ -85,7 +95,8 @@ class PowerPointEditorTest {
         session.redo();assertEquals(text.id(),session.getPresentation().slides().getFirst().objects().getFirst().id());
         session.selectObject(text.id());assertEquals(text.id(),session.selectedObjectId());
     }
-    @Test void pptxRoundTripAndMediaRelationship()throws Exception {
+    @Test
+    void pptxRoundTripAndMediaRelationship()throws Exception {
         PptObject image=PptObject.media(PptObject.Kind.IMAGE,"image/png",new byte[]{1,2,3},20,30,200,100);
         PptSlide second=PptSlide.create("Second").addObject(image).withTransition("fade");
         second=second.withAnimations(List.of(PptAnimation.create(image.id(),PptAnimation.Effect.FADE_IN)));
@@ -106,7 +117,8 @@ class PowerPointEditorTest {
         assertTrue(timing.contains("<p:timing>"));
         assertTrue(timing.contains("<p:animEffect transition=\"in\" filter=\"fade\""));
     }
-    @Test void nativeMediaPartsAndTimingAreLinked()throws Exception {
+    @Test
+    void nativeMediaPartsAndTimingAreLinked()throws Exception {
         PptObject audio=PptObject.media(PptObject.Kind.AUDIO,"audio/wav",new byte[]{1,2,3},10,10,100,100);
         PptObject video=PptObject.media(PptObject.Kind.VIDEO,"video/x-msvideo",new byte[]{4,5,6},120,10,300,180);
         Presentation deck=Presentation.create().withSlide(0,Presentation.create().slides().getFirst().addObject(audio).addObject(video));
@@ -132,7 +144,8 @@ class PowerPointEditorTest {
         assertArrayEquals(audio.data(),external.presentation().slides().getFirst().objects().get(0).data());
         assertArrayEquals(video.data(),external.presentation().slides().getFirst().objects().get(1).data());
     }
-    @Test void nativeAnimationImportsWithoutPrivateMetadata()throws Exception {
+    @Test
+    void nativeAnimationImportsWithoutPrivateMetadata()throws Exception {
         PptObject shape=PptObject.text("Animated",10,10,300,100);
         PptAnimation animation=new PptAnimation("a",shape.id(),PptAnimation.Effect.APPEAR,
                 PptAnimation.Start.AFTER_PREVIOUS,850,120,3,"default");
@@ -147,7 +160,8 @@ class PowerPointEditorTest {
         assertEquals(PptAnimation.Effect.APPEAR,value.effect());assertEquals(PptAnimation.Start.AFTER_PREVIOUS,value.start());
         assertEquals(850,value.durationMs());assertEquals(120,value.delayMs());assertEquals(3,value.repeat());
     }
-    @Test void externalPptxPatchesKnownShapeAndPreservesUnknownParts()throws Exception {
+    @Test
+    void externalPptxPatchesKnownShapeAndPreservesUnknownParts()throws Exception {
         PptxCodec codec=new PptxCodec();ByteArrayOutputStream output=new ByteArrayOutputStream();
         Presentation deck=Presentation.create().withSlide(0,Presentation.create().slides().getFirst().addObject(PptObject.text("Original",40,50,300,90)));
         codec.write(deck,output);
@@ -169,7 +183,8 @@ class PowerPointEditorTest {
         Presentation structural=read.presentation().insertSlide(1,PptSlide.create("Extra"));
         assertThrows(IOException.class,()->codec.write(structural,read,new ByteArrayOutputStream()));
     }
-    @Test void editedXmlOutsideKnownModelProtectsOriginal()throws Exception {
+    @Test
+    void editedXmlOutsideKnownModelProtectsOriginal()throws Exception {
         PptxCodec codec=new PptxCodec();ByteArrayOutputStream output=new ByteArrayOutputStream();codec.write(Presentation.create(),output);
         OpcPackage original=OpcPackage.read(output.toByteArray(),OpcPackage.Limits.DEFAULT);
         Map<String,byte[]> parts=new LinkedHashMap<>();for(String name:original.names())parts.put(name,original.part(name));
@@ -182,7 +197,8 @@ class PowerPointEditorTest {
         ByteArrayOutputStream saved=new ByteArrayOutputStream();codec.write(read.presentation(),read,saved);
         assertArrayEquals(changed.toByteArray(),saved.toByteArray());
     }
-    @Test void presentationOccupiesComponentAndRestoresUi()throws Exception {
+    @Test
+    void presentationOccupiesComponentAndRestoresUi()throws Exception {
         SwingUtilities.invokeAndWait(()->{
             try(PowerPointEditor editor=new PowerPointEditor()){
                 var west=((BorderLayout)editor.getLayout()).getLayoutComponent(BorderLayout.WEST);
@@ -208,7 +224,8 @@ class PowerPointEditorTest {
         }
         return null;
     }
-    @Test void fileTasksAndProviderLifecycle(@TempDir Path folder)throws Exception {
+    @Test
+    void fileTasksAndProviderLifecycle(@TempDir Path folder)throws Exception {
         AtomicReference<PowerPointEditor> holder=new AtomicReference<>();
         SwingUtilities.invokeAndWait(()->holder.set(new PowerPointEditor()));
         PowerPointEditor editor=holder.get();Path file=folder.resolve("deck.pptx");
@@ -217,9 +234,12 @@ class PowerPointEditorTest {
             SwingUtilities.invokeAndWait(()->{
                 editor.insertText("First");
                 registration.set(editor.addProvider(new PowerPointCommandProvider(){
-                    @Override public String id(){return "test.command";}
-                    @Override public Map<String,Action> commands(PowerPointEditor owner){return Map.of("test.run",new AbstractAction(){
-                        @Override public void actionPerformed(ActionEvent e){calls.incrementAndGet();}
+                    @Override
+                    public String id(){return "test.command";}
+                    @Override
+                    public Map<String,Action> commands(PowerPointEditor owner){return Map.of("test.run",new AbstractAction(){
+                        @Override
+                        public void actionPerformed(ActionEvent e){calls.incrementAndGet();}
                     });}
                 }));
                 assertTrue(editor.invokeCommand("test.run"));
@@ -238,7 +258,8 @@ class PowerPointEditorTest {
         }finally{SwingUtilities.invokeAndWait(editor::close);}
     }
 
-    @Test void repeatedExternalSavesPreserveUnknownParts(@TempDir Path folder)throws Exception {
+    @Test
+    void repeatedExternalSavesPreserveUnknownParts(@TempDir Path folder)throws Exception {
         PptxCodec codec=new PptxCodec();
         Presentation deck=Presentation.create().withSlide(0,Presentation.create().slides().getFirst()
                 .addObject(PptObject.text("Original",40,50,300,90)));

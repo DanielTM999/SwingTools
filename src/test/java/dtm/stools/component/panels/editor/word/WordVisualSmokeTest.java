@@ -15,7 +15,8 @@ import static dtm.stools.component.panels.editor.word.WordEditorTest.edt;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WordVisualSmokeTest {
-    @Test void rendersEditorAndPhysicalPageWithoutAWindow()throws Exception{
+    @Test
+    void rendersEditorAndPhysicalPageWithoutAWindow()throws Exception{
         CountDownLatch ready=new CountDownLatch(1);
         WordEditor editor=edt(()->{
             FlatLightLaf.setup();WordEditor e=new WordEditor();

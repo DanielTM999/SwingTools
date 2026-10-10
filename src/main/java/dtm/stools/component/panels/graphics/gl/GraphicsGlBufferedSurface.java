@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-/** Lightweight Swing surface used by {@link GraphicsGlPresentationMode#BUFFERED}. */
 final class GraphicsGlBufferedSurface extends JComponent {
 
     private final Object frameLock;

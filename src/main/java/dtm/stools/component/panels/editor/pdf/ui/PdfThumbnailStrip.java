@@ -39,9 +39,12 @@ public class PdfThumbnailStrip extends JComponent implements Scrollable {
         setFocusable(false);
         setAutoscrolls(true);
         MouseAdapter mouse = new MouseAdapter() {
-            @Override public void mouseMoved(MouseEvent event) { setHover(pageAt(event.getPoint())); }
-            @Override public void mouseExited(MouseEvent event) { setHover(-1); }
-            @Override public void mousePressed(MouseEvent event) {
+            @Override
+            public void mouseMoved(MouseEvent event) { setHover(pageAt(event.getPoint())); }
+            @Override
+            public void mouseExited(MouseEvent event) { setHover(-1); }
+            @Override
+            public void mousePressed(MouseEvent event) {
                 int page = pageAt(event.getPoint());
                 if (SwingUtilities.isRightMouseButton(event) || event.isPopupTrigger()) {
                     if (page >= 0) {
@@ -54,7 +57,8 @@ public class PdfThumbnailStrip extends JComponent implements Scrollable {
                 dragFrom = page;
                 dragging = false;
             }
-            @Override public void mouseDragged(MouseEvent event) {
+            @Override
+            public void mouseDragged(MouseEvent event) {
                 if (dragFrom < 0 || pressed == null || editor.isReadOnly()) return;
                 if (!dragging && pressed.distance(event.getPoint()) < 6) return;
                 dragging = true;
@@ -62,7 +66,8 @@ public class PdfThumbnailStrip extends JComponent implements Scrollable {
                 scrollRectToVisible(new Rectangle(event.getX(), event.getY(), 1, 1));
                 repaint();
             }
-            @Override public void mouseReleased(MouseEvent event) {
+            @Override
+            public void mouseReleased(MouseEvent event) {
                 if (event.isPopupTrigger()) {
                     int page = pageAt(event.getPoint());
                     if (page >= 0) showMenu(event, page);
@@ -146,13 +151,15 @@ public class PdfThumbnailStrip extends JComponent implements Scrollable {
         if (card != null) scrollRectToVisible(new Rectangle(card.x, card.y - 8, card.width, card.height + 16));
     }
 
-    @Override public Dimension getPreferredSize() {
+    @Override
+    public Dimension getPreferredSize() {
         int width = thumbWidth(), y = PAD;
         for (int index = 0; index < editor.getPageCount(); index++) y += thumb(index, width, y).height + LABEL + GAP;
         return new Dimension(width + 2 * PAD, y + PAD);
     }
 
-    @Override protected void paintComponent(Graphics original) {
+    @Override
+    protected void paintComponent(Graphics original) {
         Graphics2D g = (Graphics2D) original.create();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -216,12 +223,17 @@ public class PdfThumbnailStrip extends JComponent implements Scrollable {
         if (card == null) repaint(); else repaint(card);
     }
 
-    @Override public Dimension getPreferredScrollableViewportSize() { return new Dimension(200, 400); }
-    @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 24; }
-    @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
+    @Override
+    public Dimension getPreferredScrollableViewportSize() { return new Dimension(200, 400); }
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 24; }
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
         return orientation == SwingConstants.VERTICAL ? Math.max(24, visible.height - 40) : visible.width;
     }
-    @Override public boolean getScrollableTracksViewportWidth() { return true; }
-    @Override public boolean getScrollableTracksViewportHeight() { return false; }
+    @Override
+    public boolean getScrollableTracksViewportWidth() { return true; }
+    @Override
+    public boolean getScrollableTracksViewportHeight() { return false; }
 
 }

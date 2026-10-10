@@ -10,7 +10,8 @@ public final class NoteElementFactory extends BasePdfElementFactory {
     public NoteElementFactory() {
         super("pdf.factory.note", "pdf.note", "Nota", "note", "Clique na página para fixar uma nota", PdfPlacementMode.CLICK);
     }
-    @Override public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
+    @Override
+    public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
         Optional<String> text = editor.getDialogs().input(editor, "Inserir nota", "Nota:");
         if (text.isPresent() && !text.get().isBlank())
             editor.addNote(placement.page(), text.get(), placement.point().x, placement.point().y - 24);

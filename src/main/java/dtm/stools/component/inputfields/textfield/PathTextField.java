@@ -67,14 +67,7 @@ public class PathTextField extends MaskedTextField {
     }
 
     @Override
-    protected void paintComponent(Graphics g) {
-        if (!editMode) {
-            g.setColor(getBackground());
-            g.fillRect(0, 0, getWidth(), getHeight());
-        } else {
-            super.paintComponent(g);
-        }
-    }
+    protected boolean isFieldEditorVisible() { return editMode; }
 
     public void enterEditMode() {
         if (editMode || isReadonly()) return;

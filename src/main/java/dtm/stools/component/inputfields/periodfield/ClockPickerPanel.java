@@ -81,7 +81,8 @@ public class ClockPickerPanel extends JPanel {
         minutes.setText(minuteSelected ? String.format(getLocale(), "%02d", time.getMinute()) : "--");
         dial.rebuild();
     }
-    @Override public void setEnabled(boolean enabled) {
+    @Override
+    public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         if (dial != null) enableChildren(this, enabled);
     }
@@ -98,8 +99,10 @@ public class ClockPickerPanel extends JPanel {
             setName("clock.dial");
             setPreferredSize(new Dimension(UiTokens.scale(232), UiTokens.scale(232)));
             MouseAdapter pointer = new MouseAdapter() {
-                @Override public void mousePressed(MouseEvent e) { if (SwingUtilities.isLeftMouseButton(e)) selectMinute(e.getX(), e.getY()); }
-                @Override public void mouseDragged(MouseEvent e) { if ((e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0) selectMinute(e.getX(), e.getY()); }
+                @Override
+                public void mousePressed(MouseEvent e) { if (SwingUtilities.isLeftMouseButton(e)) selectMinute(e.getX(), e.getY()); }
+                @Override
+                public void mouseDragged(MouseEvent e) { if ((e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0) selectMinute(e.getX(), e.getY()); }
             };
             addMouseListener(pointer); addMouseMotionListener(pointer);
         }
@@ -120,14 +123,16 @@ public class ClockPickerPanel extends JPanel {
             for (int index = 0; index < count; index++) {
                 int number = selectingHours ? index : index * 5;
                 JToggleButton button = new JToggleButton(String.format(getLocale(), "%02d", number)) {
-                    @Override protected void processMouseEvent(MouseEvent e) {
+                    @Override
+                    protected void processMouseEvent(MouseEvent e) {
                         if (!selectingHours && SwingUtilities.isLeftMouseButton(e)) {
                             if (e.getID() == MouseEvent.MOUSE_PRESSED) selectMinute(getX() + e.getX(), getY() + e.getY());
                             return;
                         }
                         super.processMouseEvent(e);
                     }
-                    @Override protected void processMouseMotionEvent(MouseEvent e) {
+                    @Override
+                    protected void processMouseMotionEvent(MouseEvent e) {
                         if (!selectingHours && (e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0) {
                             selectMinute(getX() + e.getX(), getY() + e.getY()); return;
                         }
@@ -161,7 +166,8 @@ public class ClockPickerPanel extends JPanel {
             button.getInputMap().put(KeyStroke.getKeyStroke(key), key);
             button.getActionMap().put(key, new AbstractAction() { public void actionPerformed(ActionEvent e) { step(amount); } });
         }
-        @Override public void doLayout() {
+        @Override
+        public void doLayout() {
             double radius = Math.min(getWidth(), getHeight()) / 2.0 - UiTokens.scale(22);
             int size = UiTokens.scale(32);
             for (Component child : getComponents()) {
@@ -172,7 +178,8 @@ public class ClockPickerPanel extends JPanel {
                         (int) (getHeight() / 2.0 - Math.cos(angle) * ring - size / 2.0), size, size);
             }
         }
-        @Override protected void paintComponent(Graphics graphics) {
+        @Override
+        protected void paintComponent(Graphics graphics) {
             super.paintComponent(graphics);
             Graphics2D g = (Graphics2D) graphics.create();
             try {

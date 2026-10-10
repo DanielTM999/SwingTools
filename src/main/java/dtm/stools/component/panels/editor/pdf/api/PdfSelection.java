@@ -13,7 +13,8 @@ public record PdfSelection(int page, List<PdfPageElement> elements, Rectangle2D.
     public static PdfSelection empty() { return EMPTY; }
     public static PdfSelection of(int page, List<PdfPageElement> elements) { return new PdfSelection(page, elements, null); }
     public static PdfSelection area(int page, List<PdfPageElement> inside, Rectangle2D.Float area) { return new PdfSelection(page, inside, area); }
-    @Override public Rectangle2D.Float area() { return area == null ? null : (Rectangle2D.Float) area.clone(); }
+    @Override
+    public Rectangle2D.Float area() { return area == null ? null : (Rectangle2D.Float) area.clone(); }
     public boolean isEmpty() { return page < 0 || (elements.isEmpty() && !hasArea()); }
     public boolean hasArea() { return area != null && !area.isEmpty(); }
     public boolean contains(String id) { return elements.stream().anyMatch(element -> element.id().equals(id)); }

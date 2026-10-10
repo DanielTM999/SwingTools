@@ -16,9 +16,11 @@ import java.util.List;
 import java.util.Optional;
 
 public final class PdfFormFieldMenuProvider implements PdfContextMenuProvider {
-    @Override public String id() { return "pdf.menu.formFields"; }
+    @Override
+    public String id() { return "pdf.menu.formFields"; }
 
-    @Override public List<Action> canvasActions(PdfEditor editor, int page, PdfSelection selection) {
+    @Override
+    public List<Action> canvasActions(PdfEditor editor, int page, PdfSelection selection) {
         if (selection.elements().size() != 1 || page < 0) return List.of();
         PdfPageElement element = selection.elements().getFirst();
         if (!element.annotation() || !"Widget".equals(element.type())) return List.of();

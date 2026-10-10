@@ -62,8 +62,10 @@ public final class WordHeaderFooterPanel extends WordPropertiesPanel<WordHeaderF
         sync();
     }
     private void sync(){boolean edit=!complex&&!linked.isSelected();text.setEditable(edit);alignment.setEnabled(edit);pageNumber.setEnabled(edit);}
-    @Override public String title() { return "Cabeçalho e rodapé"; }
-    @Override public Result result() {
+    @Override
+    public String title() { return "Cabeçalho e rodapé"; }
+    @Override
+    public Result result() {
         return new Result(kinds[kind.getSelectedIndex()],text.getText(),WordParagraphStyle.Alignment.values()[alignment.getSelectedIndex()],pageNumber.isSelected(),first.isSelected(),oddEven.isSelected(),linked.isSelected(),
                 !text.getText().equals(initialText)||alignment.getSelectedIndex()!=initialAlignment||pageNumber.isSelected()!=initialPageNumber);
     }

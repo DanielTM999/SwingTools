@@ -1171,8 +1171,7 @@ public class DockPanel extends PanelEventListener {
         content.add(layout, BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
-        // A tab selection event can trigger this rebuild while JTabbedPane is inserting a tab.
-        // Changing its UI synchronously would uninstall BasicTabbedPaneUI mid-event.
+
         SwingUtilities.invokeLater(this::updateDockGroupHeaderVisibility);
         dispatchDockEvent(EventDockPanel.LAYOUT_CHANGE, null, Map.of("layout", layout));
         SwingUtilities.invokeLater(() -> adjustingDividers = false);

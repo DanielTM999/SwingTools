@@ -42,14 +42,16 @@ class GridViewTest {
         @GridColumn(name = "Relacionado", order = 3) Customer related;
         Customer() {}
         Customer(String name) { this.name = name; }
-        @Override public String toString() { return name == null ? "Novo cliente" : name; }
+        @Override
+        public String toString() { return name == null ? "Novo cliente" : name; }
     }
 
     static final class Address {
         @GridColumn(name = "Cidade") String city;
         Address() {}
         Address(String city) { this.city = city; }
-        @Override public String toString() { return city == null ? "Novo endereço" : city; }
+        @Override
+        public String toString() { return city == null ? "Novo endereço" : city; }
     }
 
     static final class NoConstructor {
@@ -98,7 +100,8 @@ class GridViewTest {
         return null;
     }
 
-    @Test void filtersAndSortsAllRowsBeforePaging() throws Exception {
+    @Test
+    void filtersAndSortsAllRowsBeforePaging() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno"), carla = new Row(3, "Carla");
@@ -141,7 +144,8 @@ class GridViewTest {
         });
     }
 
-    @Test void stylesAndExplicitRendererHavePredictablePriority() throws Exception {
+    @Test
+    void stylesAndExplicitRendererHavePredictablePriority() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno");
@@ -165,7 +169,8 @@ class GridViewTest {
             Component afterThemeRefresh = grid.prepareRenderer(grid.getCellRenderer(0, 1), 0, 1);
             assertEquals(Color.WHITE, afterThemeRefresh.getForeground());
             DefaultTableCellRenderer external = new DefaultTableCellRenderer() {
-                @Override public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focus, int row, int column) {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean selected, boolean focus, int row, int column) {
                     Component result = super.getTableCellRendererComponent(table, value, selected, focus, row, column);
                     result.setForeground(Color.MAGENTA);
                     return result;
@@ -181,7 +186,8 @@ class GridViewTest {
         });
     }
 
-    @Test void checkboxKeepsItsPositionInRendererAndEditor() throws Exception {
+    @Test
+    void checkboxKeepsItsPositionInRendererAndEditor() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             grid.setDataSource(List.of(new Row(1, "Ana"), new Row(2, "Bruno")));
@@ -198,7 +204,8 @@ class GridViewTest {
         });
     }
 
-    @Test void directCellEditingCanBeBlockedWithoutDisablingRowForms() throws Exception {
+    @Test
+    void directCellEditingCanBeBlockedWithoutDisablingRowForms() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno");
@@ -234,7 +241,8 @@ class GridViewTest {
         });
     }
 
-    @Test void editingCheckboxDoesNotRefreshTheWholeTableOrClearSelection() throws Exception {
+    @Test
+    void editingCheckboxDoesNotRefreshTheWholeTableOrClearSelection() throws Exception {
         GridView<Row> grid = new GridView<>(Row.class);
         int[] fullRefreshes = {0};
         edt(() -> {
@@ -255,7 +263,8 @@ class GridViewTest {
         });
     }
 
-    @Test void editingReportsPreviousValueAndPagerTracksPages() throws Exception {
+    @Test
+    void editingReportsPreviousValueAndPagerTracksPages() throws Exception {
         GridView<Row> grid = new GridView<>(Row.class);
         AtomicReference<EventGrid> edit = new AtomicReference<>();
         edt(() -> {
@@ -283,7 +292,8 @@ class GridViewTest {
         edt(() -> assertEquals("Anabela", grid.getRowObject(0).name));
     }
 
-    @Test void editedValueReappliesActiveFilter() throws Exception {
+    @Test
+    void editedValueReappliesActiveFilter() throws Exception {
         GridView<Row> grid = new GridView<>(Row.class);
         edt(() -> {
             grid.setDataSource(List.of(new Row(1, "Ana"), new Row(2, "Bruno")));
@@ -299,7 +309,8 @@ class GridViewTest {
         });
     }
 
-    @Test void inlineFormCancelsAndSavesTheCorrectPagedRow() throws Exception {
+    @Test
+    void inlineFormCancelsAndSavesTheCorrectPagedRow() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno");
@@ -337,7 +348,8 @@ class GridViewTest {
         });
     }
 
-    @Test void formRollbackAndCustomRowAction() throws Exception {
+    @Test
+    void formRollbackAndCustomRowAction() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana");
@@ -368,7 +380,8 @@ class GridViewTest {
         });
     }
 
-    @Test void actionUsesVisibleRowAfterFilterSortAndPagination() throws Exception {
+    @Test
+    void actionUsesVisibleRowAfterFilterSortAndPagination() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno"), carla = new Row(3, "Carla");
@@ -390,7 +403,8 @@ class GridViewTest {
         });
     }
 
-    @Test void inlineFormFollowsItsRowWhenSortChanges() throws Exception {
+    @Test
+    void inlineFormFollowsItsRowWhenSortChanges() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno");
@@ -407,7 +421,8 @@ class GridViewTest {
         });
     }
 
-    @Test void nestedFormEditsSharedInstanceAndSupportsReplacement() throws Exception {
+    @Test
+    void nestedFormEditsSharedInstanceAndSupportsReplacement() throws Exception {
         edt(() -> {
             Customer current = new Customer("Ana"), other = new Customer("Bruno");
             current.address = new Address("Salvador");
@@ -447,7 +462,8 @@ class GridViewTest {
         });
     }
 
-    @Test void nestedDepthAndCyclesStopExpansion() throws Exception {
+    @Test
+    void nestedDepthAndCyclesStopExpansion() throws Exception {
         edt(() -> {
             Customer customer = new Customer("Ana");
             customer.address = new Address("Salvador");
@@ -477,7 +493,8 @@ class GridViewTest {
         });
     }
 
-    @Test void nullNestedObjectUsesConstructorOrFactoryAndRollbackRestoresLeaves() throws Exception {
+    @Test
+    void nullNestedObjectUsesConstructorOrFactoryAndRollbackRestoresLeaves() throws Exception {
         edt(() -> {
             OrderRow order = new OrderRow("P-1", null);
             GridView<OrderRow> grid = new GridView<>(OrderRow.class);
@@ -514,7 +531,8 @@ class GridViewTest {
         return map;
     }
 
-    @Test void structuredRowsExposeCellsByFieldHeaderAndIndex() throws Exception {
+    @Test
+    void structuredRowsExposeCellsByFieldHeaderAndIndex() throws Exception {
         edt(() -> {
             GridView<Row> grid = new GridView<>(Row.class);
             Row ana = new Row(1, "Ana"), bruno = new Row(2, "Bruno");
@@ -540,7 +558,8 @@ class GridViewTest {
         });
     }
 
-    @Test void mapGridInfersColumnsAndSupportsSortFilterAndSelection() throws Exception {
+    @Test
+    void mapGridInfersColumnsAndSupportsSortFilterAndSelection() throws Exception {
         edt(() -> {
             GridView<Map<String, Object>> grid = GridView.ofMaps();
             assertFalse(grid.isStructured());
@@ -573,7 +592,8 @@ class GridViewTest {
         });
     }
 
-    @Test void mapGridWithExplicitColumnsConvertsEditsAndSavesForms() throws Exception {
+    @Test
+    void mapGridWithExplicitColumnsConvertsEditsAndSavesForms() throws Exception {
         edt(() -> {
             GridView<Map<String, Object>> grid = GridView.ofMaps(List.of(
                     ColumnDefinition.builder().key("id").name("Código").type(Integer.class).width(60).build(),
@@ -635,7 +655,8 @@ class GridViewTest {
         ProdutosGrid() { super(Row.class); }
     }
 
-    @Test void mapAndTypedGridsCanBeSubclassed() throws Exception {
+    @Test
+    void mapAndTypedGridsCanBeSubclassed() throws Exception {
         edt(() -> {
             ClientesGrid grid = new ClientesGrid();
             grid.setDataSource(List.of(record("id", 1, "nome", "Ana"), record("id", 2, "nome", "Bruno")));
@@ -655,7 +676,8 @@ class GridViewTest {
         });
     }
 
-    @Test void nullNestedObjectWithoutConstructorNeedsFactory() throws Exception {
+    @Test
+    void nullNestedObjectWithoutConstructorNeedsFactory() throws Exception {
         edt(() -> {
             NoConstructorRow row = new NoConstructorRow();
             GridView<NoConstructorRow> grid = new GridView<>(NoConstructorRow.class);

@@ -10,7 +10,9 @@ public record SheetShape(String id, ShapeType type, ObjectAnchor anchor, String 
         text = Objects.requireNonNullElse(text, "");
     }
 
-    @Override public SheetObject withAnchor(ObjectAnchor a) { return new SheetShape(id, type, a, text, fill, line, lineWidth); }
+    @Override
+    public SheetObject withAnchor(ObjectAnchor a) { return new SheetShape(id, type, a, text, fill, line, lineWidth); }
     public SheetShape withText(String t) { return new SheetShape(id, type, anchor, t, fill, line, lineWidth); }
-    @Override public String description() { return text.isBlank() ? type.name() : text; }
+    @Override
+    public String description() { return text.isBlank() ? type.name() : text; }
 }

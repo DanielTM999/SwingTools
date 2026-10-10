@@ -989,9 +989,12 @@ class WindowDesktopPanelTest {
 
         SizedIcon(int width, int height) { this.width = width; this.height = height; }
 
-        @Override public int getIconWidth() { return width; }
-        @Override public int getIconHeight() { return height; }
-        @Override public void paintIcon(Component component, Graphics graphics, int x, int y) {
+        @Override
+        public int getIconWidth() { return width; }
+        @Override
+        public int getIconHeight() { return height; }
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
             graphics.fillRect(x, y, width, height);
         }
     }
@@ -1104,14 +1107,12 @@ class WindowDesktopPanelTest {
             WindowPanel bare = desktop.openWindow(new WindowConfig("bare", "Sem icone", new JPanel())
                     .bounds(new Rectangle(10, 220, 340, 200)));
 
-            // Margem zero deve encostar o icone na borda: o gap vale so entre componentes.
             window.style(style -> style.titleBarInsets(0, 0, 0, 0));
             assertEquals(0, absoluteIconX(window));
 
             window.style(style -> style.titleBarMargin(24));
             assertEquals(24, absoluteIconX(window));
 
-            // Um leading vazio nao pode reservar largura fantasma.
             assertEquals(0, bare.getTitleBar().getIconLabel().getParent().getPreferredSize().width);
             assertTrue(window.getTitleBar().getIconLabel().getParent().getPreferredSize().width >= 16);
             return null;
@@ -1163,12 +1164,14 @@ class WindowDesktopPanelTest {
     }
 
     private static class CustomDesktop extends WindowDesktopPanel {
-        @Override protected WindowPanel createWindow(WindowConfig config) { return new CustomWindow(config); }
+        @Override
+        protected WindowPanel createWindow(WindowConfig config) { return new CustomWindow(config); }
     }
 
     private static class CustomWindow extends WindowPanel {
         CustomWindow(WindowConfig config) { super(config); }
-        @Override protected WindowTitleBar createTitleBar() { return new CustomTitleBar(this); }
+        @Override
+        protected WindowTitleBar createTitleBar() { return new CustomTitleBar(this); }
     }
 
     private static class CustomTitleBar extends WindowTitleBar {
@@ -1176,7 +1179,8 @@ class WindowDesktopPanelTest {
     }
 
     private static class CustomSnapDesktop extends WindowDesktopPanel {
-        @Override protected WindowSnapLayoutPopup createSnapLayoutPopup(WindowPanel window) {
+        @Override
+        protected WindowSnapLayoutPopup createSnapLayoutPopup(WindowPanel window) {
             return new CustomSnapPopup(this, window);
         }
     }
@@ -1192,21 +1196,26 @@ class WindowDesktopPanelTest {
             super(new WindowConfig("delegated", "Delegated", new JPanel())
                     .closeOperation(WindowCloseOperation.REMOVE));
         }
-        @Override protected TestWindowController newController() { return new TestWindowController(); }
+        @Override
+        protected TestWindowController newController() { return new TestWindowController(); }
     }
 
     private static class TestWindowController extends AbstractWindowPanelController {
         int opened;
         int stateChanges;
         int disposed;
-        @Override public void onWindowOpen(WindowPanel window) { component = window; opened++; }
-        @Override public void onStateChanged(WindowPanel window, WindowState oldState, WindowState newState) { stateChanges++; }
-        @Override public void onDispose(WindowPanel window) { disposed++; }
+        @Override
+        public void onWindowOpen(WindowPanel window) { component = window; opened++; }
+        @Override
+        public void onStateChanged(WindowPanel window, WindowState oldState, WindowState newState) { stateChanges++; }
+        @Override
+        public void onDispose(WindowPanel window) { disposed++; }
         WindowPanel component() { return component; }
     }
 
     private static class TestDelegatedDesktop extends DelegatedWindowDesktopPanel<TestDesktopController> {
-        @Override protected TestDesktopController newController() { return new TestDesktopController(); }
+        @Override
+        protected TestDesktopController newController() { return new TestDesktopController(); }
     }
 
     private static class TestDesktopController extends AbstractWindowDesktopController {
@@ -1222,36 +1231,48 @@ class WindowDesktopPanelTest {
         int snapPreviewChanges;
         int snapAssistChanges;
         int disposed;
-        @Override public void onWindowAdded(WindowDesktopPanel desktop, WindowPanel window) { added++; }
-        @Override public void onWindowRemoved(WindowDesktopPanel desktop, WindowPanel window) { removed++; }
-        @Override public void onActiveWindowChanged(WindowDesktopPanel desktop, WindowPanel oldWindow, WindowPanel newWindow) {
+        @Override
+        public void onWindowAdded(WindowDesktopPanel desktop, WindowPanel window) { added++; }
+        @Override
+        public void onWindowRemoved(WindowDesktopPanel desktop, WindowPanel window) { removed++; }
+        @Override
+        public void onActiveWindowChanged(WindowDesktopPanel desktop, WindowPanel oldWindow, WindowPanel newWindow) {
             activeChanges++;
         }
-        @Override public void onMinimizedBarContextMenuChanged(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onMinimizedBarContextMenuChanged(WindowDesktopPanel desktop, WindowEvent event) {
             menuChanges++;
         }
-        @Override public void onBeforeMinimizedBarMenuAction(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onBeforeMinimizedBarMenuAction(WindowDesktopPanel desktop, WindowEvent event) {
             beforeMenuActions++;
         }
-        @Override public void onMinimizedBarMenuAction(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onMinimizedBarMenuAction(WindowDesktopPanel desktop, WindowEvent event) {
             menuActions++;
         }
-        @Override public void onSnapLayoutsChanged(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onSnapLayoutsChanged(WindowDesktopPanel desktop, WindowEvent event) {
             snapLayoutChanges++;
         }
-        @Override public void onBeforeSnapLayoutSelect(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onBeforeSnapLayoutSelect(WindowDesktopPanel desktop, WindowEvent event) {
             beforeSnapLayoutSelections++;
         }
-        @Override public void onSnapLayoutSelected(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onSnapLayoutSelected(WindowDesktopPanel desktop, WindowEvent event) {
             snapLayoutSelections++;
         }
-        @Override public void onSnapLayoutPreviewChanged(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onSnapLayoutPreviewChanged(WindowDesktopPanel desktop, WindowEvent event) {
             snapPreviewChanges++;
         }
-        @Override public void onSnapAssistChanged(WindowDesktopPanel desktop, WindowEvent event) {
+        @Override
+        public void onSnapAssistChanged(WindowDesktopPanel desktop, WindowEvent event) {
             snapAssistChanges++;
         }
-        @Override public void onDispose(WindowDesktopPanel desktop) { disposed++; }
+        @Override
+        public void onDispose(WindowDesktopPanel desktop) { disposed++; }
     }
 
     private static class HoldingAnimator implements WindowAnimator {

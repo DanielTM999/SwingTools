@@ -855,11 +855,13 @@ public class TreeView<T> extends TreeViewListener {
         node.setLoading(true);
         getTreeModel().nodeChanged(node);
         new SwingWorker<List<TreeNode<T>>, Void>() {
-            @Override protected List<TreeNode<T>> doInBackground() throws Exception {
+            @Override
+            protected List<TreeNode<T>> doInBackground() throws Exception {
                 return provider.getChildren(node);
             }
 
-            @Override protected void done() {
+            @Override
+            protected void done() {
                 try {
                     applyLoadedChildren(node, get());
                 } catch (Exception e) {
@@ -971,7 +973,8 @@ public class TreeView<T> extends TreeViewListener {
 
         addTreeWillExpandListener(new TreeWillExpandListener() {
             @SuppressWarnings("unchecked")
-            @Override public void treeWillExpand(TreeExpansionEvent event) throws ExpandVetoException {
+            @Override
+            public void treeWillExpand(TreeExpansionEvent event) throws ExpandVetoException {
                 Object last = event.getPath().getLastPathComponent();
                 if (last instanceof TreeNode) {
                     TreeNode<T> node = (TreeNode<T>) last;
@@ -981,13 +984,15 @@ public class TreeView<T> extends TreeViewListener {
                 }
             }
 
-            @Override public void treeWillCollapse(TreeExpansionEvent event) {
+            @Override
+            public void treeWillCollapse(TreeExpansionEvent event) {
             }
         });
 
         addTreeExpansionListener(new TreeExpansionListener() {
             @SuppressWarnings("unchecked")
-            @Override public void treeExpanded(TreeExpansionEvent event) {
+            @Override
+            public void treeExpanded(TreeExpansionEvent event) {
                 Object last = event.getPath().getLastPathComponent();
                 if (last instanceof TreeNode) {
                     TreeNode<T> node = (TreeNode<T>) last;
@@ -997,7 +1002,8 @@ public class TreeView<T> extends TreeViewListener {
             }
 
             @SuppressWarnings("unchecked")
-            @Override public void treeCollapsed(TreeExpansionEvent event) {
+            @Override
+            public void treeCollapsed(TreeExpansionEvent event) {
                 Object last = event.getPath().getLastPathComponent();
                 if (last instanceof TreeNode) {
                     TreeNode<T> node = (TreeNode<T>) last;
@@ -1008,7 +1014,8 @@ public class TreeView<T> extends TreeViewListener {
         });
 
         addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) {
+            @Override
+            public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) {
                     handleDoubleClick(e);
                     return;
@@ -1049,31 +1056,36 @@ public class TreeView<T> extends TreeViewListener {
                 }
             }
 
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override
+            public void mouseClicked(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 2) {
                     handleDoubleClick(e);
                 }
             }
 
-            @Override public void mouseReleased(MouseEvent e) {
+            @Override
+            public void mouseReleased(MouseEvent e) {
                 if (e.isPopupTrigger()) {
                     handlePopupRequest(e);
                 }
             }
 
-            @Override public void mouseExited(MouseEvent e) {
+            @Override
+            public void mouseExited(MouseEvent e) {
                 updateHoveredRow(-1);
             }
         });
 
         addMouseMotionListener(new MouseMotionAdapter() {
-            @Override public void mouseMoved(MouseEvent e) {
+            @Override
+            public void mouseMoved(MouseEvent e) {
                 updateHoveredRow(getRowForLocation(e.getX(), e.getY()));
             }
         });
 
         getTreeModel().addTreeModelListener(new javax.swing.event.TreeModelListener() {
-            @Override public void treeNodesChanged(javax.swing.event.TreeModelEvent e) {
+            @Override
+            public void treeNodesChanged(javax.swing.event.TreeModelEvent e) {
                 Object[] children = e.getChildren();
                 if (children != null && children.length > 0 && children[0] instanceof TreeNode<?>) {
                     @SuppressWarnings("unchecked")
@@ -1082,14 +1094,17 @@ public class TreeView<T> extends TreeViewListener {
                 }
             }
 
-            @Override public void treeNodesInserted(javax.swing.event.TreeModelEvent e) {
+            @Override
+            public void treeNodesInserted(javax.swing.event.TreeModelEvent e) {
             }
 
-            @Override public void treeNodesRemoved(javax.swing.event.TreeModelEvent e) {
+            @Override
+            public void treeNodesRemoved(javax.swing.event.TreeModelEvent e) {
                 clearDropState();
             }
 
-            @Override public void treeStructureChanged(javax.swing.event.TreeModelEvent e) {
+            @Override
+            public void treeStructureChanged(javax.swing.event.TreeModelEvent e) {
                 clearDropState();
             }
         });
@@ -1110,14 +1125,16 @@ public class TreeView<T> extends TreeViewListener {
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "treeview.rename");
         actions.put("treeview.rename", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (editOnF2) editSelectedNode();
             }
         });
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "treeview.delete");
         actions.put("treeview.delete", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (deleteHandler != null) {
                     List<TreeNode<T>> selected = getSelectedNodes();
                     if (!selected.isEmpty()) deleteHandler.accept(List.copyOf(selected));
@@ -1129,28 +1146,32 @@ public class TreeView<T> extends TreeViewListener {
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "treeview.activate");
         actions.put("treeview.activate", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (activateOnEnter) activateSelectedNode();
             }
         });
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "treeview.check");
         actions.put("treeview.check", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (toggleCheckOnSpace) toggleSelectedCheck();
             }
         });
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "treeview.expand");
         actions.put("treeview.expand", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (expandCollapseOnArrowKeys) expandSelectedNode();
             }
         });
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "treeview.collapse");
         actions.put("treeview.collapse", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (expandCollapseOnArrowKeys) collapseOrSelectParent();
             }
         });
@@ -1159,7 +1180,8 @@ public class TreeView<T> extends TreeViewListener {
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, menuMask), "treeview.clipboard.copy");
         actions.put("treeview.clipboard.copy", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (clipboardCopyHandler == null) return;
                 List<TreeNode<T>> selected = getSelectedNodes();
                 if (!selected.isEmpty()) clipboardCopyHandler.accept(List.copyOf(selected));
@@ -1168,7 +1190,8 @@ public class TreeView<T> extends TreeViewListener {
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, menuMask), "treeview.clipboard.cut");
         actions.put("treeview.clipboard.cut", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (clipboardCutHandler == null) return;
                 List<TreeNode<T>> selected = getSelectedNodes();
                 if (!selected.isEmpty()) clipboardCutHandler.accept(List.copyOf(selected));
@@ -1177,7 +1200,8 @@ public class TreeView<T> extends TreeViewListener {
 
         input.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, menuMask), "treeview.clipboard.paste");
         actions.put("treeview.clipboard.paste", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
                 if (clipboardPasteHandler == null) return;
                 TreeNode<T> node = getSelectedNode();
                 if (node != null) clipboardPasteHandler.accept(node);
@@ -1850,13 +1874,20 @@ public class TreeView<T> extends TreeViewListener {
 
     protected void dispatchTree(String type, TreeNode<T> node, Object oldValue, Object newValue, CheckState check, MouseEvent mouseEvent) {
         EventTree<T> payload = new EventTree<>() {
-            @Override public TreeNode<T> getNode() { return node; }
-            @Override public TreePath getPath() { return node == null ? null : new TreePath(node.getPath()); }
-            @Override public List<TreeNode<T>> getSelected() { return getSelectedNodes(); }
-            @Override public Object getOldValue() { return oldValue; }
-            @Override public Object getNewValue() { return newValue; }
-            @Override public CheckState getCheckState() { return check; }
-            @Override public MouseEvent getMouseEvent() { return mouseEvent; }
+            @Override
+            public TreeNode<T> getNode() { return node; }
+            @Override
+            public TreePath getPath() { return node == null ? null : new TreePath(node.getPath()); }
+            @Override
+            public List<TreeNode<T>> getSelected() { return getSelectedNodes(); }
+            @Override
+            public Object getOldValue() { return oldValue; }
+            @Override
+            public Object getNewValue() { return newValue; }
+            @Override
+            public CheckState getCheckState() { return check; }
+            @Override
+            public MouseEvent getMouseEvent() { return mouseEvent; }
         };
         dispachEvent(type, this, payload);
     }

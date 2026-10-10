@@ -285,9 +285,6 @@ public class StepperField extends PanelEventListener {
         }
     }
 
-    /**
-     * Botão lateral que aplica o passo e repete enquanto permanecer pressionado.
-     */
     private static final class StepButton extends dtm.stools.component.accessibility.AccessibleButton {
 
         private static final int INITIAL_DELAY = 400;
@@ -311,7 +308,8 @@ public class StepperField extends PanelEventListener {
             installMouse();
         }
 
-        @Override protected void activate() { if (isEnabled()) action.run(); }
+        @Override
+        protected void activate() { if (isEnabled()) action.run(); }
 
         private void onStep(Runnable action) {
             this.action = action != null ? action : () -> { };

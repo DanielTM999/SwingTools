@@ -50,5 +50,6 @@ public final class SheetWorksheet {
 
     public SheetWorksheet duplicate(String newName) { return new SheetWorksheet(UUID.randomUUID().toString(), cells.snapshot(), rows.copy(), columns.copy(), properties.withName(newName)); }
 
-    @Override public String toString() { return name(); }
+    @Override
+    public String toString() { return name(); }
 }

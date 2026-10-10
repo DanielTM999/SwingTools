@@ -117,9 +117,6 @@ public class SplitPanel extends JSplitPane {
         setBorder(BorderFactory.createEmptyBorder());
     }
 
-    /**
-     * Divisor pintado com faixa fina e alça central.
-     */
     private final class ModernDivider extends BasicSplitPaneDivider {
 
         private boolean hover;

@@ -6,8 +6,10 @@ import dtm.stools.component.panels.editor.sheet.provider.*;
 
 /** Default adapter; applications can continue to replace this provider. */
 public final class DefaultCommandPaletteProvider implements SheetCommandPaletteProvider {
-    @Override public String id() { return "sheet.popup.palette.default"; }
-    @Override public SheetPopupHandle open(SheetCommandPaletteContext context) {
+    @Override
+    public String id() { return "sheet.popup.palette.default"; }
+    @Override
+    public SheetPopupHandle open(SheetCommandPaletteContext context) {
         CommandPalette palette = new CommandPalette(
             () -> context.commands().stream().map(e -> new CommandEntry(e.id(), e.name(), e.group(), "", e.shortcut(), e.enabled())).toList(),
             context::execute);

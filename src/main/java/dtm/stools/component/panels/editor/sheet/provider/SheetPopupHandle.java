@@ -7,9 +7,12 @@ public interface SheetPopupHandle {
 
     static SheetPopupHandle closed() {
         return new SheetPopupHandle() {
-            @Override public boolean isOpen() { return false; }
-            @Override public void toFront() { }
-            @Override public void close() { }
+            @Override
+            public boolean isOpen() { return false; }
+            @Override
+            public void toFront() { }
+            @Override
+            public void close() { }
         };
     }
 }

@@ -396,9 +396,6 @@ public class TextAreaField extends PanelEventListener {
         return borderColor != null ? borderColor : UiTokens.border();
     }
 
-    /**
-     * Bloqueia digitação acima do limite configurado.
-     */
     private final class LengthFilter extends DocumentFilter {
 
         @Override

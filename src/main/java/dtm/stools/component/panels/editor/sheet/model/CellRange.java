@@ -58,14 +58,17 @@ public record CellRange(int firstRow, int firstColumn, int lastRow, int lastColu
         return isSingleCell() ? first().toA1() : first().toA1() + ":" + last().toA1();
     }
 
-    @Override public String toString() { return toA1(); }
+    @Override
+    public String toString() { return toA1(); }
 
     @Override
     public Iterator<CellAddress> iterator() {
         return new Iterator<>() {
             int r = firstRow, c = firstColumn;
-            @Override public boolean hasNext() { return r <= lastRow; }
-            @Override public CellAddress next() {
+            @Override
+            public boolean hasNext() { return r <= lastRow; }
+            @Override
+            public CellAddress next() {
                 if (r > lastRow) throw new NoSuchElementException();
                 CellAddress a = new CellAddress(r, c);
                 if (++c > lastColumn) { c = firstColumn; r++; }

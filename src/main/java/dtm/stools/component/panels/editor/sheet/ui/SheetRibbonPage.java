@@ -124,16 +124,21 @@ final class SheetRibbonPage extends JPanel {
     }
 
     private static final class PageLayout implements LayoutManager {
-        @Override public void addLayoutComponent(String name, Component comp) { }
-        @Override public void removeLayoutComponent(Component comp) { }
-        @Override public Dimension preferredLayoutSize(Container parent) {
+        @Override
+        public void addLayoutComponent(String name, Component comp) { }
+        @Override
+        public void removeLayoutComponent(Component comp) { }
+        @Override
+        public Dimension preferredLayoutSize(Container parent) {
             int w = 0, h = 0;
             for (Component c : parent.getComponents()) { Dimension d = c.getPreferredSize(); w += d.width + 2; h = Math.max(h, d.height); }
             Insets in = parent.getInsets();
             return new Dimension(w + in.left + in.right, h + in.top + in.bottom);
         }
-        @Override public Dimension minimumLayoutSize(Container parent) { return new Dimension(80, preferredLayoutSize(parent).height); }
-        @Override public void layoutContainer(Container parent) {
+        @Override
+        public Dimension minimumLayoutSize(Container parent) { return new Dimension(80, preferredLayoutSize(parent).height); }
+        @Override
+        public void layoutContainer(Container parent) {
             Insets in = parent.getInsets();
             int x = in.left, h = parent.getHeight() - in.top - in.bottom;
             for (Component c : parent.getComponents()) {

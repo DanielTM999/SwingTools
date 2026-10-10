@@ -39,12 +39,14 @@ public class WindowMinimizedBar extends JPanel {
         collapseDelayTimer.setRepeats(false);
 
         MouseAdapter hoverHandler = new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent event) {
+            @Override
+            public void mouseEntered(MouseEvent event) {
                 collapseDelayTimer.stop();
                 if (autoHideEnabled && available) expand();
             }
 
-            @Override public void mouseExited(MouseEvent event) {
+            @Override
+            public void mouseExited(MouseEvent event) {
                 if (autoHideEnabled && available) scheduleCollapse();
             }
         };

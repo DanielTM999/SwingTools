@@ -20,7 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class WordUiTest {
-    @Test void hiddenToolsCanBeRestoredThroughVisibleMenu() throws Exception {
+    @Test
+    void hiddenToolsCanBeRestoredThroughVisibleMenu() throws Exception {
         edt(()->{
             FlatLightLaf.setup();
             try(WordEditor editor=new WordEditor()) {
@@ -53,7 +54,8 @@ class WordUiTest {
         });
     }
 
-    @Test void initiallyHiddenRibbonKeepsRestoreMenuAvailable() throws Exception {
+    @Test
+    void initiallyHiddenRibbonKeepsRestoreMenuAvailable() throws Exception {
         edt(()->{
             var defaults=dtm.stools.component.panels.editor.word.config.WordEditorConfig.defaults();
             var hidden=new dtm.stools.component.panels.editor.word.config.WordEditorConfig(defaults.readOnly(),false,false,false,
@@ -69,7 +71,8 @@ class WordUiTest {
         });
     }
 
-    @Test void navigationClosesAndReopensWithoutLosingSelection() throws Exception {
+    @Test
+    void navigationClosesAndReopensWithoutLosingSelection() throws Exception {
         edt(() -> {
             FlatLightLaf.setup();
             try(WordEditor editor=new WordEditor()) {
@@ -92,7 +95,8 @@ class WordUiTest {
         });
     }
 
-    @Test void ribbonTracksFormattingAndFitsEveryTabAtSmallWidths() throws Exception {
+    @Test
+    void ribbonTracksFormattingAndFitsEveryTabAtSmallWidths() throws Exception {
         edt(() -> {
             FlatLightLaf.setup();
             try(WordEditor editor=new WordEditor()) {
@@ -119,7 +123,8 @@ class WordUiTest {
         });
     }
 
-    @Test void genericDialogProviderCanBeRegisteredReplacedAndReset() throws Exception {
+    @Test
+    void genericDialogProviderCanBeRegisteredReplacedAndReset() throws Exception {
         edt(() -> {
             try(WordEditor editor=new WordEditor()) {
                 WordDialogProvider defaults=editor.getDialogProvider();AtomicInteger calls=new AtomicInteger();
@@ -135,7 +140,8 @@ class WordUiTest {
         });
     }
 
-    @Test void defaultModalFormValidatesCancelsAndDisposesExactlyOnce() throws Exception {
+    @Test
+    void defaultModalFormValidatesCancelsAndDisposesExactlyOnce() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         edt(() -> {
             int initialWindows=WindowContext.size();
@@ -162,7 +168,8 @@ class WordUiTest {
         });
     }
 
-    @Test void searchAndPaletteBelongToTheirEditorAndCloseWithIt() throws Exception {
+    @Test
+    void searchAndPaletteBelongToTheirEditorAndCloseWithIt() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         edt(() -> {
             JFrame frameA=new JFrame(),frameB=new JFrame();WordEditor a=new WordEditor(),b=new WordEditor();
@@ -176,7 +183,8 @@ class WordUiTest {
             }finally{a.close();b.close();frameA.dispose();frameB.dispose();}return null;
         });
     }
-    @Test void collapsedGroupReusesControlsAndRestoresThemAfterClosing() throws Exception {
+    @Test
+    void collapsedGroupReusesControlsAndRestoresThemAfterClosing() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         edt(()->{
             FlatLightLaf.setup();JFrame frame=new JFrame();WordEditor editor=new WordEditor();
@@ -197,7 +205,8 @@ class WordUiTest {
             }finally{editor.close();frame.dispose();}return null;
         });
     }
-    @Test void readOnlyDialogCannotSubmitItsValue() throws Exception {
+    @Test
+    void readOnlyDialogCannotSubmitItsValue() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         edt(()->{
             try(WordEditor editor=new WordEditor()){

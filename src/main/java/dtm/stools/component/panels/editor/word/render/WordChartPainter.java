@@ -13,7 +13,8 @@ import java.util.Locale;
 public final class WordChartPainter implements WordObjectPainter {
     private static final Color GRID = new Color(0xD9D9D9), AXIS = new Color(0x595959), TEXT = new Color(0x404040);
 
-    @Override public void paint(Graphics2D graphics, WordInlineObject object, Rectangle2D.Float bounds, WordDocument document) {
+    @Override
+    public void paint(Graphics2D graphics, WordInlineObject object, Rectangle2D.Float bounds, WordDocument document) {
         if (!(object instanceof WordChart chart)) return;
         Graphics2D g = (Graphics2D)graphics.create();
         try {

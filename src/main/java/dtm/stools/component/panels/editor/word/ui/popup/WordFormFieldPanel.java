@@ -24,8 +24,10 @@ public final class WordFormFieldPanel extends WordPropertiesPanel<WordFormField>
             default -> { value.setText(field.value()); row(field.kind() == WordFormField.Kind.DATE ? "Data (dd/mm/aaaa)" : "Valor",value); }
         }
     }
-    @Override public String title() { return "Campo de formulário"; }
-    @Override public WordFormField result() {
+    @Override
+    public String title() { return "Campo de formulário"; }
+    @Override
+    public WordFormField result() {
         return switch (field.kind()) {
             case CHECKBOX -> new WordFormField(field.id(),field.kind(),name.getText().strip(),"",List.of(),checked.isSelected(),field.placeholder());
             case DROPDOWN -> {

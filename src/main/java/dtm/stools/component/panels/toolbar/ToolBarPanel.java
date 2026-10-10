@@ -227,9 +227,6 @@ public class ToolBarPanel extends PanelEventListener {
         }
     }
 
-    /**
-     * Botão de reticências que abre o menu de ações excedentes.
-     */
     private static final class OverflowButton extends JComponent {
 
         private Runnable action = () -> { };

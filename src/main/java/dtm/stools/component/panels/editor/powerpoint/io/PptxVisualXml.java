@@ -6,7 +6,6 @@ import org.w3c.dom.*;
 import java.awt.Color;
 import java.util.*;
 
-/** DrawingML styles and geometry shared by external imports and editor metadata. */
 final class PptxVisualXml {
     static final String A="http://schemas.openxmlformats.org/drawingml/2006/main",P="http://schemas.openxmlformats.org/presentationml/2006/main";
     private PptxVisualXml(){}

@@ -17,7 +17,9 @@ public record WindowLayoutSnapshot(List<WindowSnapshot> windows, String activeWi
             snap = snap == null ? WindowSnap.NONE : snap;
         }
 
-        @Override public Rectangle bounds() { return bounds == null ? null : new Rectangle(bounds); }
-        @Override public Rectangle normalBounds() { return normalBounds == null ? null : new Rectangle(normalBounds); }
+        @Override
+        public Rectangle bounds() { return bounds == null ? null : new Rectangle(bounds); }
+        @Override
+        public Rectangle normalBounds() { return normalBounds == null ? null : new Rectangle(normalBounds); }
     }
 }

@@ -60,5 +60,6 @@ public final class XmlBuilder {
         return b.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    @Override public String toString() { return b.toString(); }
+    @Override
+    public String toString() { return b.toString(); }
 }

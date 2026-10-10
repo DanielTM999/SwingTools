@@ -71,7 +71,9 @@ public final class GridRow<T> extends AbstractList<Object> {
         return index >= 0 ? index : names.indexOf(name);
     }
 
-    @Override public Object get(int index) { return values.get(index); }
+    @Override
+    public Object get(int index) { return values.get(index); }
 
-    @Override public int size() { return values.size(); }
+    @Override
+    public int size() { return values.size(); }
 }

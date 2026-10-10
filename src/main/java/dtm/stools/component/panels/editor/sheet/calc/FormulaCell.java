@@ -34,5 +34,6 @@ public final class FormulaCell {
     public CellAddress address() { return new CellAddress(row, column); }
     public List<Dependency> dependencies() { return dependencies; }
     public boolean isVolatile() { return volatileCell; }
-    @Override public String toString() { return sheet + "!" + address() + "=" + text; }
+    @Override
+    public String toString() { return sheet + "!" + address() + "=" + text; }
 }

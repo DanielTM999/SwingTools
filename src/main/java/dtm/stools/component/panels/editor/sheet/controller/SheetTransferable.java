@@ -23,9 +23,11 @@ final class SheetTransferable implements Transferable {
 
     SheetTransferable(String text, String html) { this.text = text; this.html = html; }
 
-    @Override public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{HTML, DataFlavor.stringFlavor, DataFlavor.getTextPlainUnicodeFlavor()}; }
+    @Override
+    public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{HTML, DataFlavor.stringFlavor, DataFlavor.getTextPlainUnicodeFlavor()}; }
 
-    @Override public boolean isDataFlavorSupported(DataFlavor flavor) {
+    @Override
+    public boolean isDataFlavorSupported(DataFlavor flavor) {
         for (DataFlavor f : getTransferDataFlavors()) if (f.equals(flavor)) return true;
         return false;
     }

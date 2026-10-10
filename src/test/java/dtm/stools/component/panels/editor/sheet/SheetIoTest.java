@@ -70,7 +70,8 @@ class SheetIoTest {
         return wb;
     }
 
-    @Test void xlsxRoundTrip() throws Exception {
+    @Test
+    void xlsxRoundTrip() throws Exception {
         SheetWorkbook wb = sample();
         CalcEngine engine = new CalcEngine(SheetTestSupport.REGISTRY);
         engine.setLocale(Locale.US);
@@ -106,7 +107,8 @@ class SheetIoTest {
         assertEquals(3, ((NumberValue) e2.valueAt(0, 2, 3)).value());
     }
 
-    @Test void csvAndOdsRoundTrip() throws Exception {
+    @Test
+    void csvAndOdsRoundTrip() throws Exception {
         CsvCodec csv = new CsvCodec();
         byte[] data = "Nome;Valor;Data\nAna;1.234,5;01/02/2025\n\"Bia; Silva\";2;\n".getBytes(StandardCharsets.UTF_8);
         CsvDialect d = csv.detect(data, Locale.forLanguageTag("pt-BR"));
@@ -129,13 +131,15 @@ class SheetIoTest {
         assertTrue(html.contains("R$ 10,50"));
     }
 
-    @Test void futureFunctionsArePrefixed() {
+    @Test
+    void futureFunctionsArePrefixed() {
         assertEquals("_xlfn._xlws.FILTER(A1:A3,A1:A3>1)", XlsxFormulas.toFile("FILTER(A1:A3,A1:A3>1)"));
         assertEquals("FILTER(A1:A3,A1:A3>1)", XlsxFormulas.fromFile("_xlfn._xlws.FILTER(A1:A3,A1:A3>1)"));
         assertEquals("_xlfn.LAMBDA(_xlpm.a,_xlpm.a+1)(2)", XlsxFormulas.toFile("LAMBDA(a,a+1)(2)"));
     }
 
-    @Test void structuralEditsAdjustReferences() {
+    @Test
+    void structuralEditsAdjustReferences() {
         SheetSession session = new SheetSession();
         SheetWorkbook wb = sample();
         session.load(wb);

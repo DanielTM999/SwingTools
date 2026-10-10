@@ -85,7 +85,8 @@ public final class Evaluator implements FunctionContext {
         } catch (EvalError e) { return e.toValue(); }
     }
 
-    @Override public CellValue evaluate(FormulaNode node) {
+    @Override
+    public CellValue evaluate(FormulaNode node) {
         return switch (node) {
             case NumberNode n -> new NumberValue(n.value());
             case StringNode s -> new TextValue(s.value());
@@ -105,7 +106,8 @@ public final class Evaluator implements FunctionContext {
         };
     }
 
-    @Override public CellValue evaluate(FormulaNode node, Map<String, CellValue> extra) {
+    @Override
+    public CellValue evaluate(FormulaNode node, Map<String, CellValue> extra) {
         Map<String, CellValue> merged = new HashMap<>(bindings);
         extra.forEach((k, v) -> merged.put(k.toUpperCase(Locale.ROOT), v));
         return new Evaluator(engine, sheet, row, column, merged, depth + 1).evaluate(node);
@@ -222,7 +224,8 @@ public final class Evaluator implements FunctionContext {
         return CellValue.error(CellError.VALUE);
     }
 
-    @Override public CellValue callLambda(LambdaValue lambda, List<CellValue> args) {
+    @Override
+    public CellValue callLambda(LambdaValue lambda, List<CellValue> args) {
         if (args.size() > lambda.parameters().size()) return CellValue.error(CellError.VALUE);
         Map<String, CellValue> scope = new HashMap<>(lambda.closure());
         for (int i = 0; i < lambda.parameters().size(); i++) scope.put(lambda.parameters().get(i).toUpperCase(Locale.ROOT), i < args.size() ? args.get(i) : OmittedValue.INSTANCE);
@@ -430,7 +433,8 @@ public final class Evaluator implements FunctionContext {
         return out;
     }
 
-    @Override public CellValue deref(CellValue value) {
+    @Override
+    public CellValue deref(CellValue value) {
         if (value instanceof ReferenceValue r) {
             if (!r.isSingleArea()) {
                 if (r.is3D()) throw EvalError.value();
@@ -443,13 +447,15 @@ public final class Evaluator implements FunctionContext {
         return value;
     }
 
-    @Override public CellValue scalar(CellValue value) {
+    @Override
+    public CellValue scalar(CellValue value) {
         CellValue v = deref(value);
         if (v instanceof ArrayValue a) return a.get(0, 0);
         return v;
     }
 
-    @Override public ArrayValue toArray(CellValue value) {
+    @Override
+    public ArrayValue toArray(CellValue value) {
         if (value instanceof ArrayValue a) return a;
         if (value instanceof ReferenceValue r) {
             if (r.is3D()) throw EvalError.value();
@@ -467,7 +473,8 @@ public final class Evaluator implements FunctionContext {
         return new ArrayValue(1, 1, new CellValue[]{value});
     }
 
-    @Override public CellRange clip(int sheetIndex, CellRange range) {
+    @Override
+    public CellRange clip(int sheetIndex, CellRange range) {
         if (range.rowCount() * (long) range.columnCount() <= 1_000_000L && !range.isWholeColumn() && !range.isWholeRow()) return range;
         CellRange used = engine.extent(sheetIndex);
         if (used == null) return new CellRange(range.firstRow(), range.firstColumn(), range.firstRow(), range.firstColumn());
@@ -476,49 +483,71 @@ public final class Evaluator implements FunctionContext {
         return new CellRange(range.firstRow(), range.firstColumn(), lastRow, lastCol);
     }
 
-    @Override public CellValue cell(int sheetIndex, int r, int c) { return engine.valueForEvaluation(sheetIndex, r, c); }
+    @Override
+    public CellValue cell(int sheetIndex, int r, int c) { return engine.valueForEvaluation(sheetIndex, r, c); }
 
-    @Override public void forEachCell(ReferenceValue reference, CellConsumer consumer) {
+    @Override
+    public void forEachCell(ReferenceValue reference, CellConsumer consumer) {
         for (int s = reference.sheet(); s <= reference.sheetEnd(); s++)
             for (CellRange area : reference.areas()) engine.forEachValue(s, area, consumer);
     }
 
-    @Override public CellRange usedRange(int sheetIndex) { return engine.extent(sheetIndex); }
-    @Override public int hostSheet() { return sheet; }
-    @Override public CellAddress host() { return new CellAddress(row, column); }
-    @Override public SheetWorkbook workbook() { return engine.workbook(); }
-    @Override public boolean date1904() { return engine.workbook().properties().date1904(); }
-    @Override public FormulaLocale formulaLocale() { return engine.formulaLocale(); }
-    @Override public Locale locale() { return engine.locale(); }
-    @Override public FunctionRegistry functions() { return engine.functions(); }
-    @Override public double random() { return engine.random(); }
-    @Override public long now() { return engine.now(); }
-    @Override public Map<String, CellValue> bindings() { return bindings; }
-    @Override public int sheetIndex(String name) { return engine.workbook().indexOf(name); }
-    @Override public String sheetName(int index) { return engine.workbook().sheet(index).name(); }
-    @Override public SheetExternalDataProvider external() { return engine.external(); }
-    @Override public String formatNumber(double value, String format) { return engine.formatter().text(CellValue.of(value), format); }
+    @Override
+    public CellRange usedRange(int sheetIndex) { return engine.extent(sheetIndex); }
+    @Override
+    public int hostSheet() { return sheet; }
+    @Override
+    public CellAddress host() { return new CellAddress(row, column); }
+    @Override
+    public SheetWorkbook workbook() { return engine.workbook(); }
+    @Override
+    public boolean date1904() { return engine.workbook().properties().date1904(); }
+    @Override
+    public FormulaLocale formulaLocale() { return engine.formulaLocale(); }
+    @Override
+    public Locale locale() { return engine.locale(); }
+    @Override
+    public FunctionRegistry functions() { return engine.functions(); }
+    @Override
+    public double random() { return engine.random(); }
+    @Override
+    public long now() { return engine.now(); }
+    @Override
+    public Map<String, CellValue> bindings() { return bindings; }
+    @Override
+    public int sheetIndex(String name) { return engine.workbook().indexOf(name); }
+    @Override
+    public String sheetName(int index) { return engine.workbook().sheet(index).name(); }
+    @Override
+    public SheetExternalDataProvider external() { return engine.external(); }
+    @Override
+    public String formatNumber(double value, String format) { return engine.formatter().text(CellValue.of(value), format); }
 
-    @Override public String numberFormatAt(int s, int r, int c) {
+    @Override
+    public String numberFormatAt(int s, int r, int c) {
         SheetCell cell = engine.workbook().sheet(s).cell(r, c);
         return engine.workbook().style(cell.style()).numberFormat();
     }
 
-    @Override public Optional<String> formulaAt(int s, int r, int c) {
+    @Override
+    public Optional<String> formulaAt(int s, int r, int c) {
         SheetCell cell = engine.workbook().sheet(s).cells().get(r, c);
         return cell != null && cell.hasFormula() ? Optional.of(cell.formula()) : Optional.empty();
     }
 
-    @Override public boolean isHiddenRow(int s, int r) { return engine.workbook().sheet(s).rows().isHidden(r); }
+    @Override
+    public boolean isHiddenRow(int s, int r) { return engine.workbook().sheet(s).rows().isHidden(r); }
 
-    @Override public boolean isSubtotalCell(int s, int r, int c) {
+    @Override
+    public boolean isSubtotalCell(int s, int r, int c) {
         Optional<String> f = formulaAt(s, r, c);
         if (f.isEmpty()) return false;
         String u = f.get().toUpperCase(Locale.ROOT);
         return u.contains("SUBTOTAL(") || u.contains("AGGREGATE(");
     }
 
-    @Override public ReferenceValue indirect(String text, boolean a1) {
+    @Override
+    public ReferenceValue indirect(String text, boolean a1) {
         String t = text.strip();
         if (t.startsWith("=")) t = t.substring(1);
         FormulaNode node;

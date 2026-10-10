@@ -43,17 +43,23 @@ public record WordShape(String id, WordShapeType shapeType, float x, float y, fl
         return new WordShape(WordIds.next(),WordShapeType.GROUP,0,0,maxX-minX,maxY-minY,null,null,0,"",11,0,0,false,children,"Grupo",
                 WordPlacement.floating(minX,minY,WordPlacement.Wrap.SQUARE));
     }
-    @Override public String type() { return TYPE; }
-    @Override public WordShape withId(String value) { return new WordShape(value,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,altText,placement); }
-    @Override public WordShape resize(float w, float h) {
+    @Override
+    public String type() { return TYPE; }
+    @Override
+    public WordShape withId(String value) { return new WordShape(value,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,altText,placement); }
+    @Override
+    public WordShape resize(float w, float h) {
         List<WordShape> scaled = new ArrayList<>();
         float sx = width == 0 ? 1 : w/width, sy = height == 0 ? 1 : h/height;
         for (WordShape c : children) scaled.add(c.at(c.x*sx,c.y*sy).resize(c.width*sx,c.height*sy));
         return new WordShape(id,shapeType,x,y,w,h,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,scaled,altText,placement);
     }
-    @Override public WordShape withPlacement(WordPlacement value) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,altText,value); }
-    @Override public WordShape withAltText(String value) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,value,placement); }
-    @Override public WordShape withRotation(float value) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,value,arrowEnd,children,altText,placement); }
+    @Override
+    public WordShape withPlacement(WordPlacement value) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,altText,value); }
+    @Override
+    public WordShape withAltText(String value) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,value,placement); }
+    @Override
+    public WordShape withRotation(float value) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,value,arrowEnd,children,altText,placement); }
     public WordShape at(float nx, float ny) { return new WordShape(id,shapeType,nx,ny,width,height,fill,stroke,strokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,altText,placement); }
     public WordShape withColors(Integer newFill, Integer newStroke, float newStrokeWidth) { return new WordShape(id,shapeType,x,y,width,height,newFill,newStroke,newStrokeWidth,text,fontSize,textColor,rotation,arrowEnd,children,altText,placement); }
     public WordShape withText(String value, float size, int color) { return new WordShape(id,shapeType,x,y,width,height,fill,stroke,strokeWidth,value,size,color,rotation,arrowEnd,children,altText,placement); }
@@ -65,7 +71,8 @@ public record WordShape(String id, WordShapeType shapeType, float x, float y, fl
         for (WordShape c : children) result.add(c.withPlacement(placement.moveTo(placement.x()+c.x,placement.y()+c.y)).at(0,0).withId(WordIds.next()));
         return result;
     }
-    @Override public String plainText() {
+    @Override
+    public String plainText() {
         StringBuilder b = new StringBuilder(text);
         for (WordShape c : children) { String t = c.plainText(); if (!t.isBlank()) { if (!b.isEmpty()) b.append(' '); b.append(t); } }
         return b.toString();

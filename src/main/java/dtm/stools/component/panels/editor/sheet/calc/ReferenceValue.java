@@ -18,5 +18,6 @@ public record ReferenceValue(int sheet, int sheetEnd, List<CellRange> areas) imp
     public int rows() { return range().rowCount(); }
     public int columns() { return range().columnCount(); }
 
-    @Override public String toString() { return "Ref(" + sheet + (is3D() ? ":" + sheetEnd : "") + "!" + areas + ")"; }
+    @Override
+    public String toString() { return "Ref(" + sheet + (is3D() ? ":" + sheetEnd : "") + "!" + areas + ")"; }
 }

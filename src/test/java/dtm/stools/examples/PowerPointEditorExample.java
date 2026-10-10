@@ -25,7 +25,9 @@ public final class PowerPointEditorExample {
         editor.addAnimation(PptAnimation.Effect.FADE_IN);
         editor.addSlide();editor.insertText("Segundo slide");
         frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        frame.addWindowListener(new java.awt.event.WindowAdapter(){@Override public void windowClosed(java.awt.event.WindowEvent e){editor.close();}});
+        frame.addWindowListener(new java.awt.event.WindowAdapter(){
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent e){editor.close();}});
         frame.setContentPane(editor);frame.setSize(1200,750);frame.setLocationRelativeTo(null);frame.setVisible(true);
     });}
 }

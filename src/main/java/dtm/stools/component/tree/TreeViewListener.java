@@ -71,13 +71,17 @@ public class TreeViewListener extends JTree implements EventListenerComponent {
         if (list == null || list.isEmpty()) return;
 
         EventComponent event = new EventComponent() {
-            @Override public Component getComponent() { return component; }
-            @Override public Object getValue() { return value; }
+            @Override
+            public Component getComponent() { return component; }
+            @Override
+            public Object getValue() { return value; }
             @SuppressWarnings("unchecked")
-            @Override public <X> X tryGetValue() {
+            @Override
+            public <X> X tryGetValue() {
                 try { return (X) value; } catch (Exception e) { return null; }
             }
-            @Override public String getEventType() { return eventType; }
+            @Override
+            public String getEventType() { return eventType; }
         };
 
         for (Consumer<EventComponent> l : list) {
@@ -91,13 +95,17 @@ public class TreeViewListener extends JTree implements EventListenerComponent {
         if (list == null || list.isEmpty()) return;
 
         EventComponent event = new EventComponent() {
-            @Override public Component getComponent() { return component; }
-            @Override public Object getValue() { return value.get(); }
+            @Override
+            public Component getComponent() { return component; }
+            @Override
+            public Object getValue() { return value.get(); }
             @SuppressWarnings("unchecked")
-            @Override public <X> X tryGetValue() {
+            @Override
+            public <X> X tryGetValue() {
                 try { return (X) value.get(); } catch (Exception e) { return null; }
             }
-            @Override public String getEventType() { return eventType; }
+            @Override
+            public String getEventType() { return eventType; }
         };
 
         for (Consumer<EventComponent> l : list) {

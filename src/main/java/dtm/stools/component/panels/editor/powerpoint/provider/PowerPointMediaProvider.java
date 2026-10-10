@@ -15,6 +15,7 @@ public interface PowerPointMediaProvider extends PowerPointProvider {
         void pause();
         void seek(long milliseconds);
         void stop();
-        @Override void close();
+        @Override
+        void close();
     }
 }

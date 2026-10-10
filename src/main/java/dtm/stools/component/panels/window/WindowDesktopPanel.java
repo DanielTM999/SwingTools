@@ -165,13 +165,16 @@ public class WindowDesktopPanel extends PanelEventListener {
                                                            WindowSnapLayoutPopup popup,
                                                            javax.swing.Timer timer) {
         return new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent event) {
+            @Override
+            public void mouseEntered(MouseEvent event) {
                 if (canShowSnapLayouts(window)) timer.restart();
             }
 
-            @Override public void mouseExited(MouseEvent event) { timer.stop(); }
+            @Override
+            public void mouseExited(MouseEvent event) { timer.stop(); }
 
-            @Override public void mousePressed(MouseEvent event) {
+            @Override
+            public void mousePressed(MouseEvent event) {
                 timer.stop();
                 if (popup.isVisible()) popup.setVisible(false);
             }
@@ -182,15 +185,18 @@ public class WindowDesktopPanel extends PanelEventListener {
         popup.addPopupMenuListener(new PopupMenuListener() {
             private boolean opened;
 
-            @Override public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
                 opened = true;
                 dispatchDesktopEvent(EventWindowPanel.SNAP_LAYOUT_MENU_OPEN, window,
                         Map.of("popup", popup));
                 onSnapLayoutMenuChanged(window, popup, true);
             }
 
-            @Override public void popupMenuWillBecomeInvisible(PopupMenuEvent event) { closed(); }
-            @Override public void popupMenuCanceled(PopupMenuEvent event) { closed(); }
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent event) { closed(); }
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent event) { closed(); }
 
             private void closed() {
                 if (!opened) return;
@@ -222,7 +228,8 @@ public class WindowDesktopPanel extends PanelEventListener {
 
     protected void installDesktopListeners() {
         layeredPane.addComponentListener(new ComponentAdapter() {
-            @Override public void componentResized(ComponentEvent event) {
+            @Override
+            public void componentResized(ComponentEvent event) {
                 resizeModalOverlay();
                 resizeSnapOverlays();
                 for (WindowPanel window : getWindows()) {
@@ -463,7 +470,8 @@ public class WindowDesktopPanel extends PanelEventListener {
         menu.addPopupMenuListener(new PopupMenuListener() {
             private boolean opened;
 
-            @Override public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent event) {
                 opened = true;
                 minimizedBar.setPopupActive(true);
                 dispatchDesktopEvent(EventWindowPanel.MINIMIZED_BAR_MENU_OPEN, window,
@@ -471,8 +479,10 @@ public class WindowDesktopPanel extends PanelEventListener {
                 onMinimizedBarMenuChanged(window, menu, true);
             }
 
-            @Override public void popupMenuWillBecomeInvisible(PopupMenuEvent event) { menuClosed(); }
-            @Override public void popupMenuCanceled(PopupMenuEvent event) { menuClosed(); }
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent event) { menuClosed(); }
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent event) { menuClosed(); }
 
             private void menuClosed() {
                 if (!opened) return;
@@ -1237,7 +1247,8 @@ public class WindowDesktopPanel extends PanelEventListener {
         }
     }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics.create();
         try { paintDesktopBackground(g); } finally { g.dispose(); }

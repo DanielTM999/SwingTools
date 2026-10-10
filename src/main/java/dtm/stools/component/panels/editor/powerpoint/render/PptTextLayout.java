@@ -17,7 +17,9 @@ public final class PptTextLayout {
         }finally{g.dispose();}}
     }
     private record Key(PptText text,double width,double height){}
-    private final Map<Key,Layout> cache=new LinkedHashMap<>(32,.75f,true){@Override protected boolean removeEldestEntry(Map.Entry<Key,Layout> e){return size()>256;}};
+    private final Map<Key,Layout> cache=new LinkedHashMap<>(32,.75f,true){
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Key,Layout> e){return size()>256;}};
     private static final FontRenderContext FRC=new FontRenderContext(null,true,true);
     public synchronized Layout layout(PptText text,double width,double height){return cache.computeIfAbsent(new Key(text,width,height),key->compute(text,width,height));}
     private Layout compute(PptText text,double width,double height){

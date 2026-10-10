@@ -180,10 +180,6 @@ public class BadgeLabel extends PanelEventListener {
         revalidate();
     }
 
-    /**
-     * Mede o texto com o mesmo contexto usado na pintura (com antialiasing), evitando
-     * que a etiqueta fique um pixel menor que o necessario e o texto seja truncado.
-     */
     private int textWidth(Font font) {
         if (text == null || text.isEmpty()) {
             return 0;

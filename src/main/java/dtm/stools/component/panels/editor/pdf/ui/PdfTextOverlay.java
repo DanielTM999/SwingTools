@@ -62,25 +62,30 @@ public class PdfTextOverlay extends JTextArea {
         applyStyle(style);
         getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "pdf.cancelText");
         getActionMap().put("pdf.cancelText", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { cancel(); }
+            @Override
+            public void actionPerformed(ActionEvent event) { cancel(); }
         });
         getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), "pdf.commitText");
         if (word) getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "pdf.commitText");
         getActionMap().put("pdf.commitText", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { commit(); }
+            @Override
+            public void actionPerformed(ActionEvent event) { commit(); }
         });
         UndoManager history = new UndoManager();
         getDocument().addUndoableEditListener(history);
         getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK), "pdf.text.undo");
         getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK), "pdf.text.redo");
         getActionMap().put("pdf.text.undo", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { if (history.canUndo()) history.undo(); }
+            @Override
+            public void actionPerformed(ActionEvent event) { if (history.canUndo()) history.undo(); }
         });
         getActionMap().put("pdf.text.redo", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { if (history.canRedo()) history.redo(); }
+            @Override
+            public void actionPerformed(ActionEvent event) { if (history.canRedo()) history.redo(); }
         });
         addFocusListener(new FocusAdapter() {
-            @Override public void focusLost(FocusEvent event) {
+            @Override
+            public void focusLost(FocusEvent event) {
                 if (event.isTemporary()) return;
                 Component next = event.getOppositeComponent();
                 if (next != null && SwingUtilities.isDescendingFrom(next, editor) && !(next instanceof PdfCanvas)
@@ -89,9 +94,12 @@ public class PdfTextOverlay extends JTextArea {
             }
         });
         getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent event) { relayout(); }
-            @Override public void removeUpdate(DocumentEvent event) { relayout(); }
-            @Override public void changedUpdate(DocumentEvent event) { relayout(); }
+            @Override
+            public void insertUpdate(DocumentEvent event) { relayout(); }
+            @Override
+            public void removeUpdate(DocumentEvent event) { relayout(); }
+            @Override
+            public void changedUpdate(DocumentEvent event) { relayout(); }
         });
     }
 
@@ -154,7 +162,8 @@ public class PdfTextOverlay extends JTextArea {
         canvas.requestFocusInWindow();
     }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
         try {
             g.setColor(new Color(255, 255, 255, 215));
@@ -164,7 +173,8 @@ public class PdfTextOverlay extends JTextArea {
     }
 
     private static final class OverlayBorder implements Border {
-        @Override public void paintBorder(Component component, Graphics graphics, int x, int y, int width, int height) {
+        @Override
+        public void paintBorder(Component component, Graphics graphics, int x, int y, int width, int height) {
             Graphics2D g = (Graphics2D) graphics.create();
             try {
                 g.setColor(UiTokens.accent());
@@ -172,7 +182,9 @@ public class PdfTextOverlay extends JTextArea {
                 g.drawRect(x, y, width - 1, height - 1);
             } finally { g.dispose(); }
         }
-        @Override public Insets getBorderInsets(Component component) { return new Insets(PAD, PAD, PAD, PAD); }
-        @Override public boolean isBorderOpaque() { return false; }
+        @Override
+        public Insets getBorderInsets(Component component) { return new Insets(PAD, PAD, PAD, PAD); }
+        @Override
+        public boolean isBorderOpaque() { return false; }
     }
 }

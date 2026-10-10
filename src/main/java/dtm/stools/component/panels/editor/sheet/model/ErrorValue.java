@@ -12,5 +12,6 @@ public record ErrorValue(CellError error) implements CellValue {
 
     public static ErrorValue of(CellError error) { ErrorValue v = CACHE.get(error); return v != null ? v : new ErrorValue(error); }
 
-    @Override public String toString() { return error.text(); }
+    @Override
+    public String toString() { return error.text(); }
 }

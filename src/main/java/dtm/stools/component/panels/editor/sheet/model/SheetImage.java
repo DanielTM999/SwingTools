@@ -11,6 +11,8 @@ public record SheetImage(String id, byte[] data, String format, ObjectAnchor anc
         altText = Objects.requireNonNullElse(altText, "");
     }
 
-    @Override public SheetObject withAnchor(ObjectAnchor a) { return new SheetImage(id, data, format, a, altText); }
-    @Override public String description() { return altText.isBlank() ? "Imagem" : altText; }
+    @Override
+    public SheetObject withAnchor(ObjectAnchor a) { return new SheetImage(id, data, format, a, altText); }
+    @Override
+    public String description() { return altText.isBlank() ? "Imagem" : altText; }
 }

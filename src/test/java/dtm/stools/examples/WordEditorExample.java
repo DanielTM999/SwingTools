@@ -39,7 +39,9 @@ public class WordEditorExample {
             Path recovery=Path.of(System.getProperty("java.io.tmpdir"),"swingtools-word-recovery");
             editor.enableRecovery(new WordFileRecoveryStore(recovery),Duration.ofSeconds(30),"exemplo");
             frame.add(editor,BorderLayout.CENTER);frame.setSize(1360,900);frame.setLocationRelativeTo(null);frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            frame.addWindowListener(new WindowAdapter(){@Override public void windowClosed(WindowEvent e){editor.close();}});
+            frame.addWindowListener(new WindowAdapter(){
+                @Override
+                public void windowClosed(WindowEvent e){editor.close();}});
             frame.setVisible(true);
         });
     }
@@ -208,7 +210,9 @@ public class WordEditorExample {
             JButton next=new JButton("→");next.addActionListener(e->{context.findNext(query.getText(),WordSearchOptions.DEFAULT);count.setText(context.count(query.getText(),WordSearchOptions.DEFAULT)+"");});
             JPanel p=new JPanel(new FlowLayout());p.add(new JLabel("Buscar:"));p.add(query);p.add(next);p.add(count);
             dialog.add(p);dialog.pack();dialog.setLocationRelativeTo(owner);
-            dialog.addWindowListener(new WindowAdapter(){@Override public void windowClosed(WindowEvent e){context.closed();}});
+            dialog.addWindowListener(new WindowAdapter(){
+                @Override
+                public void windowClosed(WindowEvent e){context.closed();}});
             dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);dialog.setVisible(true);
             return new WordPopupHandle(){public boolean isOpen(){return dialog.isDisplayable();}public void toFront(){dialog.toFront();}public void close(){dialog.dispose();}};
         }

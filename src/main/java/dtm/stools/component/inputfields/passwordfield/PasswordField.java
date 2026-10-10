@@ -1,40 +1,161 @@
 package dtm.stools.component.inputfields.passwordfield;
 
 import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.textfield.layout.FieldLayoutManager;
+import dtm.stools.component.inputfields.textfield.layout.FieldLayoutTarget;
 import dtm.stools.component.panels.base.PanelEventListener;
 import dtm.stools.configs.UiTokens;
 import dtm.stools.i18n.I18n;
+import dtm.stools.utils.PaintUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.Arrays;
 import java.util.Map;
 
-/** Password input. Callers own, and should erase, arrays returned by getPassword(). */
-public class PasswordField extends PanelEventListener {
+public class PasswordField extends PanelEventListener implements FieldLayoutTarget {
     public static final String VISIBILITY_CHANGED = "passwordVisibilityChanged";
     private final JButton visibility = new JButton();
-    private final JPasswordField input = new JPasswordField(18) {
-        @Override public Insets getInsets() {
-            Insets insets = super.getInsets();
-            insets.right += UiTokens.scale(30);
-            return insets;
+    private final JPasswordField input = new PasswordInput();
+    private String label = "";
+    private FieldLayoutManager fieldLayoutManager;
+    private boolean originalOpaque;
+
+    private class PasswordInput extends JPasswordField {
+        private final DocumentListener contentListener = new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { contentChanged(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { contentChanged(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { contentChanged(); }
+        };
+
+        private PasswordInput() {
+            super(18);
+            getDocument().addDocumentListener(contentListener);
         }
-        @Override public Insets getInsets(Insets insets) {
+
+        private void contentChanged() {
+            if (fieldLayoutManager != null) fieldLayoutManager.fieldChanged(PasswordField.this);
+            repaint();
+            changed();
+        }
+
+        @Override
+        public void setDocument(Document document) {
+            Document previous = getDocument();
+            if (previous != null && contentListener != null) previous.removeDocumentListener(contentListener);
+            super.setDocument(document);
+            if (document != null && contentListener != null) {
+                document.addDocumentListener(contentListener);
+                contentChanged();
+            }
+        }
+
+        private Insets decorationInsets() {
+            return fieldLayoutManager == null ? super.getInsets()
+                    : fieldLayoutManager.getInsets(PasswordField.this);
+        }
+
+        @Override
+        public Insets getInsets() {
+            Insets insets = decorationInsets();
+            return new Insets(insets.top, insets.left, insets.bottom, insets.right + UiTokens.scale(30));
+        }
+        @Override
+        public Insets getInsets(Insets insets) {
+            if (insets == null) return getInsets();
             Insets actual = getInsets();
             insets.set(actual.top, actual.left, actual.bottom, actual.right);
             return insets;
         }
-        @Override public void doLayout() {
-            Insets border = super.getInsets();
+        @Override
+        public void doLayout() {
+            Insets border = decorationInsets();
             int width = UiTokens.scale(28);
             visibility.setBounds(getWidth() - border.right - width, border.top,
                     width, Math.max(0, getHeight() - border.top - border.bottom));
         }
-    };
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension natural = super.getPreferredSize();
+            return fieldLayoutManager == null || isPreferredSizeSet() ? natural
+                    : fieldLayoutManager.getPreferredSize(PasswordField.this, natural);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            Dimension natural = super.getMinimumSize();
+            return fieldLayoutManager == null || isMinimumSizeSet() ? natural
+                    : fieldLayoutManager.getMinimumSize(PasswordField.this, natural);
+        }
+
+        @Override
+        public void updateUI() {
+            super.updateUI();
+            if (input != null && visibility.getParent() != this) {
+                setLayout(null);
+                add(visibility);
+            }
+            if (fieldLayoutManager != null) {
+                setOpaque(false);
+                fieldLayoutManager.themeChanged(PasswordField.this);
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            if (fieldLayoutManager == null) { super.paintComponent(g); return; }
+            Graphics2D background = PaintUtils.antialias((Graphics2D) g.create());
+            try { fieldLayoutManager.paintBackground(background, PasswordField.this); }
+            finally { background.dispose(); }
+            Graphics content = g.create();
+            try {
+                Rectangle bounds = getFieldContentBounds();
+                content.clipRect(bounds.x, bounds.y, bounds.width, bounds.height);
+                if (!isFieldContentEmpty() || fieldLayoutManager.isPlaceholderVisible(PasswordField.this)) {
+                    super.paintComponent(content);
+                } else if (hasFocus()) {
+                    getCaret().paint(content);
+                }
+            } finally { content.dispose(); }
+        }
+
+        @Override
+        protected void paintBorder(Graphics g) {
+            if (fieldLayoutManager == null) { super.paintBorder(g); return; }
+            Graphics2D border = PaintUtils.antialias((Graphics2D) g.create());
+            try { fieldLayoutManager.paintBorder(border, PasswordField.this); }
+            finally { border.dispose(); }
+        }
+
+        @Override
+        protected void paintChildren(Graphics g) {
+            super.paintChildren(g);
+            if (fieldLayoutManager == null) return;
+            Graphics2D overlay = PaintUtils.antialias((Graphics2D) g.create());
+            try { fieldLayoutManager.paintOverlay(overlay, PasswordField.this); }
+            finally { overlay.dispose(); }
+        }
+
+        @Override
+        public void addNotify() {
+            super.addNotify();
+            if (fieldLayoutManager != null) fieldLayoutManager.fieldShown(PasswordField.this);
+        }
+
+        @Override
+        public void removeNotify() {
+            if (fieldLayoutManager != null) fieldLayoutManager.fieldRemoved(PasswordField.this);
+            super.removeNotify();
+        }
+    }
     private final char echoChar;
     private boolean updating;
     private boolean passwordVisible;
@@ -44,11 +165,6 @@ public class PasswordField extends PanelEventListener {
         echoChar = input.getEchoChar() == 0 ? '\u2022' : input.getEchoChar();
         input.setEchoChar(echoChar);
         input.getAccessibleContext().setAccessibleName(text("name", "Senha"));
-        input.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { changed(); }
-            public void removeUpdate(DocumentEvent e) { changed(); }
-            public void changedUpdate(DocumentEvent e) { changed(); }
-        });
         visibility.addActionListener(e -> {
             if (isEnabled() && input.isEditable()) setPasswordVisible(!passwordVisible);
         });
@@ -90,7 +206,79 @@ public class PasswordField extends PanelEventListener {
 
     /** Exposes the native input for focus, selection and Swing customization. */
     public JPasswordField getPasswordField() { return input; }
+
+    @Override
+    public JPasswordField getFieldComponent() { return input; }
+
+    @Override
+    public String getLabel() { return label; }
+
+    public PasswordField setLabel(String label) {
+        String previous = this.label;
+        this.label = label == null ? "" : label;
+        input.getAccessibleContext().setAccessibleName(this.label);
+        input.putClientProperty("label", this.label);
+        firePropertyChange("label", previous, this.label);
+        refreshLayout();
+        return this;
+    }
+
+    public FieldLayoutManager getFieldLayoutManager() { return fieldLayoutManager; }
+
+    public PasswordField setFieldLayoutManager(FieldLayoutManager next) {
+        FieldLayoutManager previous = fieldLayoutManager;
+        if (previous == next) return this;
+        if (previous == null) originalOpaque = input.isOpaque();
+        if (previous != null) previous.uninstall(this);
+        fieldLayoutManager = next;
+        try {
+            if (next != null) {
+                input.setOpaque(false);
+                next.install(this);
+            } else {
+                input.setOpaque(originalOpaque);
+            }
+        } catch (RuntimeException | Error failure) {
+            fieldLayoutManager = previous;
+            if (previous != null) previous.install(this);
+            else input.setOpaque(originalOpaque);
+            refreshLayout();
+            throw failure;
+        }
+        firePropertyChange("fieldLayoutManager", previous, next);
+        refreshLayout();
+        return this;
+    }
+
+    @Override
+    public boolean isFieldContentEmpty() { return input.getDocument().getLength() == 0; }
+
+    @Override
+    public Rectangle getFieldContentBounds() {
+        Insets insets = input.getInsets();
+        return new Rectangle(insets.left, insets.top,
+                Math.max(0, input.getWidth() - insets.left - insets.right),
+                Math.max(0, input.getHeight() - insets.top - insets.bottom));
+    }
+
+    private void refreshLayout() {
+        input.revalidate();
+        input.repaint();
+        revalidate();
+        repaint();
+    }
+
     public char[] getPassword() { return input.getPassword(); }
+
+    public String getPasswordAsString() {
+        char[] password = getPassword();
+        try {
+            return new String(password);
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+    }
+
     public PasswordField setPassword(char[] password) { return setPassword(password, true); }
 
     public PasswordField setPassword(char[] password, boolean fireEvent) {
@@ -99,7 +287,7 @@ public class PasswordField extends PanelEventListener {
         try {
             if (Arrays.equals(old, next)) return this;
             updating = true;
-            // Swing's Document API takes text; the public value contract remains char[].
+
             input.setText(new String(next));
         } finally {
             updating = false;
@@ -149,7 +337,8 @@ public class PasswordField extends PanelEventListener {
         visibility.setEnabled(isEnabled() && editable);
         return this;
     }
-    @Override public void setEnabled(boolean enabled) {
+    @Override
+    public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         if (input != null) input.setEnabled(enabled);
         if (visibility != null) visibility.setEnabled(enabled && input.isEditable());

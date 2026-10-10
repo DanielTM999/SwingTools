@@ -26,7 +26,8 @@ import java.util.List;
 public final class DefaultSearchPopupProvider implements SheetSearchPopupProvider {
     private SheetDialogActivity<Void> current;
 
-    @Override public String id() { return "sheet.popup.search.default"; }
+    @Override
+    public String id() { return "sheet.popup.search.default"; }
 
     @Override
     public SheetPopupHandle open(SheetSearchContext context, boolean replaceMode) {
@@ -111,9 +112,12 @@ public final class DefaultSearchPopupProvider implements SheetSearchPopupProvide
 
     private static SheetPopupHandle handle(SheetDialogActivity<?> d) {
         return new SheetPopupHandle() {
-            @Override public boolean isOpen() { return d.isDisplayable(); }
-            @Override public void toFront() { d.toFront(); }
-            @Override public void close() { d.dispose(); }
+            @Override
+            public boolean isOpen() { return d.isDisplayable(); }
+            @Override
+            public void toFront() { d.toFront(); }
+            @Override
+            public void close() { d.dispose(); }
         };
     }
 }

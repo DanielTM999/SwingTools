@@ -19,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class WordDialogVisualTest {
-    @Test void complexDialogsFitScreenAndHaveFixedActions() throws Exception {
+    @Test
+    void complexDialogsFitScreenAndHaveFixedActions() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         for(boolean dark:new boolean[]{false,true}) {
             edt(()->{

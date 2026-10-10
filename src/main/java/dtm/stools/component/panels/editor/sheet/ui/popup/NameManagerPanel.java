@@ -24,10 +24,14 @@ public class NameManagerPanel extends JPanel {
     private final Function<String, String> toDisplay, toCanonical;
     private final String defaultRef;
     private final AbstractTableModel model = new AbstractTableModel() {
-        @Override public int getRowCount() { return names.size(); }
-        @Override public int getColumnCount() { return 4; }
-        @Override public String getColumnName(int c) { return new String[]{"Nome", "Refere-se a", "Escopo", "Comentário"}[c]; }
-        @Override public Object getValueAt(int r, int c) {
+        @Override
+        public int getRowCount() { return names.size(); }
+        @Override
+        public int getColumnCount() { return 4; }
+        @Override
+        public String getColumnName(int c) { return new String[]{"Nome", "Refere-se a", "Escopo", "Comentário"}[c]; }
+        @Override
+        public Object getValueAt(int r, int c) {
             DefinedName n = names.get(r);
             return switch (c) {
                 case 0 -> n.name();

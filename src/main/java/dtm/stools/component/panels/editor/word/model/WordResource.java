@@ -45,7 +45,10 @@ public final class WordResource {
         if (name.endsWith(".svg")) return "image/svg+xml";
         return "application/octet-stream";
     }
-    @Override public boolean equals(Object o) { return o instanceof WordResource r && r.id.equals(id) && r.contentType.equals(contentType); }
-    @Override public int hashCode() { return id.hashCode(); }
-    @Override public String toString() { return "WordResource[" + id + ", " + contentType + ", " + data.length + " bytes]"; }
+    @Override
+    public boolean equals(Object o) { return o instanceof WordResource r && r.id.equals(id) && r.contentType.equals(contentType); }
+    @Override
+    public int hashCode() { return id.hashCode(); }
+    @Override
+    public String toString() { return "WordResource[" + id + ", " + contentType + ", " + data.length + " bytes]"; }
 }

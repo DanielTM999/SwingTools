@@ -34,7 +34,8 @@ public final class PowerPointDialogActivity<T> extends DialogActivity {
         getRootPane().registerKeyboardAction(e->dispose(),KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE,0),JComponent.WHEN_IN_FOCUSED_WINDOW);
     }
 
-    @Override protected void onDrawing(){}
+    @Override
+    protected void onDrawing(){}
 
     public Optional<T> showResult(){
         if(!SwingUtilities.isEventDispatchThread())throw new IllegalStateException("Open PowerPoint dialogs on the EDT");

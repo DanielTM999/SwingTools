@@ -11,7 +11,8 @@ import java.awt.BorderLayout;
 import java.awt.Dialog;
 
 public final class DefaultConfirmationProvider implements SheetConfirmationProvider {
-    @Override public String id() { return "sheet.popup.confirmation.default"; }
+    @Override
+    public String id() { return "sheet.popup.confirmation.default"; }
 
     @Override
     public int confirm(SheetConfirmationRequest request) {

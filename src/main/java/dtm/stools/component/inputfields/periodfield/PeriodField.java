@@ -100,7 +100,7 @@ public class PeriodField extends PanelEventListener {
     public String getFormat() { return pattern; }
     public PeriodField setFormat(String pattern) {
         DateTimeFormatter next = makeFormatter(Objects.requireNonNull(pattern));
-        // Reject patterns which cannot round-trip the current mode before modifying the field.
+
         Temporal sample = switch (mode) { case DATE -> LocalDate.of(2024, 2, 29); case DATE_TIME -> LocalDateTime.of(2024, 2, 29, 13, 15); case TIME -> LocalTime.of(13, 15); };
         parse(next.format(sample), next);
         this.pattern = pattern; formatter = next; writeInputs(); updateValueError(); return this;
@@ -108,7 +108,8 @@ public class PeriodField extends PanelEventListener {
     private DateTimeFormatter makeFormatter(String pattern) {
         return DateTimeFormatter.ofPattern(pattern.replace("yyyy", "uuuu"), getLocale()).withResolverStyle(ResolverStyle.STRICT);
     }
-    @Override public void setLocale(Locale locale) {
+    @Override
+    public void setLocale(Locale locale) {
         super.setLocale(Objects.requireNonNull(locale));
         if (pattern != null) { formatter = makeFormatter(pattern); writeInputs(); updateValueError(); }
     }
@@ -194,7 +195,8 @@ public class PeriodField extends PanelEventListener {
         this.editable = editable; startInput.setEditable(editable); endInput.setEditable(editable);
         calendarButton.setEnabled(isEnabled() && editable); if (!editable) cancelPopup(); return this;
     }
-    @Override public void setEnabled(boolean enabled) {
+    @Override
+    public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         if (startInput != null) { startInput.setEnabled(enabled); endInput.setEnabled(enabled); calendarButton.setEnabled(enabled && editable); }
         if (!enabled) cancelPopup();
@@ -267,5 +269,6 @@ public class PeriodField extends PanelEventListener {
         return temporal == null ? null : temporal instanceof LocalDate d ? d : ((LocalDateTime) temporal).toLocalDate();
     }
     private void cancelPopup() { if (popup != null) { popup.setVisible(false); popup = null; } }
-    @Override public void removeNotify() { cancelPopup(); super.removeNotify(); }
+    @Override
+    public void removeNotify() { cancelPopup(); super.removeNotify(); }
 }

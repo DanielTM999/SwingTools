@@ -52,7 +52,8 @@ final class PdfBoxContentScanner extends PDFGraphicsStreamEngine {
 
     int operatorCount() { return op + 1; }
 
-    @Override protected void processOperator(Operator operator, List<COSBase> arguments) throws IOException {
+    @Override
+    protected void processOperator(Operator operator, List<COSBase> arguments) throws IOException {
         boolean top = depth == 0 && nesting == 0;
         if (top) {
             op++;
@@ -65,7 +66,8 @@ final class PdfBoxContentScanner extends PDFGraphicsStreamEngine {
         finally { nesting--; }
     }
 
-    @Override protected void showText(byte[] string) throws IOException {
+    @Override
+    protected void showText(byte[] string) throws IOException {
         if (depth == 0 && TEXT_OPERATORS.contains(operatorName)) {
             element = nextStringElement();
             codes = split(getGraphicsState().getTextState().getFont(), string);
@@ -99,7 +101,8 @@ final class PdfBoxContentScanner extends PDFGraphicsStreamEngine {
         return parts;
     }
 
-    @Override protected void showGlyph(Matrix textRenderingMatrix, PDFont font, int code, Vector displacement) throws IOException {
+    @Override
+    protected void showGlyph(Matrix textRenderingMatrix, PDFont font, int code, Vector displacement) throws IOException {
         AffineTransform matrix = textRenderingMatrix.createAffineTransform();
         double width = Math.max(.01, displacement.getX());
         Rectangle2D box = transformBox(matrix, 0, -.22, width, 1);
@@ -123,13 +126,15 @@ final class PdfBoxContentScanner extends PDFGraphicsStreamEngine {
         super.showGlyph(textRenderingMatrix, font, code, displacement);
     }
 
-    @Override protected void showType3Glyph(Matrix textRenderingMatrix, PDType3Font font, int code, Vector displacement) throws IOException {
+    @Override
+    protected void showType3Glyph(Matrix textRenderingMatrix, PDType3Font font, int code, Vector displacement) throws IOException {
         depth++;
         try { super.showType3Glyph(textRenderingMatrix, font, code, displacement); }
         finally { depth--; }
     }
 
-    @Override public void showForm(PDFormXObject form) throws IOException {
+    @Override
+    public void showForm(PDFormXObject form) throws IOException {
         if (depth > 0) {
             depth++;
             try { super.showForm(form); } finally { depth--; }
@@ -152,9 +157,11 @@ final class PdfBoxContentScanner extends PDFGraphicsStreamEngine {
         if (bounds != null) items.add(item(PdfBoxItemKind.FORM, index, index, bounds, ctm, false, doName(), null));
     }
 
-    @Override public void showTransparencyGroup(PDTransparencyGroup form) throws IOException { showForm(form); }
+    @Override
+    public void showTransparencyGroup(PDTransparencyGroup form) throws IOException { showForm(form); }
 
-    @Override public void drawImage(PDImage image) throws IOException {
+    @Override
+    public void drawImage(PDImage image) throws IOException {
         AffineTransform ctm = ctm();
         Rectangle2D bounds = transformBox(ctm, 0, 0, 1, 1);
         if (depth > 0) { note(bounds); return; }
@@ -167,26 +174,38 @@ final class PdfBoxContentScanner extends PDFGraphicsStreamEngine {
         return !operands.isEmpty() && operands.getFirst() instanceof COSName name ? name : null;
     }
 
-    @Override public void appendRectangle(Point2D p0, Point2D p1, Point2D p2, Point2D p3) {
+    @Override
+    public void appendRectangle(Point2D p0, Point2D p1, Point2D p2, Point2D p3) {
         startPath();
         include(p0); include(p1); include(p2); include(p3);
         current = p0;
     }
-    @Override public void clip(int windingRule) { if (depth == 0) pathClip = true; }
-    @Override public void moveTo(float x, float y) { startPath(); include(new Point2D.Float(x, y)); current = new Point2D.Float(x, y); }
-    @Override public void lineTo(float x, float y) { startPath(); include(new Point2D.Float(x, y)); current = new Point2D.Float(x, y); }
-    @Override public void curveTo(float x1, float y1, float x2, float y2, float x3, float y3) {
+    @Override
+    public void clip(int windingRule) { if (depth == 0) pathClip = true; }
+    @Override
+    public void moveTo(float x, float y) { startPath(); include(new Point2D.Float(x, y)); current = new Point2D.Float(x, y); }
+    @Override
+    public void lineTo(float x, float y) { startPath(); include(new Point2D.Float(x, y)); current = new Point2D.Float(x, y); }
+    @Override
+    public void curveTo(float x1, float y1, float x2, float y2, float x3, float y3) {
         startPath();
         include(new Point2D.Float(x1, y1)); include(new Point2D.Float(x2, y2)); include(new Point2D.Float(x3, y3));
         current = new Point2D.Float(x3, y3);
     }
-    @Override public Point2D getCurrentPoint() { return current; }
-    @Override public void closePath() {}
-    @Override public void endPath() { finishPath(false, false); }
-    @Override public void strokePath() { finishPath(true, false); }
-    @Override public void fillPath(int windingRule) { finishPath(false, true); }
-    @Override public void fillAndStrokePath(int windingRule) { finishPath(true, true); }
-    @Override public void shadingFill(COSName shadingName) {
+    @Override
+    public Point2D getCurrentPoint() { return current; }
+    @Override
+    public void closePath() {}
+    @Override
+    public void endPath() { finishPath(false, false); }
+    @Override
+    public void strokePath() { finishPath(true, false); }
+    @Override
+    public void fillPath(int windingRule) { finishPath(false, true); }
+    @Override
+    public void fillAndStrokePath(int windingRule) { finishPath(true, true); }
+    @Override
+    public void shadingFill(COSName shadingName) {
         Rectangle2D bounds = getGraphicsState().getCurrentClippingPath().getBounds2D();
         if (depth > 0) { note(bounds); return; }
         items.add(item(PdfBoxItemKind.SHADING, op, op, bounds, ctm(), false, shadingName, null));

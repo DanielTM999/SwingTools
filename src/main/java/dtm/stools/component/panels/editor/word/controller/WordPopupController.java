@@ -95,5 +95,6 @@ public final class WordPopupController implements AutoCloseable {
         searchHandle.close(); paletteHandle.close(); propertiesHandle.close();
         searchHandle = paletteHandle = propertiesHandle = WordPopupHandle.closed();
     }
-    @Override public void close() { dismissTransient(); }
+    @Override
+    public void close() { dismissTransient(); }
 }

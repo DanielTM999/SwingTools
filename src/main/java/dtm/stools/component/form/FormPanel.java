@@ -12,7 +12,6 @@ import java.awt.Font;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-
 public class FormPanel extends PanelEventListener {
 
     public static final String VALIDATION_FAILED = "formValidationFailed";
@@ -233,7 +232,8 @@ public class FormPanel extends PanelEventListener {
     }
 
     /** Computes all rows before pack(), when the wrapping layout has no width yet. */
-    @Override public java.awt.Dimension getPreferredSize() {
+    @Override
+    public java.awt.Dimension getPreferredSize() {
         if (isPreferredSizeSet() || fields == null) return super.getPreferredSize();
         int columnWidth = 0, fullWidth = 0, height = 0, rowHeight = 0, rowItems = 0;
         for (Component component : getComponents()) {

@@ -17,5 +17,6 @@ public enum WordDiagramLayout {
     WordDiagramLayout(String category, String displayName) { this.category = category; this.displayName = displayName; }
     public String category() { return category; }
     public String displayName() { return displayName; }
-    @Override public String toString() { return category + " • " + displayName; }
+    @Override
+    public String toString() { return category + " • " + displayName; }
 }

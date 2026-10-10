@@ -5,7 +5,8 @@ import javax.swing.SwingUtilities;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 class CodeEditorImportFoldingTest {
-    @Test void openedImportsDoNotCollapseAfterRangesDisappearAndReturn() throws Exception {
+    @Test
+    void openedImportsDoNotCollapseAfterRangesDisappearAndReturn() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             var editor = new CodeEditorTextArea("import a.A;\nimport b.B;\n\nclass C {}\n");
             editor.setFont(new java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN, 14));

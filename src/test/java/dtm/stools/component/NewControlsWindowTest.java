@@ -15,7 +15,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class NewControlsWindowTest {
-    @Test void paletteClosesOnceAndCanReopenAndOwnerDisposesIt() throws Exception {
+    @Test
+    void paletteClosesOnceAndCanReopenAndOwnerDisposesIt() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         CommandPalette[] palette = new CommandPalette[1]; JFrame[] owner = new JFrame[1]; AtomicInteger closed = new AtomicInteger();
         SwingUtilities.invokeAndWait(() -> {
@@ -29,7 +30,8 @@ class NewControlsWindowTest {
         });
         SwingUtilities.invokeAndWait(() -> { assertFalse(palette[0].isOpen()); assertEquals(2, closed.get()); });
     }
-    @Test void editorProvidersAdaptCatalogsAndPreserveHandles() throws Exception {
+    @Test
+    void editorProvidersAdaptCatalogsAndPreserveHandles() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         SwingUtilities.invokeAndWait(() -> {
             JFrame owner = new JFrame(); AtomicInteger closed = new AtomicInteger();
@@ -57,7 +59,8 @@ class NewControlsWindowTest {
             } finally { if (word != null) word.close(); if (sheet != null) sheet.close(); owner.dispose(); }
         });
     }
-    @Test void calendarPopupOnlyCommitsOnApplyAndCancelPreservesValue() throws Exception {
+    @Test
+    void calendarPopupOnlyCommitsOnApplyAndCancelPreservesValue() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         SwingUtilities.invokeAndWait(() -> {
             JFrame owner = new JFrame(); PeriodField field = new PeriodField(PeriodMode.DATE_TIME).setPresentation(PeriodField.Presentation.CALENDAR);
@@ -81,7 +84,8 @@ class NewControlsWindowTest {
             } finally { owner.dispose(); MenuSelectionManager.defaultManager().clearSelectedPath(); }
         });
     }
-    @Test void timeClockDraftRequiresApplyAndValidatesOvernightAndLimits() throws Exception {
+    @Test
+    void timeClockDraftRequiresApplyAndValidatesOvernightAndLimits() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         SwingUtilities.invokeAndWait(() -> {
             JFrame owner = new JFrame(); PeriodField field = new PeriodField(PeriodMode.TIME);
@@ -108,7 +112,8 @@ class NewControlsWindowTest {
         for (MenuElement element : MenuSelectionManager.defaultManager().getSelectedPath()) if (element instanceof JPopupMenu popup) return popup;
         throw new AssertionError("No active popup");
     }
-    @Test void requiredTimeAndDateTimeCannotApplyMissingHoursOrMinutes() throws Exception {
+    @Test
+    void requiredTimeAndDateTimeCannotApplyMissingHoursOrMinutes() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         SwingUtilities.invokeAndWait(() -> {
             for (PeriodMode mode : List.of(PeriodMode.TIME, PeriodMode.DATE_TIME)) {

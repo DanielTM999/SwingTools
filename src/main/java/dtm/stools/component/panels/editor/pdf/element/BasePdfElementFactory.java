@@ -25,6 +25,8 @@ public abstract class BasePdfElementFactory implements PdfElementFactory {
         this.placementMode = placementMode;
     }
 
-    @Override public boolean ribbonItem() { return false; }
-    @Override public int cursor() { return Cursor.CROSSHAIR_CURSOR; }
+    @Override
+    public boolean ribbonItem() { return false; }
+    @Override
+    public int cursor() { return Cursor.CROSSHAIR_CURSOR; }
 }

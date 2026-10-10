@@ -181,7 +181,7 @@ public class MaskedTextField extends JTextFieldListener {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        if (getCleanText().isEmpty()) {
+        if (getCleanText().isEmpty() && isFieldPlaceholderVisible()) {
             String hint = (placeholderText != null && !placeholderText.isEmpty())
                     ? placeholderText
                     : maskHint;
@@ -197,7 +197,12 @@ public class MaskedTextField extends JTextFieldListener {
                 FontMetrics fm = g2.getFontMetrics();
                 int x = insets.left + 5;
 
-                int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                Rectangle content = getFieldContentBounds();
+                int y = getFieldLayoutManager() == null
+                        ? (getHeight() - fm.getHeight()) / 2 + fm.getAscent()
+                        : content.y + (content.height - fm.getHeight()) / 2 + fm.getAscent();
+
+                if (getFieldLayoutManager() != null) g2.clip(content);
 
                 g2.drawString(hint, x, y);
                 g2.dispose();
@@ -210,6 +215,12 @@ public class MaskedTextField extends JTextFieldListener {
             return getText();
         }
         return cleanValue;
+    }
+
+    @Override
+    public boolean isFieldContentEmpty() {
+        String clean = getCleanText();
+        return clean == null || clean.isEmpty();
     }
 
     public void setCleanText(String cleanText) {

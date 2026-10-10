@@ -33,9 +33,12 @@ public class SheetPdfExportProvider implements SheetExportProvider {
         this.charts = charts;
     }
 
-    @Override public String id() { return "sheet.export.pdf"; }
-    @Override public String extension() { return "pdf"; }
-    @Override public String description() { return "PDF (*.pdf)"; }
+    @Override
+    public String id() { return "sheet.export.pdf"; }
+    @Override
+    public String extension() { return "pdf"; }
+    @Override
+    public String description() { return "PDF (*.pdf)"; }
 
     @Override
     public void export(SheetWorkbook workbook, CalcEngine values, SheetExportOptions options, OutputStream output) throws IOException {

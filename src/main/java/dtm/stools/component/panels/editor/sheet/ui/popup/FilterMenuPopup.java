@@ -84,9 +84,12 @@ public final class FilterMenuPopup {
                 list.revalidate();
                 list.repaint();
             }
-            @Override public void insertUpdate(DocumentEvent e) { run(); }
-            @Override public void removeUpdate(DocumentEvent e) { run(); }
-            @Override public void changedUpdate(DocumentEvent e) { run(); }
+            @Override
+            public void insertUpdate(DocumentEvent e) { run(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { run(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { run(); }
         });
         JScrollPane scroll = new JScrollPane(list);
         scroll.setPreferredSize(new Dimension(240, 220));

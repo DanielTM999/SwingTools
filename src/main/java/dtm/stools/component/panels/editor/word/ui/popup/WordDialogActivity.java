@@ -59,9 +59,8 @@ public class WordDialogActivity<T> extends DialogActivity {
         if (request.enterConfirms()) getRootPane().setDefaultButton(confirm);
     }
 
-    // Modal calls must remain synchronous. init() schedules visibility asynchronously, so these
-    // component-owned activities dispatch drawing directly and use Swing's modal event loop.
-    @Override protected void onDrawing() { }
+    @Override
+    protected void onDrawing() { }
 
     public Component sourceOwner() { return sourceOwner; }
     public void onClosed(Runnable listener) { onClosed = listener; }
@@ -106,7 +105,8 @@ public class WordDialogActivity<T> extends DialogActivity {
         setVisible(true);
     }
     public Optional<T> showResult() { open(); return Optional.ofNullable(result); }
-    @Override public void dispose() {
+    @Override
+    public void dispose() {
         if (!SwingUtilities.isEventDispatchThread()) { SwingUtilities.invokeLater(this::dispose); return; }
         if (!disposed.compareAndSet(false, true)) return;
         try { super.dispose(); } finally {

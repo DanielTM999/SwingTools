@@ -102,52 +102,62 @@ public abstract class DelegatedWindowDesktopPanel<T extends AbstractWindowDeskto
                 event -> getOrCreateController().onAnimationCancel(this, event));
     }
 
-    @Override protected void onInit() {
+    @Override
+    protected void onInit() {
         super.onInit();
         getOrCreateController().onInit(this);
     }
 
-    @Override protected void onLoad() {
+    @Override
+    protected void onLoad() {
         super.onLoad();
         getOrCreateController().onLoad(this);
     }
 
-    @Override protected void onRemoved() {
+    @Override
+    protected void onRemoved() {
         super.onRemoved();
         if (controller != null) controller.onRemoved(this);
     }
 
-    @Override protected void onWindowAdded(WindowPanel window) {
+    @Override
+    protected void onWindowAdded(WindowPanel window) {
         super.onWindowAdded(window);
         getOrCreateController().onWindowAdded(this, window);
     }
 
-    @Override protected void onWindowRemoved(WindowPanel window) {
+    @Override
+    protected void onWindowRemoved(WindowPanel window) {
         super.onWindowRemoved(window);
         getOrCreateController().onWindowRemoved(this, window);
     }
 
-    @Override protected void onActiveWindowChanged(WindowPanel oldWindow, WindowPanel newWindow) {
+    @Override
+    protected void onActiveWindowChanged(WindowPanel oldWindow, WindowPanel newWindow) {
         super.onActiveWindowChanged(oldWindow, newWindow);
         getOrCreateController().onActiveWindowChanged(this, oldWindow, newWindow);
     }
 
-    @Override protected void onModalChanged(WindowPanel window, boolean opened) {
+    @Override
+    protected void onModalChanged(WindowPanel window, boolean opened) {
         super.onModalChanged(window, opened);
         getOrCreateController().onModalChanged(this, window, opened);
     }
 
-    @Override protected void onLayoutChanged(WindowPanel source) {
+    @Override
+    protected void onLayoutChanged(WindowPanel source) {
         super.onLayoutChanged(source);
         getOrCreateController().onLayoutChanged(this, source);
     }
 
-    @Override protected void onLayoutRestored(WindowLayoutSnapshot snapshot) {
+    @Override
+    protected void onLayoutRestored(WindowLayoutSnapshot snapshot) {
         super.onLayoutRestored(snapshot);
         getOrCreateController().onLayoutRestored(this, snapshot);
     }
 
-    @Override public void disposeController() {
+    @Override
+    public void disposeController() {
         if (controller != null) controller.onDispose(this);
         controller = null;
     }

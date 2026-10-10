@@ -11,8 +11,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 public final class JvmPdfTrustProvider implements PdfTrustProvider {
-    @Override public String id() { return "pdf.trust.jvm"; }
-    @Override public Set<TrustAnchor> anchors() {
+    @Override
+    public String id() { return "pdf.trust.jvm"; }
+    @Override
+    public Set<TrustAnchor> anchors() {
         try {
             TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             factory.init((KeyStore) null);

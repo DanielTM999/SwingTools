@@ -66,7 +66,8 @@ public class PdfStatusBar extends JPanel {
         zoomLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         zoomLabel.setToolTipText("Escolher zoom");
         zoomLabel.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent event) { zoomMenu(); }
+            @Override
+            public void mouseClicked(MouseEvent event) { zoomMenu(); }
         });
         right.add(out);
         right.add(zoom);

@@ -34,11 +34,16 @@ public record WordChart(String id, WordChartType chartType, String title, List<S
                 List.of(new WordChartSeries("2025",List.of(42.0,55.0,61.0,70.0),0x4472C4),new WordChartSeries("2026",List.of(48.0,62.0,66.0,81.0),0xED7D31)),
                 true,LegendPosition.BOTTOM,false,"","",360,216,"Gráfico",WordPlacement.INLINE);
     }
-    @Override public String type() { return TYPE; }
-    @Override public WordChart withId(String value) { return new WordChart(value,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,placement); }
-    @Override public WordChart resize(float w, float h) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,w,h,altText,placement); }
-    @Override public WordChart withPlacement(WordPlacement value) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,value); }
-    @Override public WordChart withAltText(String value) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,value,placement); }
+    @Override
+    public String type() { return TYPE; }
+    @Override
+    public WordChart withId(String value) { return new WordChart(value,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,placement); }
+    @Override
+    public WordChart resize(float w, float h) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,w,h,altText,placement); }
+    @Override
+    public WordChart withPlacement(WordPlacement value) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,value); }
+    @Override
+    public WordChart withAltText(String value) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,value,placement); }
     public WordChart withChartType(WordChartType value) { return new WordChart(id,value,title,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,placement); }
     public WordChart withTitle(String value) { return new WordChart(id,chartType,value,categories,series,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,placement); }
     public WordChart withData(List<String> newCategories, List<WordChartSeries> newSeries) { return new WordChart(id,chartType,title,newCategories,newSeries,legend,legendPosition,dataLabels,categoryAxisTitle,valueAxisTitle,width,height,altText,placement); }
@@ -46,5 +51,6 @@ public record WordChart(String id, WordChartType chartType, String title, List<S
     public WordChart withDataLabels(boolean value) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,value,categoryAxisTitle,valueAxisTitle,width,height,altText,placement); }
     public WordChart withAxisTitles(String category, String value) { return new WordChart(id,chartType,title,categories,series,legend,legendPosition,dataLabels,category,value,width,height,altText,placement); }
     public WordChart withSeries(int index, WordChartSeries value) { List<WordChartSeries> next = new ArrayList<>(series); next.set(index,value); return withData(categories,next); }
-    @Override public String plainText() { return title.isBlank() ? "[Gráfico]" : "[Gráfico: " + title + "]"; }
+    @Override
+    public String plainText() { return title.isBlank() ? "[Gráfico]" : "[Gráfico: " + title + "]"; }
 }

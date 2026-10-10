@@ -212,9 +212,6 @@ public final class ModernTooltip {
         };
     }
 
-    /**
-     * Superfície do balão, com fundo arredondado e seta apontando para o componente.
-     */
     private final class Bubble extends JComponent {
 
         private Bubble() {

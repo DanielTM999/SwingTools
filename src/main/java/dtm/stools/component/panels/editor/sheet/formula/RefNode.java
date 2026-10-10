@@ -15,7 +15,8 @@ public record RefNode(String sheet, String sheetEnd, RefPart first, RefPart seco
 
     public boolean isArea() { return second != null; }
     public boolean is3D() { return sheetEnd != null; }
-    @Override public boolean isReference() { return true; }
+    @Override
+    public boolean isReference() { return true; }
 
     public CellRange range() {
         RefPart a = first, b = second == null ? first : second;

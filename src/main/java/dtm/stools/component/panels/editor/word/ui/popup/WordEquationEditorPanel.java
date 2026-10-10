@@ -19,7 +19,8 @@ public final class WordEquationEditorPanel extends WordPropertiesPanel<WordEquat
     private final JLabel error = new JLabel(" ");
     private WordMath current;
     private final JComponent preview = new JComponent() {
-        @Override protected void paintComponent(Graphics g) {
+        @Override
+        protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D)g.create();
             try {
                 g2.setColor(Color.WHITE); g2.fillRect(0,0,getWidth(),getHeight());
@@ -59,8 +60,10 @@ public final class WordEquationEditorPanel extends WordPropertiesPanel<WordEquat
         try { current = WordMathParser.parse(linear.getText()); error.setText(" "); } catch (IllegalArgumentException e) { error.setText(e.getMessage()); }
         preview.repaint();
     }
-    @Override public String title() { return "Editor de equação"; }
-    @Override public WordEquation result() {
+    @Override
+    public String title() { return "Editor de equação"; }
+    @Override
+    public WordEquation result() {
         WordMath math = WordMathParser.parse(linear.getText());
         return new WordEquation(equation.id(),math,display.isSelected(),value(size));
     }

@@ -37,7 +37,10 @@ public final class WordResources {
     public Collection<WordResource> values() { return resources.values(); }
     public Set<String> ids() { return resources.keySet(); }
     public int size() { return resources.size(); }
-    @Override public boolean equals(Object o) { return o instanceof WordResources r && r.resources.keySet().equals(resources.keySet()); }
-    @Override public int hashCode() { return resources.keySet().hashCode(); }
-    @Override public String toString() { return "WordResources" + resources.keySet(); }
+    @Override
+    public boolean equals(Object o) { return o instanceof WordResources r && r.resources.keySet().equals(resources.keySet()); }
+    @Override
+    public int hashCode() { return resources.keySet().hashCode(); }
+    @Override
+    public String toString() { return "WordResources" + resources.keySet(); }
 }

@@ -664,8 +664,6 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 }
             }
 
-            // The editor handled this key. Do not let an ancestor JScrollPane handle
-            // the same arrow key again as a unit-scroll command.
             e.consume();
             scrollToCaret();
             resetCaretBlink();
@@ -774,7 +772,6 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             int height = rows * lineHeight + padY * 2;
             return new Dimension(width, height);
         }
-
 
         @Override
         protected void paintComponent(Graphics g) {

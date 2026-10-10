@@ -52,9 +52,6 @@ public class DualListField<T> extends PanelEventListener {
     public static final String ITEMS_REMOVED = "itemsRemoved";
     public static final String ORDER_CHANGED = "orderChanged";
 
-    /**
-     * Glifos desenhados nos botões de transferência e reordenação.
-     */
     private enum Glyph {
         RIGHT, RIGHT_ALL, LEFT, LEFT_ALL, UP, DOWN
     }
@@ -712,9 +709,6 @@ public class DualListField<T> extends PanelEventListener {
         }
     }
 
-    /**
-     * Renderizador padrão que converte o item usando o provedor de rótulos.
-     */
     private final class LabelRenderer extends DefaultListCellRenderer {
 
         @Override
@@ -729,9 +723,6 @@ public class DualListField<T> extends PanelEventListener {
         }
     }
 
-    /**
-     * Reaplica o filtro sempre que o texto de busca muda.
-     */
     private final class FilterListener implements DocumentListener {
 
         @Override
@@ -750,9 +741,6 @@ public class DualListField<T> extends PanelEventListener {
         }
     }
 
-    /**
-     * Botão compacto que desenha o glifo de transferência ou reordenação.
-     */
     private static final class GlyphButton extends dtm.stools.component.accessibility.AccessibleButton {
 
         private final Glyph glyph;
@@ -770,7 +758,8 @@ public class DualListField<T> extends PanelEventListener {
             installMouse();
         }
 
-        @Override protected void activate() { if (isEnabled()) action.run(); }
+        @Override
+        protected void activate() { if (isEnabled()) action.run(); }
 
         private void onClick(Runnable action) {
             this.action = action != null ? action : () -> { };

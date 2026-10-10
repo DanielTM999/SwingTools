@@ -25,5 +25,6 @@ public enum WordChartType {
     public boolean isCircular() { return this == PIE || this == DOUGHNUT; }
     public boolean isLine() { return this == LINE || this == LINE_MARKERS; }
     public boolean isArea() { return this == AREA || this == AREA_STACKED; }
-    @Override public String toString() { return displayName; }
+    @Override
+    public String toString() { return displayName; }
 }

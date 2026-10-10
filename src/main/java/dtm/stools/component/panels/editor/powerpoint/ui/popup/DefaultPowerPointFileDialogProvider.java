@@ -11,11 +11,14 @@ import java.util.Locale;
 import java.util.Optional;
 
 public final class DefaultPowerPointFileDialogProvider implements PowerPointFileDialogProvider {
-    @Override public String id(){return "powerpoint.files.default";}
-    @Override public Optional<Path> chooseOpen(Component owner){
+    @Override
+    public String id(){return "powerpoint.files.default";}
+    @Override
+    public Optional<Path> chooseOpen(Component owner){
         return Optional.ofNullable(OsFilePicker.openFile("Abrir apresentação",DeFilter.of("PowerPoint","pptx"))).map(File::toPath);
     }
-    @Override public Optional<Path> chooseSave(Component owner,Path current){
+    @Override
+    public Optional<Path> chooseSave(Component owner,Path current){
         File file=OsFilePicker.saveFile("Salvar apresentação",current==null?null:current.toAbsolutePath().getParent().toFile(),
                 current==null?"Apresentação.pptx":current.getFileName().toString(),DeFilter.of("PowerPoint","pptx"));
         if(file==null)return Optional.empty();
@@ -23,7 +26,8 @@ public final class DefaultPowerPointFileDialogProvider implements PowerPointFile
         if(!path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".pptx"))path=path.resolveSibling(path.getFileName()+".pptx");
         return Optional.of(path);
     }
-    @Override public Optional<Path> chooseMedia(Component owner,PptObject.Kind kind){
+    @Override
+    public Optional<Path> chooseMedia(Component owner,PptObject.Kind kind){
         DeFilter filter=switch(kind){
             case IMAGE->DeFilter.of("Imagens","png","jpg","jpeg");
             case AUDIO->DeFilter.of("Áudio","wav","mp3");

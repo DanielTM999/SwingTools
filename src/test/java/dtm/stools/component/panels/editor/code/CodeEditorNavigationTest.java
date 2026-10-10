@@ -7,7 +7,8 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 class CodeEditorNavigationTest {
-    @Test void stableHeaderAndClickableSymbols() throws Exception {
+    @Test
+    void stableHeaderAndClickableSymbols() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             CodeEditor editor = new CodeEditor();
             editor.setText("class A {\n void run() {}\n}");
@@ -24,7 +25,8 @@ class CodeEditorNavigationTest {
             assertFalse(header.getComponent(header.getComponentCount() - 1).isVisible());
         });
     }
-    @Test void fileRemainsVisibleAndSegmentsNavigate() throws Exception {
+    @Test
+    void fileRemainsVisibleAndSegmentsNavigate() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             CodeEditor editor = new CodeEditor("class A {\n void run() {}\n}");
             var file = java.nio.file.Path.of("src", "A.java").toAbsolutePath();
@@ -49,7 +51,8 @@ class CodeEditorNavigationTest {
         });
     }
 
-    @Test void clippedSymbolsCannotBeClicked() throws Exception {
+    @Test
+    void clippedSymbolsCannotBeClicked() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             CodeEditor editor = new CodeEditor("class A {\n void run() {}\n}");
             var range = new Range(new Position(1, 1), new Position(1, 14));

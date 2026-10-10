@@ -112,7 +112,8 @@ public class GridView<T> extends DataTableListener {
 
     public boolean isStructured() { return currentModel instanceof ReflectionTableModel<?>; }
 
-    @Override public void setModel(TableModel dataModel) {
+    @Override
+    public void setModel(TableModel dataModel) {
         if (modelClass == null) { super.setModel(dataModel); return; }
         if (!(dataModel instanceof GridTableModel<?> model) || model.getItemClass() != modelClass)
             throw new IllegalArgumentException("GridView requires a GridTableModel for " + modelClass.getName());
@@ -128,7 +129,8 @@ public class GridView<T> extends DataTableListener {
         rebuildView();
     }
 
-    @Override public void setDefaultRenderer(Class<?> columnClass, TableCellRenderer renderer) {
+    @Override
+    public void setDefaultRenderer(Class<?> columnClass, TableCellRenderer renderer) {
         super.setDefaultRenderer(columnClass, renderer);
         if (customDefaultRenderers != null) {
             if (renderer == null) customDefaultRenderers.remove(columnClass);
@@ -136,7 +138,8 @@ public class GridView<T> extends DataTableListener {
         }
     }
 
-    @Override public void setDefaultEditor(Class<?> columnClass, TableCellEditor editor) {
+    @Override
+    public void setDefaultEditor(Class<?> columnClass, TableCellEditor editor) {
         super.setDefaultEditor(columnClass, editor);
         if (customDefaultEditors != null) {
             if (editor == null) customDefaultEditors.remove(columnClass);
@@ -144,7 +147,8 @@ public class GridView<T> extends DataTableListener {
         }
     }
 
-    @Override public void updateUI() {
+    @Override
+    public void updateUI() {
         super.updateUI();
         if (gridStyle != null) applyGridStyle();
     }
@@ -175,13 +179,16 @@ public class GridView<T> extends DataTableListener {
                 && convertColumnIndexToModel(viewColumn) == currentModel.getColumnCount();
     }
 
-    @Override public Object getValueAt(int row, int column) {
+    @Override
+    public Object getValueAt(int row, int column) {
         return currentModel != null && isActionColumn(column) ? "" : super.getValueAt(row, column);
     }
-    @Override public Class<?> getColumnClass(int column) {
+    @Override
+    public Class<?> getColumnClass(int column) {
         return currentModel != null && isActionColumn(column) ? String.class : super.getColumnClass(column);
     }
-    @Override public boolean isCellEditable(int row, int column) {
+    @Override
+    public boolean isCellEditable(int row, int column) {
         if (currentModel == null) return super.isCellEditable(row, column);
         if (row < 0 || row >= getRowCount() || column < 0 || column >= getColumnCount()
                 || isActionColumn(column) || isDetailRow(row) || !cellEditingEnabled
@@ -202,12 +209,14 @@ public class GridView<T> extends DataTableListener {
         return row >= 0 && row < visibleRows.size() && visibleRows.get(convertRowIndexToModel(row)).detail;
     }
 
-    @Override public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
+    @Override
+    public void changeSelection(int rowIndex, int columnIndex, boolean toggle, boolean extend) {
         if (isDetailRow(rowIndex)) return;
         super.changeSelection(rowIndex, columnIndex, toggle, extend);
     }
 
-    @Override public void doLayout() {
+    @Override
+    public void doLayout() {
         super.doLayout();
         positionInlinePanel();
     }
@@ -525,7 +534,8 @@ public class GridView<T> extends DataTableListener {
         return entry.detail ? null : entry.item;
     }
 
-    @Override public TableCellEditor getCellEditor(int row, int column) {
+    @Override
+    public TableCellEditor getCellEditor(int row, int column) {
         TableCellEditor custom = getColumnModel().getColumn(column).getCellEditor();
         if (custom != null) return custom;
         if (hasCustomEditor(getColumnClass(column))) return super.getCellEditor(row, column);
@@ -552,9 +562,11 @@ public class GridView<T> extends DataTableListener {
             this.definition = definition;
         }
 
-        @Override public Object getCellEditorValue() { return null; }
+        @Override
+        public Object getCellEditorValue() { return null; }
 
-        @Override public Component getTableCellEditorComponent(JTable table, Object value,
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value,
                                                                  boolean selected, int viewRow, int viewColumn) {
             JButton button = new JButton("Editar objeto...");
             SwingUtilities.invokeLater(() -> {
@@ -585,7 +597,8 @@ public class GridView<T> extends DataTableListener {
 
     private void installRowActionClick() {
         addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent event) {
+            @Override
+            public void mouseClicked(MouseEvent event) {
                 if (!SwingUtilities.isLeftMouseButton(event)) return;
                 int row = rowAtPoint(event.getPoint());
                 int column = columnAtPoint(event.getPoint());
@@ -809,7 +822,8 @@ public class GridView<T> extends DataTableListener {
     private static final class ObjectOption {
         final Object value;
         ObjectOption(Object value) { this.value = value; }
-        @Override public String toString() { return value == null ? "(nenhum)" : String.valueOf(value); }
+        @Override
+        public String toString() { return value == null ? "(nenhum)" : String.valueOf(value); }
     }
 
     private final class ObjectFormNode {
@@ -1053,11 +1067,16 @@ public class GridView<T> extends DataTableListener {
             int column = write.rootColumn;
             Object oldValue = write.previous, newValue = write.next;
             dispachEvent(EventGridView.CELL_EDIT, new EventGrid() {
-                @Override public List<Integer> getSelectedRows() { return List.of(sourceIndex); }
-                @Override public List<Integer> getSelectedColumns() { return List.of(column); }
-                @Override public Object getOldValue() { return oldValue; }
-                @Override public Object getNewValue() { return newValue; }
-                @Override public String getFieldPath() { return write.path; }
+                @Override
+                public List<Integer> getSelectedRows() { return List.of(sourceIndex); }
+                @Override
+                public List<Integer> getSelectedColumns() { return List.of(column); }
+                @Override
+                public Object getOldValue() { return oldValue; }
+                @Override
+                public Object getNewValue() { return newValue; }
+                @Override
+                public String getFieldPath() { return write.path; }
             });
         }
         dispachEvent(EventGridView.ROW_EDIT_SAVED, new GridRowEdit<>(row, beforeView, afterView));
@@ -1175,7 +1194,8 @@ public class GridView<T> extends DataTableListener {
         }
     }
 
-    @Override public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+    @Override
+    public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         if (isDetailRow(row)) {
             JLabel blank = new JLabel();
             blank.setOpaque(true);
@@ -1230,7 +1250,8 @@ public class GridView<T> extends DataTableListener {
         return component;
     }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
         if (getRowCount() != 0 || emptyText.isBlank()) return;
         Graphics2D g = (Graphics2D) graphics.create();
@@ -1245,15 +1266,18 @@ public class GridView<T> extends DataTableListener {
         JTableHeader header = getTableHeader();
         header.setToolTipText("Clique para ordenar; botão direito para filtrar");
         header.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent event) {
+            @Override
+            public void mouseClicked(MouseEvent event) {
                 if (!SwingUtilities.isLeftMouseButton(event)) return;
                 int viewColumn = header.columnAtPoint(event.getPoint());
                 if (viewColumn < 0 || isActionColumn(viewColumn)) return;
                 String field = currentModel.getKeyForColumn(convertColumnIndexToModel(viewColumn));
                 setSort(field, field.equals(sortField) && sortOrder == SortOrder.ASCENDING ? SortOrder.DESCENDING : SortOrder.ASCENDING);
             }
-            @Override public void mousePressed(MouseEvent event) { showFilterMenu(event); }
-            @Override public void mouseReleased(MouseEvent event) { showFilterMenu(event); }
+            @Override
+            public void mousePressed(MouseEvent event) { showFilterMenu(event); }
+            @Override
+            public void mouseReleased(MouseEvent event) { showFilterMenu(event); }
         });
     }
 
@@ -1319,11 +1343,16 @@ public class GridView<T> extends DataTableListener {
         int sourceIndex = visibleRows.get(edit.row()).sourceIndex;
         String editedField = currentModel.getKeyForColumn(edit.column());
         dispachEvent(EventGridView.CELL_EDIT, new EventGrid() {
-            @Override public List<Integer> getSelectedRows() { return List.of(sourceIndex); }
-            @Override public List<Integer> getSelectedColumns() { return List.of(edit.column()); }
-            @Override public Object getOldValue() { return edit.oldValue(); }
-            @Override public Object getNewValue() { return edit.newValue(); }
-            @Override public String getFieldPath() { return editedField; }
+            @Override
+            public List<Integer> getSelectedRows() { return List.of(sourceIndex); }
+            @Override
+            public List<Integer> getSelectedColumns() { return List.of(edit.column()); }
+            @Override
+            public Object getOldValue() { return edit.oldValue(); }
+            @Override
+            public Object getNewValue() { return edit.newValue(); }
+            @Override
+            public String getFieldPath() { return editedField; }
         });
         if (columnFilters.containsKey(editedField) || editedField.equals(sortField))
             SwingUtilities.invokeLater(this::rebuildView);
@@ -1340,8 +1369,10 @@ public class GridView<T> extends DataTableListener {
             List<Integer> columns = new ArrayList<>();
             for (int col : getSelectedColumns()) columns.add(convertColumnIndexToModel(col));
             EventGrid selection = new EventGrid() {
-                @Override public List<Integer> getSelectedRows() { return List.copyOf(rows); }
-                @Override public List<Integer> getSelectedColumns() { return List.copyOf(columns); }
+                @Override
+                public List<Integer> getSelectedRows() { return List.copyOf(rows); }
+                @Override
+                public List<Integer> getSelectedColumns() { return List.copyOf(columns); }
             };
             dispachEvent(EventGridView.SELECTION_ROW, selection);
             dispachEvent(EventGridView.SELECTION_COLUMN, selection);

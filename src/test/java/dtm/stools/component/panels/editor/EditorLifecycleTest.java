@@ -57,7 +57,8 @@ class EditorLifecycleTest {
         return null;
     }
 
-    @Test void sheetPausesVisualTimersButKeepsSessionAndRecovery() throws Exception {
+    @Test
+    void sheetPausesVisualTimersButKeepsSessionAndRecovery() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         JFrame frame = edt(JFrame::new);
         SheetEditor editor = edt(SheetEditor::new);
@@ -90,7 +91,8 @@ class EditorLifecycleTest {
         } finally { edt(() -> { editor.close(); frame.dispose(); return null; }); }
     }
 
-    @Test void wordRecreatesLayoutWorkerAndPreservesProviders() throws Exception {
+    @Test
+    void wordRecreatesLayoutWorkerAndPreservesProviders() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         JFrame frame = edt(JFrame::new);
         WordEditor editor = edt(WordEditor::new);
@@ -126,7 +128,8 @@ class EditorLifecycleTest {
         } finally { edt(() -> { editor.close(); frame.dispose(); return null; }); }
     }
 
-    @Test void sheetAiRequestSurvivesHidingItsDialog() throws Exception {
+    @Test
+    void sheetAiRequestSurvivesHidingItsDialog() throws Exception {
         assumeFalse(GraphicsEnvironment.isHeadless());
         JFrame frame = edt(JFrame::new);
         SheetEditor editor = edt(SheetEditor::new);

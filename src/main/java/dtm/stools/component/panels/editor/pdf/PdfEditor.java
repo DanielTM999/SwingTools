@@ -182,7 +182,8 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
         scroll.getViewport().setScrollMode(JViewport.BLIT_SCROLL_MODE);
         scroll.getViewport().addChangeListener(event -> viewportChanged());
         scroll.getViewport().addComponentListener(new ComponentAdapter() {
-            @Override public void componentResized(ComponentEvent event) { relayout(); }
+            @Override
+            public void componentResized(ComponentEvent event) { relayout(); }
         });
         split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, scroll);
         split.setBorder(BorderFactory.createEmptyBorder());
@@ -240,7 +241,8 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     private void key(int code, int modifiers, String id) {
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(code, modifiers), id);
         getActionMap().put(id, new javax.swing.AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { execute(id); }
+            @Override
+            public void actionPerformed(ActionEvent event) { execute(id); }
         });
     }
 
@@ -1413,7 +1415,8 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
         status.update(currentPage, getPageCount(), tool, info, isDirty(), config.zoom());
     }
 
-    @Override protected void onThemeChanged() {
+    @Override
+    protected void onThemeChanged() {
         if (canvas == null) return;
         UiTokens.refresh();
         providerBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UiTokens.border()));
@@ -1426,7 +1429,8 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
 
     private void ensureOpen() { if (closed) throw new IllegalStateException("PdfEditor is closed"); }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         if (closed) return;
         closed = true;
         workers.shutdownNow();

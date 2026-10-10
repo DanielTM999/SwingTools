@@ -56,7 +56,8 @@ public final class PdfColorPopup {
 
     private static JButton swatch(Color color) {
         JButton button = new JButton() {
-            @Override protected void paintComponent(Graphics graphics) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
                 graphics.setColor(color);
                 graphics.fillRect(0, 0, getWidth(), getHeight());
                 graphics.setColor(getModel().isRollover() ? UiTokens.accent() : UiTokens.border());

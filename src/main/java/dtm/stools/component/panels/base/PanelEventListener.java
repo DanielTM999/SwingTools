@@ -64,48 +64,67 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
             selected = nextSelected; mixed = nextMixed; editable = nextEditable;
             value = nextValue; selection = nextSelection; text = nextText;
         }
-        @Override public AccessibleRole getAccessibleRole() { return model.role(); }
-        @Override public String getAccessibleName() {
+        @Override
+        public AccessibleRole getAccessibleRole() { return model.role(); }
+        @Override
+        public String getAccessibleName() {
             String explicit = super.getAccessibleName();
             return explicit != null ? explicit : model.name();
         }
-        @Override public AccessibleStateSet getAccessibleStateSet() {
+        @Override
+        public AccessibleStateSet getAccessibleStateSet() {
             AccessibleStateSet states = super.getAccessibleStateSet();
             if (model.selected()) { states.add(AccessibleState.CHECKED); states.add(AccessibleState.SELECTED); }
             if (model.mixed()) states.add(AccessibleState.INDETERMINATE);
             if (model.numeric() && model.editable()) states.add(AccessibleState.EDITABLE);
             return states;
         }
-        @Override public AccessibleAction getAccessibleAction() { return model.actionCount() > 0 ? this : null; }
-        @Override public int getAccessibleActionCount() { return model.actionCount(); }
-        @Override public String getAccessibleActionDescription(int index) { return index >= 0 && index < model.actionCount() ? model.actionName(index) : null; }
-        @Override public boolean doAccessibleAction(int index) {
+        @Override
+        public AccessibleAction getAccessibleAction() { return model.actionCount() > 0 ? this : null; }
+        @Override
+        public int getAccessibleActionCount() { return model.actionCount(); }
+        @Override
+        public String getAccessibleActionDescription(int index) { return index >= 0 && index < model.actionCount() ? model.actionName(index) : null; }
+        @Override
+        public boolean doAccessibleAction(int index) {
             if (index < 0 || index >= model.actionCount() || !isEnabled() || !model.editable()) return false;
             return onEdt(() -> model.action(index));
         }
-        @Override public AccessibleValue getAccessibleValue() { return model.numeric() ? this : null; }
-        @Override public Number getCurrentAccessibleValue() { return model.value(); }
-        @Override public Number getMinimumAccessibleValue() { return model.minimum(); }
-        @Override public Number getMaximumAccessibleValue() { return model.maximum(); }
-        @Override public boolean setCurrentAccessibleValue(Number next) {
+        @Override
+        public AccessibleValue getAccessibleValue() { return model.numeric() ? this : null; }
+        @Override
+        public Number getCurrentAccessibleValue() { return model.value(); }
+        @Override
+        public Number getMinimumAccessibleValue() { return model.minimum(); }
+        @Override
+        public Number getMaximumAccessibleValue() { return model.maximum(); }
+        @Override
+        public boolean setCurrentAccessibleValue(Number next) {
             if (!model.numeric() || next == null || !isEnabled() || !model.editable() || !Double.isFinite(next.doubleValue())) return false;
             java.math.BigDecimal number = new java.math.BigDecimal(next.toString());
             if (model.minimum() != null && number.compareTo(new java.math.BigDecimal(model.minimum().toString())) < 0) return false;
             if (model.maximum() != null && number.compareTo(new java.math.BigDecimal(model.maximum().toString())) > 0) return false;
             return onEdt(() -> model.value(next));
         }
-        @Override public AccessibleSelection getAccessibleSelection() { return model.selection() ? this : null; }
-        @Override public int getAccessibleChildrenCount() { return model.selection() ? model.options().size() : super.getAccessibleChildrenCount(); }
-        @Override public Accessible getAccessibleChild(int index) {
+        @Override
+        public AccessibleSelection getAccessibleSelection() { return model.selection() ? this : null; }
+        @Override
+        public int getAccessibleChildrenCount() { return model.selection() ? model.options().size() : super.getAccessibleChildrenCount(); }
+        @Override
+        public Accessible getAccessibleChild(int index) {
             if (!model.selection()) return super.getAccessibleChild(index);
             if (index < 0 || index >= model.options().size()) return null;
             Accessible nativeChild = model.child(index); if (nativeChild != null) return nativeChild;
             JRadioButton option = virtualOptions.computeIfAbsent(index, i -> new JRadioButton() {
-                @Override public boolean isSelected() { return AccessibleControl.this.model.selectedIndex() == i; }
-                @Override public boolean isEnabled() { return PanelEventListener.this.isEnabled(); }
-                @Override public AccessibleContext getAccessibleContext() {
+                @Override
+                public boolean isSelected() { return AccessibleControl.this.model.selectedIndex() == i; }
+                @Override
+                public boolean isEnabled() { return PanelEventListener.this.isEnabled(); }
+                @Override
+                public AccessibleContext getAccessibleContext() {
                     if (accessibleContext == null) accessibleContext = new AccessibleJRadioButton() {
-                        @Override public int getAccessibleIndexInParent() { return i; }
+                        @Override
+                        public int getAccessibleIndexInParent() { return i; }
                     };
                     return accessibleContext;
                 }
@@ -117,16 +136,24 @@ public class PanelEventListener extends BlockingPanel implements EventListenerCo
             option.setBounds(index * width, 0, width, PanelEventListener.this.getHeight());
             return option;
         }
-        @Override public int getAccessibleSelectionCount() { return model.selectedIndex() >= 0 ? 1 : 0; }
-        @Override public Accessible getAccessibleSelection(int index) { return index == 0 && model.selectedIndex() >= 0 ? getAccessibleChild(model.selectedIndex()) : null; }
-        @Override public boolean isAccessibleChildSelected(int index) { return index >= 0 && index == model.selectedIndex(); }
-        @Override public void addAccessibleSelection(int index) {
+        @Override
+        public int getAccessibleSelectionCount() { return model.selectedIndex() >= 0 ? 1 : 0; }
+        @Override
+        public Accessible getAccessibleSelection(int index) { return index == 0 && model.selectedIndex() >= 0 ? getAccessibleChild(model.selectedIndex()) : null; }
+        @Override
+        public boolean isAccessibleChildSelected(int index) { return index >= 0 && index == model.selectedIndex(); }
+        @Override
+        public void addAccessibleSelection(int index) {
             if (isEnabled() && index >= 0 && index < model.options().size()) onEdt(() -> model.select(index));
         }
-        @Override public void removeAccessibleSelection(int index) { if (isAccessibleChildSelected(index)) clearAccessibleSelection(); }
-        @Override public void clearAccessibleSelection() { if (isEnabled()) onEdt(model::clearSelection); }
-        @Override public void selectAllAccessibleSelection() { /* single selection */ }
-        @Override public AccessibleText getAccessibleText() {
+        @Override
+        public void removeAccessibleSelection(int index) { if (isAccessibleChildSelected(index)) clearAccessibleSelection(); }
+        @Override
+        public void clearAccessibleSelection() { if (isEnabled()) onEdt(model::clearSelection); }
+        @Override
+        public void selectAllAccessibleSelection() {}
+        @Override
+        public AccessibleText getAccessibleText() {
             String value = model.text();
             if (value == null) return super.getAccessibleText();
             JTextField delegate = new JTextField(value);

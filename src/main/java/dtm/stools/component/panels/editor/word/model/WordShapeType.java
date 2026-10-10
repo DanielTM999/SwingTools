@@ -26,5 +26,6 @@ public enum WordShapeType {
         for (WordShapeType type : values()) if (type != TEXT_BOX && preset != null && preset.equals(type.preset)) return type;
         return null;
     }
-    @Override public String toString() { return displayName; }
+    @Override
+    public String toString() { return displayName; }
 }

@@ -9,5 +9,6 @@ public record SparklineValue(List<Double> values, Map<String, String> options) i
     public SparklineValue { values = List.copyOf(values); options = Map.copyOf(options); }
 
     public String option(String key, String fallback) { return options.getOrDefault(key, fallback); }
-    @Override public String toString() { return ""; }
+    @Override
+    public String toString() { return ""; }
 }

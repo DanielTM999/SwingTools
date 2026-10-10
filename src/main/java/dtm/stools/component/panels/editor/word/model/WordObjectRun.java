@@ -7,7 +7,9 @@ public record WordObjectRun(WordInlineObject object, WordTextStyle style) implem
     public static final String TEXT = String.valueOf(PLACEHOLDER);
     public WordObjectRun { Objects.requireNonNull(object); Objects.requireNonNull(style); }
     public WordObjectRun(WordInlineObject object) { this(object,WordTextStyle.DEFAULT); }
-    @Override public String text() { return TEXT; }
-    @Override public WordObjectRun withStyle(WordTextStyle value) { return new WordObjectRun(object,value); }
+    @Override
+    public String text() { return TEXT; }
+    @Override
+    public WordObjectRun withStyle(WordTextStyle value) { return new WordObjectRun(object,value); }
     public WordObjectRun withObject(WordInlineObject value) { return new WordObjectRun(value,style); }
 }

@@ -31,13 +31,19 @@ public record WordDiagram(String id, WordDiagramLayout layout, List<WordDiagramN
         for (WordDiagramNode n : nodes) { if (!b.isEmpty()) b.append('\n'); b.append("\t".repeat(n.level())).append(n.text()); }
         return b.toString();
     }
-    @Override public String type() { return TYPE; }
-    @Override public WordDiagram withId(String value) { return new WordDiagram(value,layout,nodes,color,width,height,altText,placement); }
-    @Override public WordDiagram resize(float w, float h) { return new WordDiagram(id,layout,nodes,color,w,h,altText,placement); }
-    @Override public WordDiagram withPlacement(WordPlacement value) { return new WordDiagram(id,layout,nodes,color,width,height,altText,value); }
-    @Override public WordDiagram withAltText(String value) { return new WordDiagram(id,layout,nodes,color,width,height,value,placement); }
+    @Override
+    public String type() { return TYPE; }
+    @Override
+    public WordDiagram withId(String value) { return new WordDiagram(value,layout,nodes,color,width,height,altText,placement); }
+    @Override
+    public WordDiagram resize(float w, float h) { return new WordDiagram(id,layout,nodes,color,w,h,altText,placement); }
+    @Override
+    public WordDiagram withPlacement(WordPlacement value) { return new WordDiagram(id,layout,nodes,color,width,height,altText,value); }
+    @Override
+    public WordDiagram withAltText(String value) { return new WordDiagram(id,layout,nodes,color,width,height,value,placement); }
     public WordDiagram withLayout(WordDiagramLayout value) { return new WordDiagram(id,value,nodes,color,width,height,altText,placement); }
     public WordDiagram withNodes(List<WordDiagramNode> value) { return new WordDiagram(id,layout,value,color,width,height,altText,placement); }
     public WordDiagram withColor(int value) { return new WordDiagram(id,layout,nodes,value,width,height,altText,placement); }
-    @Override public String plainText() { return String.join(" ",nodes.stream().map(WordDiagramNode::text).toList()); }
+    @Override
+    public String plainText() { return String.join(" ",nodes.stream().map(WordDiagramNode::text).toList()); }
 }

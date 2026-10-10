@@ -126,7 +126,8 @@ public class WindowPanel extends PanelEventListener {
         addMouseListener(resizeHandler);
         addMouseMotionListener(resizeHandler);
         addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent event) { activate(); }
+            @Override
+            public void mousePressed(MouseEvent event) { activate(); }
         });
         updateInteractionCursors();
     }
@@ -186,11 +187,13 @@ public class WindowPanel extends PanelEventListener {
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
                 KeyStroke.getKeyStroke(KeyEvent.VK_F4, InputEvent.CTRL_DOWN_MASK), "closeWindow");
         getActionMap().put("closeWindow", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { close(); }
+            @Override
+            public void actionPerformed(ActionEvent event) { close(); }
         });
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "escapeWindow");
         getActionMap().put("escapeWindow", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) {
+            @Override
+            public void actionPerformed(ActionEvent event) {
                 if (modal && closeOnEscape) close();
             }
         });
@@ -541,7 +544,8 @@ public class WindowPanel extends PanelEventListener {
         }
     }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
         Graphics2D g = (Graphics2D) graphics.create();
         try {
@@ -822,7 +826,8 @@ public class WindowPanel extends PanelEventListener {
         private Point pressOnScreen;
         private Rectangle startBounds;
 
-        @Override public void mousePressed(MouseEvent event) {
+        @Override
+        public void mousePressed(MouseEvent event) {
             if (!movable || windowState != WindowState.NORMAL || !SwingUtilities.isLeftMouseButton(event)) return;
             WindowEvent before = dispatchWindowEvent(EventWindowPanel.BEFORE_WINDOW_MOVE,
                     Map.of("oldBounds", new Rectangle(getBounds())));
@@ -835,7 +840,8 @@ public class WindowPanel extends PanelEventListener {
             dispatchWindowEvent(EventWindowPanel.WINDOW_MOVE_START, Map.of("oldBounds", new Rectangle(startBounds)));
         }
 
-        @Override public void mouseDragged(MouseEvent event) {
+        @Override
+        public void mouseDragged(MouseEvent event) {
             if (pressOnScreen == null || windowState != WindowState.NORMAL) return;
             Point current = event.getLocationOnScreen();
             Rectangle target = new Rectangle(startBounds);
@@ -850,7 +856,8 @@ public class WindowPanel extends PanelEventListener {
             }
         }
 
-        @Override public void mouseReleased(MouseEvent event) {
+        @Override
+        public void mouseReleased(MouseEvent event) {
             if (pressOnScreen == null) return;
             Rectangle old = startBounds;
             pressOnScreen = null;
@@ -868,17 +875,20 @@ public class WindowPanel extends PanelEventListener {
             if (desktop != null) desktop.layoutChanged(WindowPanel.this);
         }
 
-        @Override public void mouseClicked(MouseEvent event) {
+        @Override
+        public void mouseClicked(MouseEvent event) {
             if (event.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(event) && maximizable) {
                 if (windowState == WindowState.MAXIMIZED) restore(); else maximize();
             }
         }
 
-        @Override public void mouseEntered(MouseEvent event) {
+        @Override
+        public void mouseEntered(MouseEvent event) {
             event.getComponent().setCursor(resolveTitleBarCursor());
         }
 
-        @Override public void mouseExited(MouseEvent event) {
+        @Override
+        public void mouseExited(MouseEvent event) {
             if (pressOnScreen == null) event.getComponent().setCursor(resolveTitleBarCursor());
         }
     }
@@ -888,16 +898,19 @@ public class WindowPanel extends PanelEventListener {
         private Point pressOnScreen;
         private Rectangle startBounds;
 
-        @Override public void mouseMoved(MouseEvent event) {
+        @Override
+        public void mouseMoved(MouseEvent event) {
             int cursorType = cursorFor(edgesAt(event.getPoint()));
             setCursor(cursorType == Cursor.DEFAULT_CURSOR ? resolveDefaultCursor() : resolveResizeCursor(cursorType));
         }
 
-        @Override public void mouseExited(MouseEvent event) {
+        @Override
+        public void mouseExited(MouseEvent event) {
             if (pressOnScreen == null) setCursor(resolveDefaultCursor());
         }
 
-        @Override public void mousePressed(MouseEvent event) {
+        @Override
+        public void mousePressed(MouseEvent event) {
             if (!resizable || windowState != WindowState.NORMAL || !SwingUtilities.isLeftMouseButton(event)) return;
             edges = edgesAt(event.getPoint());
             if (edges == 0) return;
@@ -910,7 +923,8 @@ public class WindowPanel extends PanelEventListener {
             dispatchWindowEvent(EventWindowPanel.WINDOW_RESIZE_START, Map.of("oldBounds", new Rectangle(startBounds)));
         }
 
-        @Override public void mouseDragged(MouseEvent event) {
+        @Override
+        public void mouseDragged(MouseEvent event) {
             if (pressOnScreen == null) return;
             Point current = event.getLocationOnScreen();
             int dx = current.x - pressOnScreen.x;
@@ -924,7 +938,8 @@ public class WindowPanel extends PanelEventListener {
             applyInteractiveBounds(target, true, EventWindowPanel.WINDOW_RESIZE);
         }
 
-        @Override public void mouseReleased(MouseEvent event) {
+        @Override
+        public void mouseReleased(MouseEvent event) {
             if (pressOnScreen == null) return;
             Rectangle old = startBounds;
             pressOnScreen = null;

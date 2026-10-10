@@ -65,12 +65,14 @@ public class PdfCanvas extends JComponent implements Scrollable {
         return (float) (96 * editor.getZoom() * device);
     }
 
-    @Override public Dimension getPreferredSize() {
+    @Override
+    public Dimension getPreferredSize() {
         Dimension size = layout.size();
         return size.width == 0 ? new Dimension(600, 800) : size;
     }
 
-    @Override protected void paintComponent(Graphics original) {
+    @Override
+    protected void paintComponent(Graphics original) {
         Graphics2D g = (Graphics2D) original.create();
         try {
             g.setColor(background());
@@ -127,15 +129,20 @@ public class PdfCanvas extends JComponent implements Scrollable {
         return UiTokens.isDarkTheme() ? new Color(0x2A2D33) : new Color(0xE9ECF1);
     }
 
-    @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
-    @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 32; }
-    @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
+    @Override
+    public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 32; }
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
         return Math.max(32, (orientation == javax.swing.SwingConstants.VERTICAL ? visible.height : visible.width) - 48);
     }
-    @Override public boolean getScrollableTracksViewportWidth() {
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
         return getParent() instanceof JViewport viewport && viewport.getWidth() >= layout.size().width;
     }
-    @Override public boolean getScrollableTracksViewportHeight() {
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
         return getParent() instanceof JViewport viewport && viewport.getHeight() >= layout.size().height;
     }
 }

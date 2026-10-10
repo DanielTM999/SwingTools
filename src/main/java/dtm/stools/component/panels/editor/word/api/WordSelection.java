@@ -5,5 +5,6 @@ public record WordSelection(int anchor, int caret) implements WordContentSelecti
     public int start() { return Math.min(anchor,caret); }
     public int end() { return Math.max(anchor,caret); }
     public boolean isEmpty() { return anchor==caret; }
-    @Override public WordSelection range() { return this; }
+    @Override
+    public WordSelection range() { return this; }
 }

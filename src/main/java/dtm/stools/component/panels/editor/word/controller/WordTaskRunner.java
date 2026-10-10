@@ -21,7 +21,8 @@ public final class WordTaskRunner implements AutoCloseable {
         SwingUtilities.invokeLater(() -> { task.fail(error); if (!closed && !task.isCancelled()) errorHandler.accept(error); });
     }
     public int active() { return tasks.size(); }
-    @Override public void close() {
+    @Override
+    public void close() {
         if (closed) return;
         closed = true;
         for (WordTask<?> task : tasks) task.cancel();

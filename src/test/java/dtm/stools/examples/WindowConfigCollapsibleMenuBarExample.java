@@ -10,7 +10,6 @@ import dtm.stools.component.panels.window.WindowPosition;
 import javax.swing.*;
 import java.awt.*;
 
-/** Demonstrates an actual CollapsibleMenuBar inside a centered WindowPanel. */
 public final class WindowConfigCollapsibleMenuBarExample {
     private WindowConfigCollapsibleMenuBarExample() {}
 

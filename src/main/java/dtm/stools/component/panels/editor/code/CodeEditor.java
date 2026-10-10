@@ -84,7 +84,8 @@ public class CodeEditor extends BlockingPanel {
     private JLayeredPane editorOverlay;
     private final JPanel navigationHeader = new JPanel();
     private final JLabel breadcrumbLabel = new JLabel() {
-        @Override public String getToolTipText(java.awt.event.MouseEvent event) {
+        @Override
+        public String getToolTipText(java.awt.event.MouseEvent event) {
             int index = breadcrumbIndexAt(event.getX());
             if (breadcrumbFile != null && index == 0) return breadcrumbFile.toString();
             return super.getToolTipText(event);
@@ -875,7 +876,8 @@ public class CodeEditor extends BlockingPanel {
             breadcrumbLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
             breadcrumbLabel.setMinimumSize(new java.awt.Dimension(0, breadcrumbLabel.getPreferredSize().height));
             breadcrumbLabel.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override public void mouseClicked(java.awt.event.MouseEvent event) {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent event) {
                     int index = breadcrumbIndexAt(event.getX());
                     if (index < 0) return;
                     if (breadcrumbFile != null && index == 0) {

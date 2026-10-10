@@ -147,9 +147,12 @@ public class CodeEditorMinimap extends JComponent {
         });
 
         textArea.addDocumentEditListener(new DocumentEditListener() {
-            @Override public void onInsert(int offset, String text) {}
-            @Override public void onDelete(int offset, String removed) {}
-            @Override public void onTextChanged() { invalidateCache(); }
+            @Override
+            public void onInsert(int offset, String text) {}
+            @Override
+            public void onDelete(int offset, String removed) {}
+            @Override
+            public void onTextChanged() { invalidateCache(); }
         });
 
         scrollPane.getViewport().addChangeListener(e -> repaint());

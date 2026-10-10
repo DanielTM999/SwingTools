@@ -28,10 +28,14 @@ public final class WatchWindow {
     private SheetDialogActivity<Void> dialog;
     private ProviderRegistration listener = ProviderRegistration.none();
     private final AbstractTableModel model = new AbstractTableModel() {
-        @Override public int getRowCount() { return watches.size(); }
-        @Override public int getColumnCount() { return 4; }
-        @Override public String getColumnName(int c) { return new String[]{"Planilha", "Célula", "Valor", "Fórmula"}[c]; }
-        @Override public Object getValueAt(int r, int c) {
+        @Override
+        public int getRowCount() { return watches.size(); }
+        @Override
+        public int getColumnCount() { return 4; }
+        @Override
+        public String getColumnName(int c) { return new String[]{"Planilha", "Célula", "Valor", "Fórmula"}[c]; }
+        @Override
+        public Object getValueAt(int r, int c) {
             Watch w = watches.get(r);
             int s = editor.getWorkbook().indexOfId(w.sheetId());
             if (s < 0) return c == 0 ? "(excluída)" : "";
@@ -75,7 +79,8 @@ public final class WatchWindow {
         dialog.setBody(content);
         dialog.addAction("Fechar", dialog::dispose, true);
         listener = editor.addCalcListener(new CalcListener() {
-            @Override public void valuesChanged(Map<String, List<CellRange>> changed) { model.fireTableDataChanged(); }
+            @Override
+            public void valuesChanged(Map<String, List<CellRange>> changed) { model.fireTableDataChanged(); }
         });
         dialog.onClosed(() -> listener.close());
         dialog.open();

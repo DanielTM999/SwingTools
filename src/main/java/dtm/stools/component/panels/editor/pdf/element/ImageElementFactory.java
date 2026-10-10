@@ -18,7 +18,8 @@ public class ImageElementFactory extends BasePdfElementFactory {
         super(id, commandId, title, icon, tip, PdfPlacementMode.DRAG_RECT);
     }
 
-    @Override public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
+    @Override
+    public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
         Optional<Path> chosen = editor.getFiles().chooseImage(editor);
         if (chosen.isEmpty()) return;
         BufferedImage image = ImageIO.read(chosen.get().toFile());

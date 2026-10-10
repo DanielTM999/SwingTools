@@ -11,7 +11,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowEvent;
 
-
 public class TabbedPanelActivityWindowFactoryExample {
 
     public static void main(String[] args) {
@@ -34,7 +33,7 @@ public class TabbedPanelActivityWindowFactoryExample {
 
        tabs.setTabWindowFactory((source, request) -> {
             if ("readme".equals(request.getKey())) {
-                // devolver null faz cair no comportamento padrao para esta aba
+
                 return null;
             }
             TabActivityWindow activity = new TabActivityWindow(request);
@@ -95,9 +94,6 @@ public class TabbedPanelActivityWindowFactoryExample {
         return new JScrollPane(area);
     }
 
-    /**
-     * Activity usada como janela de aba destacada.
-     */
     private static class TabActivityWindow extends Activity {
 
         private final TabWindowRequest request;
@@ -136,11 +132,6 @@ public class TabbedPanelActivityWindowFactoryExample {
             }
         }
 
-        /**
-         * A Activity intercepta o WINDOW_CLOSING e decide sozinha o que fazer, entao basta
-         * fechar a janela aqui. O TabbedPanel detecta que a janela e uma IWindow e reencaixa
-         * a aba quando ela e realmente descartada (windowClosed).
-         */
         @Override
         protected void onClose(WindowEvent e) {
             dispose();

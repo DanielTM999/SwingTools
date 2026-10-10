@@ -9,5 +9,6 @@ public record WindowAnimationFrame(float progress, Rectangle bounds, float alpha
         alpha = Math.max(0f, Math.min(1f, alpha));
     }
 
-    @Override public Rectangle bounds() { return new Rectangle(bounds); }
+    @Override
+    public Rectangle bounds() { return new Rectangle(bounds); }
 }

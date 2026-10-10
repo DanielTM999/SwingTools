@@ -100,12 +100,16 @@ public final class CellEditController {
         editor.getFormulaBar().setDocument(document);
         editor.getFormulaBar().field().setFocusTraversalKeysEnabled(false);
         inCell.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) { handleKey(e, inCell); }
+            @Override
+            public void keyPressed(KeyEvent e) { handleKey(e, inCell); }
         });
         document.addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { textChanged(e.getOffset() + e.getLength() == document.getLength() && e.getLength() == 1); }
-            @Override public void removeUpdate(DocumentEvent e) { textChanged(false); }
-            @Override public void changedUpdate(DocumentEvent e) { }
+            @Override
+            public void insertUpdate(DocumentEvent e) { textChanged(e.getOffset() + e.getLength() == document.getLength() && e.getLength() == 1); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { textChanged(false); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { }
         });
         inCell.addCaretListener(e -> { if (active && !updating) SwingUtilities.invokeLater(this::updateHints); });
         editor.getFormulaBar().field().addCaretListener(e -> { if (active && !updating) SwingUtilities.invokeLater(this::updateHints); });

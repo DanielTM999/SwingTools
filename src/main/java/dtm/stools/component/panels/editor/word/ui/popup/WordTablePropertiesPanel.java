@@ -35,8 +35,10 @@ public final class WordTablePropertiesPanel extends WordPropertiesPanel<WordTabl
         fill = new ColorButton(cell == null ? null : cell.fill(),true); row(cells == null ? "Preenchimento da célula" : "Preenchimento das células",fill.withClear());
         verticalAlign.setSelectedItem(cell == null ? WordTableCell.VerticalAlign.TOP : cell.verticalAlign()); row("Alinhamento vertical",verticalAlign);
     }
-    @Override public String title() { return "Propriedades da tabela"; }
-    @Override public WordTable result() {
+    @Override
+    public String title() { return "Propriedades da tabela"; }
+    @Override
+    public WordTable result() {
         WordTable t = table.withAlignment((WordTable.Alignment)alignment.getSelectedItem())
                 .withBorder(new WordBorder((WordBorder.Style)borderStyle.getSelectedItem(),value(borderWidth),borderColor.color()))
                 .withCellPadding(value(padding));

@@ -7,7 +7,6 @@ import dtm.stools.defaults.AutoCompletePopupDefaults;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-/** Lets the four built-in popup presets be selected from one example. */
 public class AutoCompletePopupPresetsExample {
 
     private static final String INTELLIJ = "IntelliJ IDEA";

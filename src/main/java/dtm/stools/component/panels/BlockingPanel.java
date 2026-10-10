@@ -146,22 +146,32 @@ public abstract class BlockingPanel extends ViewPanel implements IWindowComponen
         blocker.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
         MouseAdapter mouseEater = new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { e.consume(); }
-            @Override public void mouseReleased(MouseEvent e) { e.consume(); }
-            @Override public void mouseClicked(MouseEvent e) { e.consume(); }
-            @Override public void mouseEntered(MouseEvent e) { e.consume(); }
-            @Override public void mouseExited(MouseEvent e) { e.consume(); }
-            @Override public void mouseDragged(MouseEvent e) { e.consume(); }
-            @Override public void mouseMoved(MouseEvent e) { e.consume(); }
+            @Override
+            public void mousePressed(MouseEvent e) { e.consume(); }
+            @Override
+            public void mouseReleased(MouseEvent e) { e.consume(); }
+            @Override
+            public void mouseClicked(MouseEvent e) { e.consume(); }
+            @Override
+            public void mouseEntered(MouseEvent e) { e.consume(); }
+            @Override
+            public void mouseExited(MouseEvent e) { e.consume(); }
+            @Override
+            public void mouseDragged(MouseEvent e) { e.consume(); }
+            @Override
+            public void mouseMoved(MouseEvent e) { e.consume(); }
         };
 
         blocker.addMouseListener(mouseEater);
         blocker.addMouseMotionListener(mouseEater);
 
         blocker.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) { e.consume(); }
-            @Override public void keyReleased(KeyEvent e) { e.consume(); }
-            @Override public void keyTyped(KeyEvent e) { e.consume(); }
+            @Override
+            public void keyPressed(KeyEvent e) { e.consume(); }
+            @Override
+            public void keyReleased(KeyEvent e) { e.consume(); }
+            @Override
+            public void keyTyped(KeyEvent e) { e.consume(); }
         });
 
         return blocker;

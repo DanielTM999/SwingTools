@@ -74,7 +74,8 @@ class PdfCanvasInteractionTest {
         release(canvas, to);
     }
 
-    @Test void clickSelectsAndDragMovesAnObject() throws Throwable {
+    @Test
+    void clickSelectsAndDragMovesAnObject() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.addShape(0, PdfShapeKind.RECTANGLE, new Rectangle2D.Float(100, 500, 120, 80));
@@ -92,7 +93,8 @@ class PdfCanvasInteractionTest {
         });
     }
 
-    @Test void deleteKeyRemovesTheSelection() throws Throwable {
+    @Test
+    void deleteKeyRemovesTheSelection() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.addShape(0, PdfShapeKind.ELLIPSE, new Rectangle2D.Float(100, 500, 120, 80));
@@ -104,7 +106,8 @@ class PdfCanvasInteractionTest {
         });
     }
 
-    @Test void textToolOpensAnEditableBoxExactlyWhereTheUserClicked() throws Throwable {
+    @Test
+    void textToolOpensAnEditableBoxExactlyWhereTheUserClicked() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.execute("pdf.addText");
@@ -123,7 +126,8 @@ class PdfCanvasInteractionTest {
         });
     }
 
-    @Test void marqueeSelectsWordsAndEraserRemovesContent() throws Throwable {
+    @Test
+    void marqueeSelectsWordsAndEraserRemovesContent() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.addText(0, "Primeira linha", 80, 700, 14);
@@ -138,7 +142,8 @@ class PdfCanvasInteractionTest {
         });
     }
 
-    @Test void brushEraserRemovesOnlyThePartItPassesOver() throws Throwable {
+    @Test
+    void brushEraserRemovesOnlyThePartItPassesOver() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.addInk(0, new float[]{100, 500, 300, 500}, dtm.stools.component.panels.editor.pdf.api.PdfShapeStyle.defaults()
@@ -155,7 +160,8 @@ class PdfCanvasInteractionTest {
         });
     }
 
-    @Test void formFieldsAreVisibleAndFilledByDoubleClick() throws Throwable {
+    @Test
+    void formFieldsAreVisibleAndFilledByDoubleClick() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.addTextField(0, "nome", 100, 600, 180, 24);
@@ -174,7 +180,8 @@ class PdfCanvasInteractionTest {
         });
     }
 
-    @Test void layoutKeepsEveryPageInContinuousMode() throws Throwable {
+    @Test
+    void layoutKeepsEveryPageInContinuousMode() throws Throwable {
         withEditor(editor -> {
             PdfCanvas canvas = editor.getCanvas();
             editor.insertBlankPage(1);

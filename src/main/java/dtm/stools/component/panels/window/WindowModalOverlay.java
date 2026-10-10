@@ -17,7 +17,8 @@ public class WindowModalOverlay extends JPanel {
 
     public WindowModalOverlay overlayColor(Color color) { overlayColor = color; repaint(); return this; }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
         graphics.setColor(overlayColor);
         graphics.fillRect(0, 0, getWidth(), getHeight());

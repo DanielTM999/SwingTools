@@ -27,11 +27,13 @@ public class WindowSnapAssistOverlay extends JPanel {
         setVisible(false);
         setFocusable(true);
         addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent event) { close(); }
+            @Override
+            public void mousePressed(MouseEvent event) { close(); }
         });
         getInputMap(WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("ESCAPE"), "closeSnapAssist");
         getActionMap().put("closeSnapAssist", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent event) { close(); }
+            @Override
+            public void actionPerformed(ActionEvent event) { close(); }
         });
     }
 
@@ -141,7 +143,8 @@ public class WindowSnapAssistOverlay extends JPanel {
         return new WindowThumbnailButton(candidate, zone, thumbnails.get(candidate));
     }
 
-    @Override public void doLayout() {
+    @Override
+    public void doLayout() {
         for (Component component : getComponents()) {
             if (!(component instanceof SnapAssistZonePanel zonePanel)) continue;
             Rectangle bounds = desktop.getSnapPolicy().resolveBounds(
@@ -151,7 +154,8 @@ public class WindowSnapAssistOverlay extends JPanel {
         }
     }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
         try {
             g.setColor(overlayColor);
@@ -186,7 +190,8 @@ public class WindowSnapAssistOverlay extends JPanel {
 
         public WindowSnap getZone() { return zone; }
 
-        @Override protected void paintComponent(Graphics graphics) {
+        @Override
+        protected void paintComponent(Graphics graphics) {
             Graphics2D g = (Graphics2D) graphics.create();
             try {
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -229,7 +234,8 @@ public class WindowSnapAssistOverlay extends JPanel {
                     : new Dimension(thumbnail.getWidth(null), thumbnail.getHeight(null));
         }
 
-        @Override protected void paintComponent(Graphics graphics) {
+        @Override
+        protected void paintComponent(Graphics graphics) {
             Graphics2D g = (Graphics2D) graphics.create();
             try {
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

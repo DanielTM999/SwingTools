@@ -303,9 +303,6 @@ public class AlertPanel extends PanelEventListener {
         }
     }
 
-    /**
-     * Botão de fechar desenhado como um X.
-     */
     private static final class CloseButton extends JComponent {
 
         private Runnable action = () -> { };

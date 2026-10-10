@@ -11,7 +11,9 @@ public record Slicer(String id, String name, String tableName, String pivotName,
         selected = selected == null ? Set.of() : Set.copyOf(selected);
     }
 
-    @Override public SheetObject withAnchor(ObjectAnchor a) { return new Slicer(id, name, tableName, pivotName, field, selected, a); }
+    @Override
+    public SheetObject withAnchor(ObjectAnchor a) { return new Slicer(id, name, tableName, pivotName, field, selected, a); }
     public Slicer withSelected(Set<String> s) { return new Slicer(id, name, tableName, pivotName, field, s, anchor); }
-    @Override public String description() { return name; }
+    @Override
+    public String description() { return name; }
 }

@@ -62,68 +62,81 @@ public abstract class DelegatedWindowPanel<T extends AbstractWindowPanelControll
                 event -> getOrCreateController().onAnimationCancel(this, event));
     }
 
-    @Override protected void onInit() {
+    @Override
+    protected void onInit() {
         super.onInit();
         getOrCreateController().onInit(this);
     }
 
-    @Override protected void onLoad() {
+    @Override
+    protected void onLoad() {
         super.onLoad();
         getOrCreateController().onLoad(this);
     }
 
-    @Override protected void onRemoved() {
+    @Override
+    protected void onRemoved() {
         super.onRemoved();
         if (controller != null) controller.onRemoved(this);
     }
 
-    @Override protected void onOpened() {
+    @Override
+    protected void onOpened() {
         super.onOpened();
         getOrCreateController().onWindowOpen(this);
     }
 
-    @Override protected void onClosed() {
+    @Override
+    protected void onClosed() {
         super.onClosed();
         getOrCreateController().onWindowClose(this);
         if (getCloseOperation() == WindowCloseOperation.REMOVE) disposeController();
     }
 
-    @Override protected void onActivated() {
+    @Override
+    protected void onActivated() {
         super.onActivated();
         getOrCreateController().onActivated(this);
     }
 
-    @Override protected void onDeactivated() {
+    @Override
+    protected void onDeactivated() {
         super.onDeactivated();
         if (controller != null) controller.onDeactivated(this);
     }
 
-    @Override protected void onStateChanged(WindowState oldState, WindowState newState) {
+    @Override
+    protected void onStateChanged(WindowState oldState, WindowState newState) {
         super.onStateChanged(oldState, newState);
         getOrCreateController().onStateChanged(this, oldState, newState);
     }
 
-    @Override protected void onSnapped(WindowSnap oldSnap, WindowSnap newSnap) {
+    @Override
+    protected void onSnapped(WindowSnap oldSnap, WindowSnap newSnap) {
         super.onSnapped(oldSnap, newSnap);
         getOrCreateController().onSnapped(this, oldSnap, newSnap);
     }
 
-    @Override protected void onWindowMoved(Rectangle oldBounds, Rectangle newBounds) {
+    @Override
+    protected void onWindowMoved(Rectangle oldBounds, Rectangle newBounds) {
         super.onWindowMoved(oldBounds, newBounds);
         getOrCreateController().onMoved(this, oldBounds, newBounds);
     }
 
-    @Override protected void onWindowResized(Rectangle oldBounds, Rectangle newBounds) {
+    @Override
+    protected void onWindowResized(Rectangle oldBounds, Rectangle newBounds) {
         super.onWindowResized(oldBounds, newBounds);
         getOrCreateController().onResized(this, oldBounds, newBounds);
     }
 
-    @Override protected void onDisposed() {
+    @Override
+    protected void onDisposed() {
         super.onDisposed();
         disposeController();
     }
 
-    @Override public void disposeController() {
+    @Override
+    public void disposeController() {
         if (controller != null) controller.onDispose(this);
         controller = null;
     }

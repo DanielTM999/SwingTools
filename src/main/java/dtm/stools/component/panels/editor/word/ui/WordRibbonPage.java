@@ -7,7 +7,6 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 
-/** Fits whole groups; controls are never clipped or hidden behind a horizontal scrollbar. */
 final class WordRibbonPage extends JPanel {
     private final List<Group> groups = new ArrayList<>();
     private final JButton more = new JButton("Mais ▾");
@@ -23,11 +22,14 @@ final class WordRibbonPage extends JPanel {
             menu.show(more,0,more.getHeight());
         });
     }
-    @Override public Dimension getPreferredSize() { return new Dimension(UIScale.scale(600), UIScale.scale(112)); }
-    @Override public Dimension getMinimumSize() { return new Dimension(0, UIScale.scale(112)); }
+    @Override
+    public Dimension getPreferredSize() { return new Dimension(UIScale.scale(600), UIScale.scale(112)); }
+    @Override
+    public Dimension getMinimumSize() { return new Dimension(0, UIScale.scale(112)); }
     void applyTheme() { for (Group group : groups) group.applyTheme(); revalidate(); repaint(); }
     void closePopups() { for(Group group:groups)if(group.popup!=null)group.popup.close(); }
-    @Override public void doLayout() {
+    @Override
+    public void doLayout() {
         int available = getWidth(), gap = UIScale.scale(4);
         int[] modes=new int[groups.size()];
         boolean[] visible=new boolean[groups.size()];Arrays.fill(visible,true);
@@ -106,7 +108,8 @@ final class WordRibbonPage extends JPanel {
             mode=value;compact(content,value>0);
             remove(content);remove(collapsed);add(expected,BorderLayout.CENTER);caption.setVisible(value!=2);
         }
-        @Override public Dimension getPreferredSize() {return new Dimension(width(mode),UIScale.scale(112));}
+        @Override
+        public Dimension getPreferredSize() {return new Dimension(width(mode),UIScale.scale(112));}
         void showPopup(Component anchor) {
             if(popup!=null && popup.isVisible()) return;
             compact(content,false);remove(content);
@@ -120,7 +123,8 @@ final class WordRibbonPage extends JPanel {
                     && !Boolean.TRUE.equals(button.getClientProperty("word.large"))) button.setText(compact ? null : label);
             if(component instanceof Container container) for(Component child:container.getComponents()) compact(child,compact);
         }
-        @Override protected void paintComponent(Graphics g) {
+        @Override
+        protected void paintComponent(Graphics g) {
             super.paintComponent(g);g.setColor(UiTokens.border());g.drawLine(getWidth()-1,10,getWidth()-1,getHeight()-10);
         }
     }

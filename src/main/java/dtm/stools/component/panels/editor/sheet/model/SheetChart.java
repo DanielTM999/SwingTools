@@ -22,6 +22,8 @@ public record SheetChart(String id, ChartType type, ObjectAnchor anchor, String 
         yAxisTitle = Objects.requireNonNullElse(yAxisTitle, "");
     }
 
-    @Override public SheetChart withAnchor(ObjectAnchor a) { return toBuilder().anchor(a).build(); }
-    @Override public String description() { return title.isBlank() ? type.label() : title; }
+    @Override
+    public SheetChart withAnchor(ObjectAnchor a) { return toBuilder().anchor(a).build(); }
+    @Override
+    public String description() { return title.isBlank() ? type.label() : title; }
 }

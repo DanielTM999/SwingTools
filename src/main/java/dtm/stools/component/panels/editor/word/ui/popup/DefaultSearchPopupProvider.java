@@ -10,9 +10,11 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 public final class DefaultSearchPopupProvider implements WordSearchPopupProvider {
-    @Override public String id() { return "word.popup.search.default"; }
+    @Override
+    public String id() { return "word.popup.search.default"; }
 
-    @Override public WordPopupHandle show(WordSearchContext context) {
+    @Override
+    public WordPopupHandle show(WordSearchContext context) {
         JTextField query = new JTextField(context.initialQuery(),24), replacement = new JTextField(24);
         JCheckBox matchCase = new JCheckBox("Diferenciar maiúsculas"), wholeWord = new JCheckBox("Palavra inteira"), regex = new JCheckBox("Expressão regular");
         JLabel status = new JLabel(" ");

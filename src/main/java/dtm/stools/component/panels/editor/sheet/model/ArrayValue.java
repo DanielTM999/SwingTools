@@ -62,9 +62,12 @@ public final class ArrayValue implements CellValue {
     public List<CellValue> list() { return List.of(values); }
     public CellValue[] toArray() { return values.clone(); }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         return o instanceof ArrayValue a && a.rows == rows && a.columns == columns && Arrays.equals(a.values, values);
     }
-    @Override public int hashCode() { return 31 * (31 * rows + columns) + Arrays.hashCode(values); }
-    @Override public String toString() { return "{" + rows + "x" + columns + "}"; }
+    @Override
+    public int hashCode() { return 31 * (31 * rows + columns) + Arrays.hashCode(values); }
+    @Override
+    public String toString() { return "{" + rows + "x" + columns + "}"; }
 }

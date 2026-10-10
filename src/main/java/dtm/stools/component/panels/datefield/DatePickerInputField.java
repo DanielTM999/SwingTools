@@ -698,7 +698,8 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         textField.setCleanText(formattedDate.replaceAll("[^0-9]", ""));
     }
 
-    @Override public void setEnabled(boolean enabled) {
+    @Override
+    public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         if (textField != null) textField.setEnabled(enabled);
         if (calendarButton != null) calendarButton.setEnabled(enabled && textField.isEditable() && !textField.isReadonly());

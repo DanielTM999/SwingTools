@@ -23,7 +23,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PdfVisualSmokeTest {
-    @Test void paintsEditorInLightDarkAndNarrowLayouts() throws Exception {
+    @Test
+    void paintsEditorInLightDarkAndNarrowLayouts() throws Exception {
         AtomicReference<JFrame> frameRef = new AtomicReference<>();
         AtomicReference<PdfEditor> ref = new AtomicReference<>();
         SwingUtilities.invokeAndWait(() -> {

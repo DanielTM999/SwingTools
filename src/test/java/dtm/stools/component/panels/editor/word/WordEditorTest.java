@@ -16,7 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class WordEditorTest {
     @TempDir Path temporary;
     static <T>T edt(Callable<T> callable)throws Exception{AtomicReference<T> result=new AtomicReference<>();AtomicReference<Throwable> failure=new AtomicReference<>();SwingUtilities.invokeAndWait(()->{try{result.set(callable.call());}catch(Throwable e){failure.set(e);}});if(failure.get()!=null)throw new AssertionError(failure.get());return result.get();}
-    @Test void providersContributeCommandsAndDetachIdempotently()throws Exception{
+    @Test
+    void providersContributeCommandsAndDetachIdempotently()throws Exception{
         edt(()->{try(WordEditor editor=new WordEditor()){
             AtomicInteger detached=new AtomicInteger();WordCommandProvider provider=new WordCommandProvider(){
                 public String id(){return "test.extension";}
@@ -29,7 +30,8 @@ class WordEditorTest {
             editor.setReadOnly(true);assertFalse(editor.getCommands().get("word.bold").isEnabled());assertThrows(IllegalStateException.class,()->editor.insertText("bad"));
         }return null;});
     }
-    @Test void savesAndOpensOnBackgroundWorkers()throws Exception{
+    @Test
+    void savesAndOpensOnBackgroundWorkers()throws Exception{
         WordEditor editor=edt(WordEditor::new);try{
             edt(()->{editor.insertText("Olá documento\nSegunda linha");return null;});
             Path path=temporary.resolve("document.docx");WordTask<Path> save=edt(()->editor.save(path));save.completion().toCompletableFuture().get(15,TimeUnit.SECONDS);
@@ -42,7 +44,8 @@ class WordEditorTest {
             assertEquals("changed outside",Files.readString(path));
         }finally{edt(()->{editor.close();return null;});}
     }
-    @Test void replacementIsOneUndoableOperation()throws Exception{
+    @Test
+    void replacementIsOneUndoableOperation()throws Exception{
         edt(()->{try(WordEditor editor=new WordEditor()){editor.setText("um dois um");assertEquals(2,editor.replaceAll("um","três",false));assertEquals("três dois três",editor.getText());editor.getSession().undo();assertEquals("um dois um",editor.getText());}return null;});
     }
 }

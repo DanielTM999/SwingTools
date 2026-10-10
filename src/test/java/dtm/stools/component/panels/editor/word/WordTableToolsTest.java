@@ -18,7 +18,8 @@ import static dtm.stools.component.panels.editor.word.WordEditorTest.edt;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WordTableToolsTest {
-    @Test void singleCellSelectionAndTableRemovalAreAvailableInContextMenu() throws Exception {
+    @Test
+    void singleCellSelectionAndTableRemovalAreAvailableInContextMenu() throws Exception {
         edt(()->{
             try(WordEditor editor=new WordEditor()) {
                 WordTable table=WordTable.create(2,2,300);
@@ -43,7 +44,8 @@ class WordTableToolsTest {
         });
     }
 
-    @Test void rightClickAndControlClickTargetTheClickedCellIncludingEmptyPadding() throws Exception {
+    @Test
+    void rightClickAndControlClickTargetTheClickedCellIncludingEmptyPadding() throws Exception {
         CountDownLatch ready=new CountDownLatch(1);
         WordTable first=WordTable.create(1,1,300),second=WordTable.create(2,2,300);
         WordEditor editor=edt(()->{
@@ -82,7 +84,8 @@ class WordTableToolsTest {
         } finally {edt(()->{editor.close();return null;});}
     }
 
-    @Test void alternatingRowsPreserveHeadersContentAndUndoAndSurviveDocx() throws Exception {
+    @Test
+    void alternatingRowsPreserveHeadersContentAndUndoAndSurviveDocx() throws Exception {
         WordTable table=WordTableEditing.fill(WordTable.create(5,2,300),0,0,
                 List.of(List.of("Name","Value"),List.of("a","1"),List.of("b","2"),List.of("c","3"),List.of("d","4")),WordTextStyle.DEFAULT);
         table=table.withRow(0,table.rows().getFirst().withHeader(true).withCells(table.rows().getFirst().cells().stream().map(c->c.withFill(0x203864)).toList()));
@@ -101,7 +104,8 @@ class WordTableToolsTest {
         session.undo();assertEquals(original,session.getDocument());session.redo();assertEquals(changed,session.getDocument().findTable(table.id()).orElseThrow());
     }
 
-    @Test void bandingDialogSupportsCustomColorsAndBandSize() throws Exception {
+    @Test
+    void bandingDialogSupportsCustomColorsAndBandSize() throws Exception {
         edt(()->{
             WordTableBandingPanel panel=new WordTableBandingPanel(WordTable.create(3,2,300));
             var first=(dtm.stools.component.panels.editor.word.ui.popup.WordPropertiesPanel.ColorButton)WordUiTest.find(panel,"word.table.banding.first");
@@ -113,7 +117,8 @@ class WordTableToolsTest {
         });
     }
 
-    @Test void rowIntervalLeavesOtherRowsUntouchedAndRestartsAlternation() {
+    @Test
+    void rowIntervalLeavesOtherRowsUntouchedAndRestartsAlternation() {
         WordTable table=WordTable.create(6,2,300);
         table=WordTableEditing.updateCells(table,0,0,5,1,c->c.withFill(0xABCDEF));
         WordSession session=new WordSession();WordDocument original=new WordDocument(List.of(table),WordPageSettings.A4);
@@ -127,7 +132,8 @@ class WordTableToolsTest {
         assertNull(single.cell(2,0).fill());assertEquals(table.rows().get(3),single.rows().get(3));
     }
 
-    @Test void dialogCanSwitchBetweenWholeTableAndValidatedRowInterval() throws Exception {
+    @Test
+    void dialogCanSwitchBetweenWholeTableAndValidatedRowInterval() throws Exception {
         edt(()->{
             WordTableBandingPanel panel=new WordTableBandingPanel(WordTable.create(10,2,300));
             JComboBox<?> scope=(JComboBox<?>)WordUiTest.find(panel,"word.table.banding.scope");

@@ -32,8 +32,10 @@ public final class WordShapePropertiesPanel extends WordPropertiesPanel<WordShap
         boolean group = shape.shapeType() == WordShapeType.GROUP;
         text.setEnabled(!group); fill.setEnabled(!group); stroke.setEnabled(!group);
     }
-    @Override public String title() { return "Formatar forma"; }
-    @Override public WordShape result() {
+    @Override
+    public String title() { return "Formatar forma"; }
+    @Override
+    public WordShape result() {
         WordShape s = shape;
         if (s.shapeType() != WordShapeType.GROUP) s = s.withShapeType((WordShapeType)type.getSelectedItem()).withColors(fill.color(),stroke.color(),value(strokeWidth)).withText(text.getText(),value(fontSize),textColor.color());
         return s.withArrowEnd(arrow.isSelected()).resize(value(width),value(height)).withRotation(value(rotation)).withPlacement(placement.get()).withAltText(alt.getText().strip());

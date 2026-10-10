@@ -127,9 +127,6 @@ public class StatCard extends CardPanel {
         };
     }
 
-    /**
-     * Área desenhada com o rótulo, o valor, a variação e o minigráfico.
-     */
     private final class Metrics extends JComponent {
 
         private Metrics() {

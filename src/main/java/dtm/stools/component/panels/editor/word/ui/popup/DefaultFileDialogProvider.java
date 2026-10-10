@@ -10,11 +10,13 @@ import java.util.Locale;
 import java.util.Optional;
 
 public final class DefaultFileDialogProvider implements WordFileDialogProvider {
-    @Override public String id() { return "word.popup.files.default"; }
+    @Override
+    public String id() { return "word.popup.files.default"; }
 
-    @Override public Optional<Path> choose(WordFileDialogRequest request) {
+    @Override
+    public Optional<Path> choose(WordFileDialogRequest request) {
         File directory = request.directory() == null ? null : request.directory().toFile();
-        // OsFilePicker adds the extension patterns to the displayed filter name.
+
         String description = request.description().replaceFirst("\\s*\\(\\*\\.[^)]*\\)$", "");
         DeFilter[] filters = request.extensions().isEmpty() ? new DeFilter[0] : new DeFilter[]{
                 DeFilter.of(description.isBlank() ? "Arquivos" : description, request.extensions().toArray(String[]::new))};

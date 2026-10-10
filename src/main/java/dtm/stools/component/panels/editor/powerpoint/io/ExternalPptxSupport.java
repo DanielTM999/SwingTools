@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 
-/** Conservative, localized editing of PresentationML produced by other applications. */
 final class ExternalPptxSupport {
     private static final String P="http://schemas.openxmlformats.org/presentationml/2006/main";
     private static final String A="http://schemas.openxmlformats.org/drawingml/2006/main";

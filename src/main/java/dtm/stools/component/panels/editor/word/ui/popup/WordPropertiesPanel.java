@@ -14,11 +14,16 @@ public abstract class WordPropertiesPanel<T> extends JPanel implements Scrollabl
     }
     public abstract T result();
     public String title() { return "Propriedades"; }
-    @Override public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
-    @Override public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 24; }
-    @Override public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) { return Math.max(24,visible.height-24); }
-    @Override public boolean getScrollableTracksViewportWidth() { return true; }
-    @Override public boolean getScrollableTracksViewportHeight() { return false; }
+    @Override
+    public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) { return 24; }
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) { return Math.max(24,visible.height-24); }
+    @Override
+    public boolean getScrollableTracksViewportWidth() { return true; }
+    @Override
+    public boolean getScrollableTracksViewportHeight() { return false; }
 
     protected <C extends JComponent> C row(String label, C component) {
         GridBagConstraints g = new GridBagConstraints();

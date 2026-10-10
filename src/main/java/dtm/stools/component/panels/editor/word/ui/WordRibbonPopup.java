@@ -5,7 +5,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-/** A component popup whose lifetime is independent of nested Swing menu selection paths. */
 final class WordRibbonPopup implements AutoCloseable {
     private final JPanel holder = new JPanel(new BorderLayout(0,8));
     private final JComponent content;
@@ -57,7 +56,8 @@ final class WordRibbonPopup implements AutoCloseable {
         }
         return false;
     }
-    @Override public void close(){
+    @Override
+    public void close(){
         if(popup==null)return;
         Toolkit.getDefaultToolkit().removeAWTEventListener(events);anchor.removeHierarchyListener(hierarchy);
         Popup old=popup;popup=null;old.hide();

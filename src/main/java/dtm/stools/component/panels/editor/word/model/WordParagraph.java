@@ -34,7 +34,8 @@ public record WordParagraph(UUID id, List<WordInline> runs, WordParagraphStyle s
         return new WordParagraph(UUID.randomUUID(), List.of(new WordRun(text, textStyle)), paragraphStyle);
     }
     public String text() { StringBuilder b = new StringBuilder(); runs.forEach(r -> b.append(r.text())); return b.toString(); }
-    @Override public String plainText() {
+    @Override
+    public String plainText() {
         StringBuilder b = new StringBuilder();
         for (WordInline r : runs) b.append(r instanceof WordObjectRun o ? o.object().plainText() : r.text());
         return b.toString();

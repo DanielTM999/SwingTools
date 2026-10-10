@@ -15,19 +15,23 @@ public final class WordTableGridChooser extends JComponent {
     public WordTableGridChooser(JPopupMenu owner, BiConsumer<Integer,Integer> chosen) {
         setPreferredSize(new Dimension(COLUMNS*CELL+8,ROWS*CELL+26));
         MouseAdapter mouse = new MouseAdapter() {
-            @Override public void mouseMoved(MouseEvent e) {
+            @Override
+            public void mouseMoved(MouseEvent e) {
                 columns = Math.max(1,Math.min(COLUMNS,(e.getX()-4)/CELL+1)); rows = Math.max(1,Math.min(ROWS,(e.getY()-4)/CELL+1)); repaint();
             }
-            @Override public void mouseClicked(MouseEvent e) { owner.setVisible(false); chosen.accept(rows,columns); }
+            @Override
+            public void mouseClicked(MouseEvent e) { owner.setVisible(false); chosen.accept(rows,columns); }
         };
         addMouseListener(mouse); addMouseMotionListener(mouse);
         getAccessibleContext().setAccessibleName("Escolher tamanho da tabela");
     }
-    @Override public AccessibleContext getAccessibleContext() {
+    @Override
+    public AccessibleContext getAccessibleContext() {
         if (accessibleContext == null) accessibleContext = new AccessibleJComponent() {};
         return accessibleContext;
     }
-    @Override protected void paintComponent(Graphics g) {
+    @Override
+    protected void paintComponent(Graphics g) {
         Graphics2D g2 = (Graphics2D)g.create();
         try {
             for (int r = 0; r < ROWS; r++) for (int c = 0; c < COLUMNS; c++) {

@@ -61,8 +61,10 @@ public final class WordTableBandingPanel extends WordPropertiesPanel<WordTableBa
             preview[i].setForeground(background.getRed()*0.299+background.getGreen()*0.587+background.getBlue()*0.114<145?Color.WHITE:Color.BLACK);
         }
     }
-    @Override public String title(){return "Cores alternadas da tabela";}
-    @Override public WordTableBanding result(){
+    @Override
+    public String title(){return "Cores alternadas da tabela";}
+    @Override
+    public WordTableBanding result(){
         if(scope.getSelectedIndex()==0)return new WordTableBanding(first.color(),second.color(),((Number)bands.getValue()).intValue(),headers.isSelected());
         return new WordTableBanding(first.color(),second.color(),((Number)bands.getValue()).intValue(),headers.isSelected(),
                 ((Number)start.getValue()).intValue()-1,((Number)end.getValue()).intValue()-1);

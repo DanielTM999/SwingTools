@@ -48,14 +48,18 @@ public final class WordFontPicker extends JPanel {
             public void removeUpdate(DocumentEvent e) { refilter(); }
             public void changedUpdate(DocumentEvent e) { refilter(); }
         });
-        filter.addKeyListener(new KeyAdapter() { @Override public void keyPressed(KeyEvent e) {
+        filter.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
             int i = list.getSelectedIndex();
             if (e.getKeyCode() == KeyEvent.VK_DOWN && i < model.size()-1) { list.setSelectedIndex(i+1); list.ensureIndexIsVisible(i+1); }
             else if (e.getKeyCode() == KeyEvent.VK_UP && i > 0) { list.setSelectedIndex(i-1); list.ensureIndexIsVisible(i-1); }
             else if (e.getKeyCode() == KeyEvent.VK_ENTER) choose(list.getSelectedValue());
             else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) popup.setVisible(false);
         } });
-        list.addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { choose(list.getSelectedValue()); } });
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) { choose(list.getSelectedValue()); } });
         JPanel content = new JPanel(new BorderLayout(0,4)); content.setBorder(BorderFactory.createEmptyBorder(4,4,4,4));
         content.add(filter,BorderLayout.NORTH);
         JScrollPane scroll = new JScrollPane(list); scroll.setPreferredSize(UIScale.scale(new Dimension(260,300)));
@@ -95,5 +99,6 @@ public final class WordFontPicker extends JPanel {
         popup.setVisible(false);
         if (family != null) chooser.accept(family);
     }
-    @Override public void setEnabled(boolean enabled) { super.setEnabled(enabled); display.setEnabled(enabled); }
+    @Override
+    public void setEnabled(boolean enabled) { super.setEnabled(enabled); display.setEnabled(enabled); }
 }

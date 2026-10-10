@@ -61,7 +61,8 @@ public class PdfSidebar extends JPanel {
         thumbnailScroll.setBorder(BorderFactory.createEmptyBorder());
         thumbnailScroll.getVerticalScrollBar().setUnitIncrement(24);
         thumbnailScroll.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override public void componentResized(java.awt.event.ComponentEvent event) {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent event) {
                 thumbnails.revalidate();
                 SwingUtilities.invokeLater(thumbnails::scrollToCurrent);
             }

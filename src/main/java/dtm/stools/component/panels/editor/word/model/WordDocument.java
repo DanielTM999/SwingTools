@@ -489,14 +489,17 @@ public final class WordDocument {
         };
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o) return true;
         return o instanceof WordDocument d && d.hashCode() == hashCode() && d.blocks.equals(blocks) && d.pageSettings.equals(pageSettings) && d.parts.equals(parts);
     }
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         int h = hash;
         if (h == 0) { h = Objects.hash(blocks,pageSettings,parts); hash = h == 0 ? 1 : h; }
         return hash;
     }
-    @Override public String toString() { return "WordDocument[" + paragraphs.size() + " paragraphs, " + length() + " chars]"; }
+    @Override
+    public String toString() { return "WordDocument[" + paragraphs.size() + " paragraphs, " + length() + " chars]"; }
 }

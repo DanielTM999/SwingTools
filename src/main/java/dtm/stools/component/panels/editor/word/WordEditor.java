@@ -18,7 +18,6 @@ import dtm.stools.component.panels.editor.word.ui.popup.WordPageSetupPanel;
 import dtm.stools.component.panels.editor.word.ui.popup.WordColors;
 import dtm.stools.component.panels.editor.word.ui.popup.WordTableBandingPanel;
 
-
 import dtm.stools.configs.UiTokens;
 import javax.swing.*;
 import java.awt.*;
@@ -111,14 +110,16 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         outline.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         outline.addListSelectionListener(e->{if(!updatingOutline&&!e.getValueIsAdjusting())navigateOutline(false);});
         outline.addMouseListener(new MouseAdapter(){
-            @Override public void mouseClicked(MouseEvent e){
+            @Override
+            public void mouseClicked(MouseEvent e){
                 int index=outline.locationToIndex(e.getPoint());
                 if(SwingUtilities.isLeftMouseButton(e)&&index>=0&&outline.getCellBounds(index,index).contains(e.getPoint()))navigateOutline(true);
             }
         });
         outline.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,0),"word.outline.activate");
         outline.getActionMap().put("word.outline.activate",new AbstractAction(){
-            @Override public void actionPerformed(ActionEvent e){navigateOutline(true);}
+            @Override
+            public void actionPerformed(ActionEvent e){navigateOutline(true);}
         });
         lastDocument=session.getDocument();
         sessionListener=session.addListener(this::sessionChanged);
@@ -131,7 +132,11 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         canvas.bind("word.save",KeyStroke.getKeyStroke(KeyEvent.VK_S,InputEvent.CTRL_DOWN_MASK),()->run(this::chooseSave));
         canvas.bind("word.link",KeyStroke.getKeyStroke(KeyEvent.VK_K,InputEvent.CTRL_DOWN_MASK),()->run(this::promptLink));
         canvas.bind("word.properties",KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,InputEvent.ALT_DOWN_MASK),this::showObjectProperties);
-        canvas.addMouseListener(new MouseAdapter(){private void popup(MouseEvent e){if(e.isPopupTrigger())showContextMenu(e.getX(),e.getY());}@Override public void mousePressed(MouseEvent e){popup(e);}@Override public void mouseReleased(MouseEvent e){popup(e);}});
+        canvas.addMouseListener(new MouseAdapter(){private void popup(MouseEvent e){if(e.isPopupTrigger())showContextMenu(e.getX(),e.getY());}
+            @Override
+            public void mousePressed(MouseEvent e){popup(e);}
+            @Override
+            public void mouseReleased(MouseEvent e){popup(e);}});
         applyConfig();refreshOutline();refreshState();onThemeChanged();
         addHierarchyListener(e->{if((e.getChangeFlags()&HierarchyEvent.SHOWING_CHANGED)!=0)updateScreenLifecycle();});
     }
@@ -143,8 +148,10 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         if(showing){canvas.resumeVisualWork();SwingUtilities.invokeLater(()->{if(screenActive&&isShowing())canvas.resumeVisualWork();});}
         else{defaultRibbon.closePopups();popups.dismissTransient();canvas.pauseVisualWork();}
     }
-    @Override public void addNotify(){super.addNotify();updateScreenLifecycle();}
-    @Override public void removeNotify(){if(screenActive){screenActive=false;defaultRibbon.closePopups();popups.dismissTransient();canvas.pauseVisualWork();}super.removeNotify();}
+    @Override
+    public void addNotify(){super.addNotify();updateScreenLifecycle();}
+    @Override
+    public void removeNotify(){if(screenActive){screenActive=false;defaultRibbon.closePopups();popups.dismissTransient();canvas.pauseVisualWork();}super.removeNotify();}
 
     public WordSession getSession(){return session;}
     public WordDocument getDocument(){return session.getDocument();}
@@ -271,7 +278,9 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         List<ProviderRegistration> cleanups=new ArrayList<>();
         if(provider instanceof WordBlockProvider block){
             String type=block.objectType();
-            contributions.put("word.insert."+type,new AbstractAction("Inserir "+block.displayName()){@Override public void actionPerformed(ActionEvent e){run(()->{if(session.isReadOnly())return;WordCustomObject object=block.createObject(WordEditor.this);objects.insert(object);});}});
+            contributions.put("word.insert."+type,new AbstractAction("Inserir "+block.displayName()){
+                @Override
+                public void actionPerformed(ActionEvent e){run(()->{if(session.isReadOnly())return;WordCustomObject object=block.createObject(WordEditor.this);objects.insert(object);});}});
         }
         for(String key:contributions.keySet())if(key.isBlank()||commands.containsKey(key))throw new IllegalArgumentException("Duplicate command: "+key);
         if(popups.handles(provider))cleanups.add(popups.register(provider));
@@ -296,7 +305,9 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
     }
 
     private void action(String id,String name,String group,boolean edit,Runnable runnable){
-        Action a=new AbstractAction(name){@Override public void actionPerformed(ActionEvent e){if(!isEnabled()||edit&&session.isReadOnly())return;try{ensureOpen();runnable.run();canvas.requestFocusInWindow();}catch(Exception error){errorHandler.accept(error);}}};
+        Action a=new AbstractAction(name){
+            @Override
+            public void actionPerformed(ActionEvent e){if(!isEnabled()||edit&&session.isReadOnly())return;try{ensureOpen();runnable.run();canvas.requestFocusInWindow();}catch(Exception error){errorHandler.accept(error);}}};
         a.putValue("word.edit",edit);commands.put(id,a);commandGroups.put(id,group);
     }
     private void registerBuiltins(){
@@ -498,7 +509,8 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         canvas.revealOffsetAtTop(offset);
         if(focusDocument)canvas.requestFocusInWindow();
     }
-    @Override protected void onThemeChanged(){if(north==null)return;UiTokens.refresh();north.setBackground(UiTokens.surface());providerBar.setBackground(UiTokens.surface());status.setBackground(UiTokens.surface());status.setForeground(UiTokens.muted());if(defaultRibbon!=null)defaultRibbon.onThemeChanged();commentsPanel.setBackground(UiTokens.surface());repaint();}
+    @Override
+    protected void onThemeChanged(){if(north==null)return;UiTokens.refresh();north.setBackground(UiTokens.surface());providerBar.setBackground(UiTokens.surface());status.setBackground(UiTokens.surface());status.setForeground(UiTokens.muted());if(defaultRibbon!=null)defaultRibbon.onThemeChanged();commentsPanel.setBackground(UiTokens.surface());repaint();}
     private void showContextMenu(int x,int y){
         if(!canvas.selectForContextMenu(new Point(x,y)))return;
         createContextMenu().show(canvas,x,y);
@@ -586,8 +598,10 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         return false;
     }
     private final class DropHandler extends TransferHandler {
-        @Override public boolean canImport(TransferSupport support){return !session.isReadOnly()&&(support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)||support.isDataFlavorSupported(DataFlavor.imageFlavor)||support.isDataFlavorSupported(DataFlavor.stringFlavor));}
-        @Override public boolean importData(TransferSupport support){
+        @Override
+        public boolean canImport(TransferSupport support){return !session.isReadOnly()&&(support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)||support.isDataFlavorSupported(DataFlavor.imageFlavor)||support.isDataFlavorSupported(DataFlavor.stringFlavor));}
+        @Override
+        public boolean importData(TransferSupport support){
             if(!canImport(support))return false;
             try{
                 if(support.isDrop()){int offset=canvas.hitTest(support.getDropLocation().getDropPoint());session.setSelection(offset,offset);}
@@ -734,7 +748,8 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         ensureOpen();return popups.showDialog(new WordDialogRequest<>(this,id,title,message,content,result,value->{},confirm,readOnly,enterConfirms));
     }
     private void ensureOpen(){if(closed)throw new IllegalStateException("Editor is closed");}
-    @Override public void close(){
+    @Override
+    public void close(){
         if(closed)return;closed=true;
         screenActive=false;
         defaultRibbon.closePopups();

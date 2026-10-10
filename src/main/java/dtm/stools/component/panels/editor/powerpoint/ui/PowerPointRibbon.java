@@ -152,9 +152,12 @@ public final class PowerPointRibbon extends JPanel {
     }
 
     private record GlyphIcon(String label) implements Icon {
-        @Override public int getIconWidth(){return UIScale.scale(25);}
-        @Override public int getIconHeight(){return UIScale.scale(24);}
-        @Override public void paintIcon(Component component,Graphics graphics,int x,int y){
+        @Override
+        public int getIconWidth(){return UIScale.scale(25);}
+        @Override
+        public int getIconHeight(){return UIScale.scale(24);}
+        @Override
+        public void paintIcon(Component component,Graphics graphics,int x,int y){
             Graphics2D g=(Graphics2D)graphics.create();
             try{
                 double scale=getIconWidth()/25.0;g.translate(x,y);g.scale(scale,scale);

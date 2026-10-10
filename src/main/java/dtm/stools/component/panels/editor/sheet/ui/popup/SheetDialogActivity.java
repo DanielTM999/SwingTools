@@ -88,7 +88,8 @@ public class SheetDialogActivity<T> extends DialogActivity {
         if (request.enterConfirms()) getRootPane().setDefaultButton(confirm);
     }
 
-    @Override protected void onDrawing() { }
+    @Override
+    protected void onDrawing() { }
 
     public void onClosed(Runnable listener) { onClosed = listener; }
 

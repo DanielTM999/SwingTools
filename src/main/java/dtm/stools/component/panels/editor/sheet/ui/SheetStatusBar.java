@@ -62,12 +62,16 @@ public class SheetStatusBar extends JPanel {
         zoom.setOpaque(false);
         zoom.addChangeListener(e -> { if (!updating) editor.setZoom(zoom.getValue() / 100.0); });
         zoomLabel.setPreferredSize(new Dimension(44, 20));
-        zoomLabel.addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { editor.execute("sheet.view.zoomDialog"); } });
+        zoomLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) { editor.execute("sheet.view.zoomDialog"); } });
         right.add(minus); right.add(zoom); right.add(plus); right.add(zoomLabel);
         add(right, BorderLayout.EAST);
         aggregates.addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) menu(e); }
-            @Override public void mouseReleased(MouseEvent e) { if (e.isPopupTrigger()) menu(e); }
+            @Override
+            public void mousePressed(MouseEvent e) { if (e.isPopupTrigger() || e.getButton() == MouseEvent.BUTTON3) menu(e); }
+            @Override
+            public void mouseReleased(MouseEvent e) { if (e.isPopupTrigger()) menu(e); }
         });
         aggregates.setToolTipText("Clique com o botão direito para escolher os valores exibidos");
     }

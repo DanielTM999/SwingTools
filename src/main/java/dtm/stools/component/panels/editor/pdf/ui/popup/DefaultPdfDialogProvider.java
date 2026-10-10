@@ -17,13 +17,16 @@ import java.util.Arrays;
 import java.util.Optional;
 
 public final class DefaultPdfDialogProvider implements PdfDialogProvider {
-    @Override public String id() { return "pdf.dialog.default"; }
+    @Override
+    public String id() { return "pdf.dialog.default"; }
 
-    @Override public Optional<String> input(Component parent, String title, String prompt) {
+    @Override
+    public Optional<String> input(Component parent, String title, String prompt) {
         return input(parent, title, prompt, "");
     }
 
-    @Override public Optional<String> input(Component parent, String title, String prompt, String initial) {
+    @Override
+    public Optional<String> input(Component parent, String title, String prompt, String initial) {
         JTextField field = new JTextField(initial == null ? "" : initial, 24);
         field.selectAll();
         String value = ModernInputDialog.builder()
@@ -38,7 +41,8 @@ public final class DefaultPdfDialogProvider implements PdfDialogProvider {
         return Optional.ofNullable(value);
     }
 
-    @Override public Optional<List<String>> editList(Component parent, String title, String prompt, List<String> values) {
+    @Override
+    public Optional<List<String>> editList(Component parent, String title, String prompt, List<String> values) {
         JTextArea area = new JTextArea(String.join("\n", values), 8, 26);
         JScrollPane scroll = new JScrollPane(area);
         scroll.setPreferredSize(new Dimension(300, 170));
@@ -54,7 +58,8 @@ public final class DefaultPdfDialogProvider implements PdfDialogProvider {
         return Optional.of(Arrays.stream(value.split("\\R")).map(String::strip).filter(item -> !item.isEmpty()).toList());
     }
 
-    @Override public Optional<char[]> password(Component parent, String title, String prompt) {
+    @Override
+    public Optional<char[]> password(Component parent, String title, String prompt) {
         JPasswordField field = new JPasswordField(24);
         String value = ModernInputDialog.builder()
                 .title(title)
@@ -73,7 +78,8 @@ public final class DefaultPdfDialogProvider implements PdfDialogProvider {
         return Optional.of(secret);
     }
 
-    @Override public boolean confirm(Component parent, String title, String message) {
+    @Override
+    public boolean confirm(Component parent, String title, String message) {
         return ModernDialog.builder()
                 .title(title)
                 .message(message)
@@ -84,7 +90,8 @@ public final class DefaultPdfDialogProvider implements PdfDialogProvider {
                 .show(parent) == JOptionPane.YES_OPTION;
     }
 
-    @Override public void message(Component parent, String title, String message) {
+    @Override
+    public void message(Component parent, String title, String message) {
         ModernDialog.builder()
                 .title(title)
                 .message(message)
@@ -95,7 +102,8 @@ public final class DefaultPdfDialogProvider implements PdfDialogProvider {
                 .show(parent);
     }
 
-    @Override public int choose(Component parent, String title, String message, String... options) {
+    @Override
+    public int choose(Component parent, String title, String message, String... options) {
         if (options.length == 0) return -1;
         ModernDialog.ModernDialogBuilder builder = ModernDialog.builder()
                 .title(title)

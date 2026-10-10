@@ -16,7 +16,8 @@ public final class WordFileRecoveryStore implements WordRecoveryStore {
         if (key == null || !key.matches("[A-Za-z0-9._-]{1,120}") || key.contains("..")) throw new IllegalArgumentException("Invalid recovery key");
         return directory.resolve(key + ".docx");
     }
-    @Override public void save(String key, byte[] content) throws IOException {
+    @Override
+    public void save(String key, byte[] content) throws IOException {
         Files.createDirectories(directory);
         Path target = file(key), temporary = Files.createTempFile(directory,".recovery-",".tmp");
         try {
@@ -25,12 +26,15 @@ public final class WordFileRecoveryStore implements WordRecoveryStore {
             catch (AtomicMoveNotSupportedException e) { Files.move(temporary,target,StandardCopyOption.REPLACE_EXISTING); }
         } finally { Files.deleteIfExists(temporary); }
     }
-    @Override public Optional<byte[]> load(String key) throws IOException {
+    @Override
+    public Optional<byte[]> load(String key) throws IOException {
         Path f = file(key);
         return Files.isRegularFile(f) ? Optional.of(Files.readAllBytes(f)) : Optional.empty();
     }
-    @Override public void delete(String key) throws IOException { Files.deleteIfExists(file(key)); }
-    @Override public List<Entry> list() throws IOException {
+    @Override
+    public void delete(String key) throws IOException { Files.deleteIfExists(file(key)); }
+    @Override
+    public List<Entry> list() throws IOException {
         if (!Files.isDirectory(directory)) return List.of();
         List<Entry> result = new ArrayList<>();
         try (Stream<Path> files = Files.list(directory)) {

@@ -127,9 +127,11 @@ public class WindowSnapDragSelector extends JComponent {
         return dx * dx + dy * dy;
     }
 
-    @Override public boolean contains(int x, int y) { return false; }
+    @Override
+    public boolean contains(int x, int y) { return false; }
 
-    @Override protected void paintComponent(Graphics graphics) {
+    @Override
+    protected void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics.create();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

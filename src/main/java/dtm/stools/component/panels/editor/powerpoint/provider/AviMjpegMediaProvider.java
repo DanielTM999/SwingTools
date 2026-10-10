@@ -13,22 +13,26 @@ import java.util.function.Consumer;
 
 /** Minimal RIFF AVI Motion JPEG player; no native library or third-party codec. */
 public final class AviMjpegMediaProvider implements PowerPointMediaProvider {
-    @Override public String id(){return "powerpoint.media.avi-mjpeg";}
-    @Override public boolean supports(String mime){return "video/x-msvideo".equalsIgnoreCase(mime)||"video/avi".equalsIgnoreCase(mime);}
+    @Override
+    public String id(){return "powerpoint.media.avi-mjpeg";}
+    @Override
+    public boolean supports(String mime){return "video/x-msvideo".equalsIgnoreCase(mime)||"video/avi".equalsIgnoreCase(mime);}
     /** Returns the first JPEG frame for a PPTX preview image. */
     public static BufferedImage firstFrame(byte[] bytes)throws IOException {
         BufferedImage image=ImageIO.read(new ByteArrayInputStream(parse(bytes).frames().getFirst()));
         if(image==null)throw new IOException("Invalid MJPEG frame");
         return image;
     }
-    @Override public Player open(String mime,byte[] bytes,Consumer<State> states,Consumer<BufferedImage> frames)throws IOException {
+    @Override
+    public Player open(String mime,byte[] bytes,Consumer<State> states,Consumer<BufferedImage> frames)throws IOException {
         Avi avi=parse(bytes);states.accept(State.READY);
         return new Player(){
             private final ScheduledExecutorService timer=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"PowerPointEditor-avi");t.setDaemon(true);return t;});
             private ScheduledFuture<?> running;
             private int frame;
             private boolean closed;
-            @Override public synchronized void play(){if(closed||running!=null)return;
+            @Override
+            public synchronized void play(){if(closed||running!=null)return;
                 running=timer.scheduleAtFixedRate(()->{
                     int current;
                     synchronized(this){if(frame>=avi.frames.size()){pause();states.accept(State.FINISHED);return;}current=frame++;}
@@ -37,10 +41,14 @@ public final class AviMjpegMediaProvider implements PowerPointMediaProvider {
                     }catch(IOException error){pause();states.accept(State.FAILED);}
                 },0,avi.frameMillis,TimeUnit.MILLISECONDS);states.accept(State.PLAYING);
             }
-            @Override public synchronized void pause(){if(running!=null){running.cancel(false);running=null;}states.accept(State.PAUSED);}
-            @Override public synchronized void seek(long ms){frame=(int)Math.min(avi.frames.size()-1,Math.max(0,ms/avi.frameMillis));}
-            @Override public synchronized void stop(){pause();frame=0;states.accept(State.STOPPED);}
-            @Override public synchronized void close(){if(closed)return;closed=true;if(running!=null)running.cancel(false);timer.shutdownNow();}
+            @Override
+            public synchronized void pause(){if(running!=null){running.cancel(false);running=null;}states.accept(State.PAUSED);}
+            @Override
+            public synchronized void seek(long ms){frame=(int)Math.min(avi.frames.size()-1,Math.max(0,ms/avi.frameMillis));}
+            @Override
+            public synchronized void stop(){pause();frame=0;states.accept(State.STOPPED);}
+            @Override
+            public synchronized void close(){if(closed)return;closed=true;if(running!=null)running.cancel(false);timer.shutdownNow();}
         };
     }
     private record Avi(List<byte[]> frames,long frameMillis){}

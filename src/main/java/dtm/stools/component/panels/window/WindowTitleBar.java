@@ -13,8 +13,10 @@ public class WindowTitleBar extends JPanel {
     protected final JLabel titleLabel = new JLabel();
     protected final JPanel leading = new JPanel(new CenteredFlowLayout(FlowLayout.LEFT, 8, 0));
     protected final JPanel center = new JPanel(null) {
-        @Override public void doLayout() { layoutCenterComponents(); }
-        @Override public boolean isOptimizedDrawingEnabled() { return false; }
+        @Override
+        public void doLayout() { layoutCenterComponents(); }
+        @Override
+        public boolean isOptimizedDrawingEnabled() { return false; }
     };
     protected final JPanel controls = new JPanel(new CenteredFlowLayout(FlowLayout.RIGHT, 0, 0));
     private Component centerComponent = titleLabel;

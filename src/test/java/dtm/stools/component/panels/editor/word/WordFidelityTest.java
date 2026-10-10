@@ -51,7 +51,8 @@ class WordFidelityTest {
         return layout.pages().stream().filter(p->body(p).stream().anyMatch(l->l.start()<=offset&&l.end()>=offset)).findFirst().orElseThrow().index();
     }
 
-    @Test void exactAndMinimumSpacingSurviveEditingAndReopening()throws Exception {
+    @Test
+    void exactAndMinimumSpacingSurviveEditingAndReopening()throws Exception {
         for(var rule:List.of(EXACT,AT_LEAST)){
             var style=WordParagraphStyle.DEFAULT.withLineSpacing(rule,18.5f).withKeepLines(true).withKeepWithNext(true).withWidowControl(false);
             var doc=new WordDocument(List.of(WordParagraph.of("mixed",WordTextStyle.DEFAULT,style)),SMALL);
@@ -62,7 +63,8 @@ class WordFidelityTest {
             assertTrue(imported.diagnostics().stream().noneMatch(d->d.contains("Espaçamento")));
         }
     }
-    @Test void spacingAndPaginationInheritFromStylesAndAllowExplicitFalse()throws Exception {
+    @Test
+    void spacingAndPaginationInheritFromStylesAndAllowExplicitFalse()throws Exception {
         var props=WordStyleProperties.NONE.withParagraph(null,null,null,24f,null,true).withPagination(EXACT,true,true).withPageBreakBefore(true);
         var styles=WordStyleSheet.defaults().with(new WordNamedStyle("Custom","Custom",WordStyleSheet.NORMAL,props))
                 .with(new WordNamedStyle("Child","Child","Custom",WordStyleProperties.NONE));
@@ -79,27 +81,31 @@ class WordFidelityTest {
         var reopened=read(write(edited,imported)).document().paragraphs().getFirst().style();
         assertFalse(reopened.keepLines());assertFalse(reopened.keepWithNext());assertFalse(reopened.widowControl());assertFalse(reopened.pageBreakBefore());
     }
-    @Test void exactLineBoxesUsePointsAndClipOversizedText(){
+    @Test
+    void exactLineBoxesUsePointsAndClipOversizedText(){
         var p=paragraph("Large text wraps into several lines",10)
                 .withRuns(List.of(new WordRun("Large text wraps into several lines",WordTextStyle.DEFAULT.withSize(30))));
         var lines=body(new WordLayoutEngine().layout(new WordDocument(List.of(p),SMALL)).pages().getFirst());
         assertTrue(lines.size()>1);assertEquals(10,lines.get(1).baseline()-lines.get(0).baseline(),0.01);
         assertTrue(lines.getFirst().clipToBox());assertEquals(10,lines.getFirst().bottom()-lines.getFirst().top(),0.01);
     }
-    @Test void minimumSpacingExpandsForLargeRuns(){
+    @Test
+    void minimumSpacingExpandsForLargeRuns(){
         var p=paragraph("large",10).withStyle(paragraph("",10).style().withLineSpacing(AT_LEAST,10))
                 .withRuns(List.of(new WordRun("large",WordTextStyle.DEFAULT.withSize(35))));
         var line=body(new WordLayoutEngine().layout(new WordDocument(List.of(p),SMALL)).pages().getFirst()).getFirst();
         assertTrue(line.boxHeight()>35);assertFalse(line.clipToBox());
     }
-    @Test void keepsParagraphTogetherAndFallsBackForOversizedParagraph(){
+    @Test
+    void keepsParagraphTogetherAndFallsBackForOversizedParagraph(){
         var first=paragraph("filler",100);var together=paragraph("one two three four five six seven eight nine ten ".repeat(3),20).withStyle(paragraph("",20).style().withKeepLines(true));
         var doc=new WordDocument(List.of(first,together),SMALL);var layout=new WordLayoutEngine().layout(doc);
         assertEquals(1,pageOf(layout,doc.paragraphStart(1)));
         var huge=together.withRuns(List.of(new WordRun("long paragraph ".repeat(100),WordTextStyle.DEFAULT.withSize(10))));
         var hugeDoc=new WordDocument(List.of(huge),SMALL);assertTrue(new WordLayoutEngine().layout(hugeDoc).pages().size()>1);
     }
-    @Test void avoidsOrphansAndWidowsAtPageBoundaries(){
+    @Test
+    void avoidsOrphansAndWidowsAtPageBoundaries(){
         var filler=paragraph("filler",100);var text=paragraph("one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty",20);
         var style=text.style().withWidowControl(true);text=text.withStyle(style);
         var doc=new WordDocument(List.of(filler,text),SMALL);var layout=new WordLayoutEngine().layout(doc);
@@ -109,14 +115,16 @@ class WordFidelityTest {
             assertTrue(count==0||count>=2,"A single line of the paragraph was left on page "+page.index());
         }
     }
-    @Test void widowControlMovesTheLastTwoLinesAndAvoidsSingleFirstLines(){
+    @Test
+    void widowControlMovesTheLastTwoLinesAndAvoidsSingleFirstLines(){
         var longParagraph=lines(8,true);var doc=new WordDocument(List.of(longParagraph),SMALL);
         var layout=new WordLayoutEngine().layout(doc);
         assertEquals(6,body(layout.pages().getFirst()).size());assertEquals(2,body(layout.pages().getLast()).size());
         var orphanDoc=new WordDocument(List.of(paragraph("filler",120),lines(4,true)),SMALL);
         assertEquals(1,pageOf(new WordLayoutEngine().layout(orphanDoc),orphanDoc.paragraphStart(1)));
     }
-    @Test void continuousSectionsBalancePrecedingTextColumns(){
+    @Test
+    void continuousSectionsBalancePrecedingTextColumns(){
         var first=paragraph("one",20);var second=paragraph("two",20);
         var third=paragraph("three",20).withSectionBreak(SMALL.withColumns(2,10));
         var doc=new WordDocument(List.of(first,second,third,paragraph("following",20)),section(SMALL,CONTINUOUS,null));
@@ -126,14 +134,16 @@ class WordFidelityTest {
         assertEquals(rendered.getFirst().top(),rendered.get(2).top(),0.05);
         assertEquals(rendered.get(1).bottom(),rendered.get(3).top(),0.05);
     }
-    @Test void keepsChainsUsingMeasuredParagraphHeights(){
+    @Test
+    void keepsChainsUsingMeasuredParagraphHeights(){
         var filler=paragraph("filler",80);
         var a=paragraph("heading",20).withStyle(paragraph("",20).style().withKeepWithNext(true));
         var b=paragraph("subheading",20).withStyle(a.style());var c=paragraph("content",30);
         var doc=new WordDocument(List.of(filler,a,b,c),SMALL);var layout=new WordLayoutEngine().layout(doc);
         assertEquals(1,pageOf(layout,doc.paragraphStart(1)));assertEquals(1,pageOf(layout,doc.paragraphStart(3)));
     }
-    @Test void continuousSectionsStayOnSameSheetAndOrientationChangesStartNewSheet(){
+    @Test
+    void continuousSectionsStayOnSameSheetAndOrientationChangesStartNewSheet(){
         var first=paragraph("first",20).withSectionBreak(SMALL);
         var last=paragraph("last",20);var continuous=section(SMALL,CONTINUOUS,null);
         assertEquals(1,new WordLayoutEngine().layout(new WordDocument(List.of(first,last),continuous)).pages().size());
@@ -141,7 +151,8 @@ class WordFidelityTest {
         var columns=new WordLayoutEngine().layout(new WordDocument(List.of(first,last),continuous.withColumns(2,10)));
         assertEquals(1,columns.pages().size());assertTrue(body(columns.pages().getFirst()).getLast().width()<SMALL.contentWidth());
     }
-    @Test void oddAndEvenBreaksUsePhysicalParityAndRestartDisplayedNumbers(){
+    @Test
+    void oddAndEvenBreaksUsePhysicalParityAndRestartDisplayedNumbers(){
         for(var type:List.of(ODD_PAGE,EVEN_PAGE)){
             var doc=new WordDocument(List.of(paragraph("first",20).withSectionBreak(SMALL),paragraph("last",20)),section(SMALL,type,null).withPageNumberStart(7));
             var layout=new WordLayoutEngine().layout(doc);int expected=type==ODD_PAGE?3:2;
@@ -149,7 +160,8 @@ class WordFidelityTest {
             if(type==ODD_PAGE)assertTrue(body(layout.pages().get(1)).isEmpty());
         }
     }
-    @Test void headersBelongToSectionsAndLinksSurviveRoundTrip()throws Exception {
+    @Test
+    void headersBelongToSectionsAndLinksSurviveRoundTrip()throws Exception {
         var a=section(SMALL,NEXT_PAGE,"alpha");var b=section(SMALL,NEXT_PAGE,"beta");var c=section(SMALL,NEXT_PAGE,null);
         var doc=new WordDocument(List.of(paragraph("A",20).withSectionBreak(a),paragraph("B",20).withSectionBreak(b),paragraph("C",20)),c);
         var imported=read(write(doc,null));assertEquals(3,imported.document().sections().size());
@@ -169,7 +181,8 @@ class WordFidelityTest {
         var before=OpcPackage.read(imported.originalBytes(),OpcPackage.Limits.DEFAULT);var after=OpcPackage.read(write(edited,imported),OpcPackage.Limits.DEFAULT);
         for(String name:before.names())if(name.contains("header")&&name.endsWith(".xml"))assertArrayEquals(before.part(name),after.part(name));
     }
-    @Test void unknownSectionSettingsSurviveAdjacentEditing()throws Exception {
+    @Test
+    void unknownSectionSettingsSurviveAdjacentEditing()throws Exception {
         byte[] bytes=write(new WordDocument(List.of(paragraph("original",20)),SMALL),null);
         bytes=patch(bytes,"word/document.xml","</w:sectPr>","<w:docGrid w:type=\"lines\" w:linePitch=\"360\"/></w:sectPr>");
         bytes=patch(bytes,"word/document.xml","w:gutter=\"0\"","w:gutter=\"240\"");
@@ -179,7 +192,8 @@ class WordFidelityTest {
         assertEquals("240",OoxmlXml.attr(OoxmlXml.child(section,"pgMar"),"gutter"));
         assertEquals("360",OoxmlXml.attr(OoxmlXml.child(section,"docGrid"),"linePitch"));
     }
-    @Test void sectionBreakTypesSurviveUnrelatedEdits()throws Exception {
+    @Test
+    void sectionBreakTypesSurviveUnrelatedEdits()throws Exception {
         for(var type:WordSectionProperties.BreakType.values()){
             var doc=new WordDocument(List.of(paragraph("one",20).withSectionBreak(SMALL),paragraph("two",20)),section(SMALL,type,null));
             var imported=read(write(doc,null));assertEquals(type,imported.document().pageSettings().section().breakType());
@@ -187,7 +201,8 @@ class WordFidelityTest {
             assertEquals(type,saved.document().pageSettings().section().breakType());
         }
     }
-    @Test void individualColumnWidthsArePreservedAndUnsafeGeometryChangesAreRejected()throws Exception {
+    @Test
+    void individualColumnWidthsArePreservedAndUnsafeGeometryChangesAreRejected()throws Exception {
         byte[] bytes=write(new WordDocument(List.of(paragraph("columns",20)),SMALL.withColumns(2,10)),null);
         bytes=patch(bytes,"word/document.xml","<w:cols w:space=\"200\" w:num=\"2\"/>",
                 "<w:cols w:space=\"200\" w:num=\"2\" w:equalWidth=\"0\"><w:col w:w=\"1200\" w:space=\"200\"/><w:col w:w=\"2800\"/></w:cols>");
@@ -196,7 +211,8 @@ class WordFidelityTest {
         assertTrue(xml(saved,"word/document.xml").contains("w:w=\"1200\""));
         assertThrows(IOException.class,()->write(imported.document().withPageSettings(imported.document().pageSettings().withColumns(1,0)),imported));
     }
-    @Test void sectionGeometryCanBeInheritedFromFollowingSection()throws Exception {
+    @Test
+    void sectionGeometryCanBeInheritedFromFollowingSection()throws Exception {
         var doc=new WordDocument(List.of(paragraph("first",20).withSectionBreak(SMALL),paragraph("following",20)),section(SMALL,CONTINUOUS,null));
         var bytes=write(doc,null);var archive=OpcPackage.read(bytes,OpcPackage.Limits.DEFAULT);
         var dom=OoxmlXml.parse(archive.part("word/document.xml"));var section=OoxmlXml.path(dom.getDocumentElement(),"body","p","pPr","sectPr");
@@ -205,7 +221,8 @@ class WordFidelityTest {
         var imported=read(out.toByteArray());assertEquals(SMALL.width(),imported.document().sections().getFirst().width());
         assertEquals(SMALL.top(),imported.document().sections().getFirst().top());
     }
-    @Test void explicitEmptyHeadersDoNotInheritPreviousContent()throws Exception {
+    @Test
+    void explicitEmptyHeadersDoNotInheritPreviousContent()throws Exception {
         var a=section(SMALL,NEXT_PAGE,"previous");
         var empty=SMALL.withSection(WordSectionProperties.DEFAULT.withLinked(WordHeaders.Kind.HEADER,false));
         var doc=new WordDocument(List.of(paragraph("A",20).withSectionBreak(a),paragraph("B",20)),empty);
@@ -213,7 +230,8 @@ class WordFidelityTest {
         assertFalse(reopened.pageSettings().section().linkedHeaders().contains(WordHeaders.Kind.HEADER));
         assertTrue(reopened.headersAt(reopened.paragraphStart(1)).get(WordHeaders.Kind.HEADER).stream().allMatch(p->p.plainText().isEmpty()));
     }
-    @Test void legacyGlobalHeadersWorkWithSharedSectionSettingsInstances()throws Exception {
+    @Test
+    void legacyGlobalHeadersWorkWithSharedSectionSettingsInstances()throws Exception {
         var headers=WordHeaders.EMPTY.with(WordHeaders.Kind.HEADER,List.of(paragraph("legacy",12)));
         var doc=new WordDocument(List.of(paragraph("first",20).withSectionBreak(SMALL),paragraph("last",20)),SMALL,WordParts.EMPTY.withHeaders(headers));
         var imported=read(write(doc,null)).document();
@@ -221,7 +239,8 @@ class WordFidelityTest {
         assertEquals("legacy",imported.headersAt(imported.paragraphStart(1)).get(WordHeaders.Kind.HEADER).getFirst().plainText());
         assertTrue(imported.pageSettings().section().linkedHeaders().contains(WordHeaders.Kind.HEADER));
     }
-    @Test void firstAndEvenHeadersRemainIndependentAcrossSections()throws Exception {
+    @Test
+    void firstAndEvenHeadersRemainIndependentAcrossSections()throws Exception {
         var headers=WordHeaders.EMPTY.with(WordHeaders.Kind.HEADER,List.of(paragraph("normal",12)))
                 .with(WordHeaders.Kind.FIRST_HEADER,List.of(paragraph("first",12)))
                 .with(WordHeaders.Kind.EVEN_HEADER,List.of(paragraph("even",12))).withOptions(true,true);
@@ -235,7 +254,8 @@ class WordFidelityTest {
         var saved=read(write(imported.document().replace(0,0,"edit",WordTextStyle.DEFAULT),imported));
         assertTrue(saved.document().pageSettings().section().headers().differentFirst());assertTrue(saved.document().parts().headers().differentOddEven());
     }
-    @Test void headerImagesAndRelationshipsArePreservedWhenOnlyOptionsChange()throws Exception {
+    @Test
+    void headerImagesAndRelationshipsArePreservedWhenOnlyOptionsChange()throws Exception {
         var png=new ByteArrayOutputStream();javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",png);
         var resource=WordResource.of(png.toByteArray(),"image/png");
         var header=paragraph("",12).withRuns(List.of(new WordObjectRun(WordImage.of(resource.id(),10,10),WordTextStyle.DEFAULT)));
@@ -257,7 +277,8 @@ class WordFidelityTest {
         assertEquals(imported.document().sections().getFirst().section().originalReferences().get(WordHeaders.Kind.HEADER),
                 unlinked.document().pageSettings().section().originalReferences().get(WordHeaders.Kind.HEADER));
     }
-    @Test void headerFormChangesAreAtomicUndoableAndReadOnlyIsEnforced()throws Exception {
+    @Test
+    void headerFormChangesAreAtomicUndoableAndReadOnlyIsEnforced()throws Exception {
         WordEditorTest.edt(()->{
             var session=new WordSession();session.load(new WordDocument(List.of(paragraph("A",20).withSectionBreak(SMALL),paragraph("B",20)),SMALL));
             session.setSelection(2,2);var controller=new WordDocumentController(session);var initial=session.getDocument();
@@ -268,7 +289,8 @@ class WordFidelityTest {
             return null;
         });
     }
-    @Test void formsKeepUntouchedPropertiesAndRichHeaders()throws Exception {
+    @Test
+    void formsKeepUntouchedPropertiesAndRichHeaders()throws Exception {
         WordEditorTest.edt(()->{
             var settings=section(WordPageSettings.A4,ODD_PAGE,"custom").withPageNumberStart(42);
             assertEquals(settings,new WordPageSetupPanel(settings).result());

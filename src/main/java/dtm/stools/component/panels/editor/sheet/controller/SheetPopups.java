@@ -141,10 +141,14 @@ public final class SheetPopups {
     public void openPalette() {
         if (palette.isOpen()) { palette.toFront(); return; }
         palette = paletteProvider().open(new SheetCommandPaletteContext() {
-            @Override public Component owner() { return editor; }
-            @Override public Locale locale() { return editor.getConfig().locale(); }
-            @Override public List<SheetCommandEntry> commands() { return editor.commandRegistry().entries(); }
-            @Override public boolean execute(String id) { return editor.execute(id); }
+            @Override
+            public Component owner() { return editor; }
+            @Override
+            public Locale locale() { return editor.getConfig().locale(); }
+            @Override
+            public List<SheetCommandEntry> commands() { return editor.commandRegistry().entries(); }
+            @Override
+            public boolean execute(String id) { return editor.execute(id); }
         });
     }
 

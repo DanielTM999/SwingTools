@@ -103,7 +103,9 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
     }
 
     private static Action action(Runnable body) {
-        return new AbstractAction() { @Override public void actionPerformed(ActionEvent event) { body.run(); } };
+        return new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) { body.run(); } };
     }
 
     public void escape() {
@@ -114,7 +116,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
 
     private PdfPageLayout layout() { return canvas.getPageLayout(); }
 
-    @Override public void mousePressed(MouseEvent event) {
+    @Override
+    public void mousePressed(MouseEvent event) {
         canvas.requestFocusInWindow();
         editor.commitTextInput();
         press = event.getPoint();
@@ -209,7 +212,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         return image.getSubimage(x, y, w, h);
     }
 
-    @Override public void mouseDragged(MouseEvent event) {
+    @Override
+    public void mouseDragged(MouseEvent event) {
         if (drag == PdfDragMode.NONE || press == null) return;
         current = event.getPoint();
         if (!started && press.distance(current) >= THRESHOLD) started = true;
@@ -219,7 +223,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         canvas.repaint(canvas.getVisibleRect());
     }
 
-    @Override public void mouseReleased(MouseEvent event) {
+    @Override
+    public void mouseReleased(MouseEvent event) {
         if (PdfEditor.TOOL_VIEW.equals(editor.getActiveTool())) { reset(); return; }
         if (drag == PdfDragMode.NONE || press == null || !SwingUtilities.isLeftMouseButton(event)) { reset(); return; }
         current = event.getPoint();
@@ -346,7 +351,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         pressedElement = null;
     }
 
-    @Override public void mouseMoved(MouseEvent event) {
+    @Override
+    public void mouseMoved(MouseEvent event) {
         Point point = event.getPoint();
         PdfPageLayout layout = layout();
         int at = layout.pageAt(point);
@@ -383,7 +389,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         canvas.setCursor(Cursor.getPredefinedCursor(inside || hit != null ? (hit != null && hit.textBox() && !inside ? Cursor.TEXT_CURSOR : Cursor.MOVE_CURSOR) : Cursor.DEFAULT_CURSOR));
     }
 
-    @Override public void mouseExited(MouseEvent event) {
+    @Override
+    public void mouseExited(MouseEvent event) {
         setHover(null, -1);
         if (brush != null) { brush = null; brushShown = false; canvas.repaint(canvas.getVisibleRect()); }
     }
@@ -396,7 +403,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         canvas.repaint(canvas.getVisibleRect());
     }
 
-    @Override public void mouseWheelMoved(MouseWheelEvent event) {
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent event) {
         if (event.isControlDown()) {
             editor.zoomAt(event.getWheelRotation() < 0 ? 1.1 : 1 / 1.1, event.getPoint());
             return;
@@ -471,7 +479,8 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         return degrees;
     }
 
-    @Override public void paintOverlay(Graphics2D g, PdfCanvas target) {
+    @Override
+    public void paintOverlay(Graphics2D g, PdfCanvas target) {
         PdfPageLayout layout = layout();
         PdfSelection selection = editor.getSelection();
         Color accent = UiTokens.accent();

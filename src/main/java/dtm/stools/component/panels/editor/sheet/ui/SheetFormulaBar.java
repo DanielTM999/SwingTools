@@ -30,7 +30,8 @@ public class SheetFormulaBar extends JPanel {
     private final SheetEditor editor;
     private final JComboBox<String> nameBox = new JComboBox<>();
     private final JTextPane field = new JTextPane() {
-        @Override public boolean getScrollableTracksViewportWidth() { return true; }
+        @Override
+        public boolean getScrollableTracksViewportWidth() { return true; }
     };
     private final JScrollPane scroll;
     private final JButton cancel, accept, function, expand;
@@ -76,13 +77,16 @@ public class SheetFormulaBar extends JPanel {
         expand = tool("expand", "Expandir barra de fórmulas (Ctrl+Shift+U)", this::toggleExpanded);
         add(expand, BorderLayout.EAST);
         field.addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { if (!editor.isEditing()) SwingUtilities.invokeLater(() -> editor.startEditingFromFormulaBar(field.viewToModel2D(e.getPoint()))); }
+            @Override
+            public void mousePressed(MouseEvent e) { if (!editor.isEditing()) SwingUtilities.invokeLater(() -> editor.startEditingFromFormulaBar(field.viewToModel2D(e.getPoint()))); }
         });
         field.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) { if (!editor.isEditing() && !editor.isReadOnlyView()) editor.startEditingFromFormulaBar(field.getCaretPosition()); }
+            @Override
+            public void focusGained(FocusEvent e) { if (!editor.isEditing() && !editor.isReadOnlyView()) editor.startEditingFromFormulaBar(field.getCaretPosition()); }
         });
         field.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) { editor.handleEditorKey(e, field); }
+            @Override
+            public void keyPressed(KeyEvent e) { editor.handleEditorKey(e, field); }
         });
         updateHeight();
         setEditingState(false);

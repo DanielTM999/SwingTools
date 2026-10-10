@@ -10,8 +10,12 @@ public record WordOpaqueObject(String id, String label, String xml, Level level,
         WordInlineObject.checkSize(width,height);
         previewText = previewText == null ? "" : previewText;
     }
-    @Override public String type() { return TYPE; }
-    @Override public boolean resizable() { return false; }
-    @Override public WordOpaqueObject withId(String value) { return new WordOpaqueObject(value,label,xml,level,width,height,previewText); }
-    @Override public String plainText() { return previewText; }
+    @Override
+    public String type() { return TYPE; }
+    @Override
+    public boolean resizable() { return false; }
+    @Override
+    public WordOpaqueObject withId(String value) { return new WordOpaqueObject(value,label,xml,level,width,height,previewText); }
+    @Override
+    public String plainText() { return previewText; }
 }

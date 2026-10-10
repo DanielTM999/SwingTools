@@ -29,8 +29,10 @@ public final class WordImagePropertiesPanel extends WordPropertiesPanel<WordImag
         alt.setText(image.altText()); alt.setLineWrap(true); alt.setWrapStyleWord(true);
         row("Texto alternativo",new JScrollPane(alt));
     }
-    @Override public String title() { return "Propriedades da imagem"; }
-    @Override public WordImage result() {
+    @Override
+    public String title() { return "Propriedades da imagem"; }
+    @Override
+    public WordImage result() {
         return image.resize(value(width),value(height)).withLockAspectRatio(lock.isSelected()).withRotation(value(rotation))
                 .withCrop(new WordCrop(value(cropLeft)/100,value(cropTop)/100,value(cropRight)/100,value(cropBottom)/100))
                 .withPlacement(placement.get()).withAltText(alt.getText().strip());

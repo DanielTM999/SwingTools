@@ -7,11 +7,13 @@ import javax.swing.*;
 import java.awt.*;
 
 public final class DefaultObjectPropertiesProvider implements WordObjectPropertiesProvider, AutoCloseable {
-    @Override public String id() { return "word.popup.properties.default"; }
+    @Override
+    public String id() { return "word.popup.properties.default"; }
 
     private final java.util.Set<WordPropertiesActivity<?>> open = new java.util.HashSet<>();
     private final DefaultDialogProvider messages = new DefaultDialogProvider();
-    @Override public WordPopupHandle show(WordObjectPropertiesContext context) {
+    @Override
+    public WordPopupHandle show(WordObjectPropertiesContext context) {
         try {
             WordPropertiesPanel<?> panel = panel(context);
             if (panel == null) {
@@ -35,7 +37,8 @@ public final class DefaultObjectPropertiesProvider implements WordObjectProperti
             activity.showResult();
         } finally { activity.dispose(); }
     }
-    @Override public void close() {
+    @Override
+    public void close() {
         for (var activity : java.util.List.copyOf(open)) activity.dispose();
         messages.close();
     }

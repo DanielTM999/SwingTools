@@ -187,5 +187,6 @@ public final class WordFileController implements AutoCloseable {
             return digest.digest();
         } catch (NoSuchAlgorithmException e) { throw new AssertionError(e); }
     }
-    @Override public void close() { disableRecovery(); listeners.clear(); }
+    @Override
+    public void close() { disableRecovery(); listeners.clear(); }
 }

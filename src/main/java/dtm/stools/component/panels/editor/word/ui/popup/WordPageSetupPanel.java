@@ -30,8 +30,10 @@ public final class WordPageSetupPanel extends WordPropertiesPanel<WordPageSettin
     }
     private static double cm(float pt) { return Math.round(pt/72*2.54*100)/100.0; }
     private static float pt(JSpinner s,float original) { return Math.abs(value(s)-cm(original))<0.00001 ? original : value(s)/2.54f*72; }
-    @Override public String title() { return "Configurar página"; }
-    @Override public WordPageSettings result() {
+    @Override
+    public String title() { return "Configurar página"; }
+    @Override
+    public WordPageSettings result() {
         float w = pt(width,Math.min(current.width(),current.height())), h = pt(height,Math.max(current.width(),current.height()));
         boolean landscape = orientation.getSelectedIndex() == 1;
         float pw = landscape ? Math.max(w,h) : Math.min(w,h), ph = landscape ? Math.min(w,h) : Math.max(w,h);

@@ -36,7 +36,8 @@ public class CommandPalette extends JPanel implements AutoCloseable {
         list.getAccessibleContext().setAccessibleName(text("results", "Comandos disponíveis"));
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new DefaultListCellRenderer() {
-            @Override public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected, boolean focus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, selected, focus);
                 CommandEntry entry = (CommandEntry) value;
                 label.putClientProperty("html.disable", Boolean.TRUE);
@@ -55,7 +56,8 @@ public class CommandPalette extends JPanel implements AutoCloseable {
         bind(search, "DOWN", "next", () -> move(1)); bind(search, "UP", "previous", () -> move(-1));
         bind(search, "ENTER", "execute", this::executeSelected); bind(list, "ENTER", "execute", this::executeSelected);
         list.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) {
+            @Override
+            public void mouseClicked(MouseEvent e) {
                 int index = list.locationToIndex(e.getPoint());
                 if (e.getClickCount() == 2 && index >= 0 && list.getCellBounds(index, index).contains(e.getPoint())) executeSelected();
             }
@@ -116,7 +118,8 @@ public class CommandPalette extends JPanel implements AutoCloseable {
         if (getName() != null) created.setName(getName());
         dialog = created; created.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE); created.setContentPane(this);
         created.addWindowListener(new WindowAdapter() {
-            @Override public void windowClosed(WindowEvent e) { if (dialog == created) finishClose(); }
+            @Override
+            public void windowClosed(WindowEvent e) { if (dialog == created) finishClose(); }
         });
         created.pack(); Rectangle bounds = created.getGraphicsConfiguration().getBounds();
         created.setSize(Math.min(created.getWidth(), bounds.width), Math.min(created.getHeight(), bounds.height));
@@ -124,7 +127,8 @@ public class CommandPalette extends JPanel implements AutoCloseable {
     }
     public boolean isOpen() { return dialog != null && dialog.isDisplayable(); }
     public void toFront() { if (isOpen()) { dialog.toFront(); search.requestFocusInWindow(); } }
-    @Override public void close() { if (dialog != null) { JDialog old = dialog; old.dispose(); if (dialog == old) finishClose(); } }
+    @Override
+    public void close() { if (dialog != null) { JDialog old = dialog; old.dispose(); if (dialog == old) finishClose(); } }
     private void finishClose() {
         JDialog closed = dialog; dialog = null;
         if (closed != null) closed.setContentPane(new JPanel());
@@ -133,7 +137,8 @@ public class CommandPalette extends JPanel implements AutoCloseable {
     }
     private static final class PaletteDialog extends DialogActivity {
         PaletteDialog(Window owner, String title) { super(owner, title, Dialog.ModalityType.MODELESS); }
-        @Override protected void onDrawing() { /* The palette supplies its own content. */ }
+        @Override
+        protected void onDrawing() {}
     }
     /** Installs one owner-scoped shortcut and returns an idempotent restoration handle. */
     public AutoCloseable installShortcut(JRootPane root, KeyStroke stroke) {

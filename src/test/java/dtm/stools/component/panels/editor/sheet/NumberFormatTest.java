@@ -17,7 +17,8 @@ class NumberFormatTest {
 
     private String en(double v, String code) { return en.text(CellValue.of(v), code); }
 
-    @Test void numericFormats() {
+    @Test
+    void numericFormats() {
         assertEquals("1,234.57", en(1234.567, "#,##0.00"));
         assertEquals("1.234,57", pt.text(CellValue.of(1234.567), "#,##0.00"));
         assertEquals("0.50", en(0.5, "0.00"));
@@ -35,7 +36,8 @@ class NumberFormatTest {
         assertEquals(0xFFFF0000, en.format(CellValue.of(-1), "0;[Red]-0").color());
     }
 
-    @Test void dateFormats() {
+    @Test
+    void dateFormats() {
         assertEquals("01/01/2025", pt.text(CellValue.of(45658), "dd/mm/yyyy"));
         assertEquals("2025-01-01 13:30", en(45658.5625, "yyyy-mm-dd hh:mm"));
         assertEquals("1:30 PM", en(0.5625, "h:mm AM/PM"));
@@ -44,7 +46,8 @@ class NumberFormatTest {
         assertEquals("Wednesday", en(45658, "dddd"));
     }
 
-    @Test void parsesTypedInput() {
+    @Test
+    void parsesTypedInput() {
         ValueParser p = new ValueParser(Locale.forLanguageTag("pt-BR"), false);
         ParsedInput money = p.parse("R$ 1.234,56");
         assertEquals(1234.56, ((NumberValue) money.value()).value(), 1e-9);

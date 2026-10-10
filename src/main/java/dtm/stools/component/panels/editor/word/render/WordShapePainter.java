@@ -6,7 +6,8 @@ import java.awt.*;
 import java.awt.geom.*;
 
 public final class WordShapePainter implements WordObjectPainter {
-    @Override public void paint(Graphics2D graphics, WordInlineObject object, Rectangle2D.Float bounds, WordDocument document) {
+    @Override
+    public void paint(Graphics2D graphics, WordInlineObject object, Rectangle2D.Float bounds, WordDocument document) {
         if (!(object instanceof WordShape shape)) return;
         Graphics2D g = (Graphics2D)graphics.create();
         try { WordPaintSupport.quality(g); paintShape(g,shape,bounds); } finally { g.dispose(); }

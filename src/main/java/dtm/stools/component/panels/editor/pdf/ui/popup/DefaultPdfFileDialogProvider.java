@@ -20,12 +20,17 @@ public final class DefaultPdfFileDialogProvider implements PdfFileDialogProvider
     private File directory;
     private boolean nativeAvailable = true;
 
-    @Override public String id() { return "pdf.file.default"; }
-    @Override public Optional<Path> chooseOpen(Component parent) { return open(parent, "Abrir PDF", PDF); }
-    @Override public Optional<Path> chooseImage(Component parent) { return open(parent, "Inserir imagem", IMAGES); }
-    @Override public Optional<Path> chooseCertificate(Component parent) { return open(parent, "Escolher certificado", CERTIFICATES); }
+    @Override
+    public String id() { return "pdf.file.default"; }
+    @Override
+    public Optional<Path> chooseOpen(Component parent) { return open(parent, "Abrir PDF", PDF); }
+    @Override
+    public Optional<Path> chooseImage(Component parent) { return open(parent, "Inserir imagem", IMAGES); }
+    @Override
+    public Optional<Path> chooseCertificate(Component parent) { return open(parent, "Escolher certificado", CERTIFICATES); }
 
-    @Override public Optional<Path> chooseSave(Component parent) {
+    @Override
+    public Optional<Path> chooseSave(Component parent) {
         File selected = null;
         if (nativeAvailable) {
             try { selected = OsFilePicker.saveFile("Salvar PDF", initial(), "documento.pdf", PDF); }

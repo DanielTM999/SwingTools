@@ -12,7 +12,8 @@ import static dtm.stools.component.panels.editor.word.WordEditorTest.edt;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WordTableDeletionTest {
-    @Test void deletingTextAndTableTogetherDoesNotReportErrors() throws Exception {
+    @Test
+    void deletingTextAndTableTogetherDoesNotReportErrors() throws Exception {
         edt(() -> {
             for (int key : new int[]{KeyEvent.VK_DELETE,KeyEvent.VK_BACK_SPACE}) {
                 try (WordEditor editor = new WordEditor()) {
@@ -34,7 +35,8 @@ class WordTableDeletionTest {
         });
     }
 
-    @Test void selectionAcrossTableEdgeTerminates() {
+    @Test
+    void selectionAcrossTableEdgeTerminates() {
         for (boolean reverse : new boolean[]{false,true}) for (boolean fromTable : new boolean[]{false,true}) {
             WordTable table = WordTable.create(2,2,300);
             WordDocument document = new WordDocument(List.of(WordParagraph.of("before"),table,WordParagraph.of("after")),WordPageSettings.A4);
@@ -55,7 +57,8 @@ class WordTableDeletionTest {
         }
     }
 
-    @Test void deletingAcrossNestedTableEdgePreservesOuterTableAndOtherCells() {
+    @Test
+    void deletingAcrossNestedTableEdgePreservesOuterTableAndOtherCells() {
         WordTable nested = WordTable.create(2,2,120);
         WordTable outer = WordTable.create(1,2,300);
         outer = outer.withRow(0,outer.rows().getFirst().withCell(0,outer.cell(0,0).withBlocks(
@@ -73,7 +76,8 @@ class WordTableDeletionTest {
         assertEquals(document,session.getDocument());
     }
 
-    @Test void deletingEmptySingleCellKeepsCellSelection() throws Exception {
+    @Test
+    void deletingEmptySingleCellKeepsCellSelection() throws Exception {
         edt(() -> {
             for (int key : new int[]{KeyEvent.VK_DELETE,KeyEvent.VK_BACK_SPACE}) {
                 try (WordEditor editor = new WordEditor()) {
@@ -92,7 +96,8 @@ class WordTableDeletionTest {
         });
     }
 
-    @Test void deleteAndBackspaceClearSelectedCellsWithoutErrorsAndCanBeUndone() throws Exception {
+    @Test
+    void deleteAndBackspaceClearSelectedCellsWithoutErrorsAndCanBeUndone() throws Exception {
         edt(() -> {
             for (int key : new int[]{KeyEvent.VK_DELETE, KeyEvent.VK_BACK_SPACE}) {
                 try (WordEditor editor = new WordEditor()) {

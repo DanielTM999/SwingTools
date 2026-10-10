@@ -180,9 +180,12 @@ public class TagInputField extends PanelEventListener {
         });
 
         inputField.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { dispatchInput(); }
-            @Override public void removeUpdate(DocumentEvent e) { dispatchInput(); }
-            @Override public void changedUpdate(DocumentEvent e) { dispatchInput(); }
+            @Override
+            public void insertUpdate(DocumentEvent e) { dispatchInput(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { dispatchInput(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { dispatchInput(); }
         });
     }
 

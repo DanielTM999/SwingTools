@@ -50,7 +50,8 @@ public class PdfAction extends AbstractAction {
         }
     }
 
-    @Override public void actionPerformed(ActionEvent event) {
+    @Override
+    public void actionPerformed(ActionEvent event) {
         try { body.run(); }
         catch (RuntimeException error) { errors.accept(error); }
         finally { if (selected != null) putValue(SELECTED_KEY, selected.getAsBoolean()); }

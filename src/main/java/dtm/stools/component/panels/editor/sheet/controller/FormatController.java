@@ -236,7 +236,8 @@ public final class FormatController {
         if (!painterListener) {
             painterListener = true;
             editor.getCanvas().addMouseListener(new MouseAdapter() {
-                @Override public void mouseReleased(MouseEvent e) { if (painter != null) java.awt.EventQueue.invokeLater(FormatController.this::paintSelection); }
+                @Override
+                public void mouseReleased(MouseEvent e) { if (painter != null) java.awt.EventQueue.invokeLater(FormatController.this::paintSelection); }
             });
         }
     }

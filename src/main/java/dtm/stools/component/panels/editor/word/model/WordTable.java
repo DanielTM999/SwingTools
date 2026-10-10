@@ -43,7 +43,8 @@ public record WordTable(UUID id, List<WordTableRow> rows, List<Float> columnWidt
     public WordTableCell cell(int row, int gridColumn) {
         WordTableRow r = rows.get(row); int index = r.cellAt(gridColumn); return index < 0 ? null : r.cells().get(index);
     }
-    @Override public String plainText() {
+    @Override
+    public String plainText() {
         StringBuilder b = new StringBuilder();
         for (WordTableRow row : rows) {
             if (!b.isEmpty()) b.append('\n');

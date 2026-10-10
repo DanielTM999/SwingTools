@@ -119,9 +119,12 @@ final class PdfRibbonPage extends JPanel {
     }
 
     private static final class PageLayout implements LayoutManager {
-        @Override public void addLayoutComponent(String name, Component component) { }
-        @Override public void removeLayoutComponent(Component component) { }
-        @Override public Dimension preferredLayoutSize(Container parent) {
+        @Override
+        public void addLayoutComponent(String name, Component component) { }
+        @Override
+        public void removeLayoutComponent(Component component) { }
+        @Override
+        public Dimension preferredLayoutSize(Container parent) {
             int width = 0, height = 0;
             for (Component child : parent.getComponents()) {
                 Dimension size = child.getPreferredSize();
@@ -131,8 +134,10 @@ final class PdfRibbonPage extends JPanel {
             Insets insets = parent.getInsets();
             return new Dimension(width + insets.left + insets.right, Math.max(86, height) + insets.top + insets.bottom);
         }
-        @Override public Dimension minimumLayoutSize(Container parent) { return new Dimension(80, preferredLayoutSize(parent).height); }
-        @Override public void layoutContainer(Container parent) {
+        @Override
+        public Dimension minimumLayoutSize(Container parent) { return new Dimension(80, preferredLayoutSize(parent).height); }
+        @Override
+        public void layoutContainer(Container parent) {
             Insets insets = parent.getInsets();
             int x = insets.left, height = parent.getHeight() - insets.top - insets.bottom;
             for (Component child : parent.getComponents()) {

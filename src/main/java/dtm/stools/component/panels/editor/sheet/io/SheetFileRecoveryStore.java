@@ -27,7 +27,8 @@ public class SheetFileRecoveryStore implements SheetRecoveryStore {
         this.keep = Math.max(1, keep);
     }
 
-    @Override public String id() { return "sheet.recovery.files"; }
+    @Override
+    public String id() { return "sheet.recovery.files"; }
 
     private Path folder(String key) throws IOException {
         try {

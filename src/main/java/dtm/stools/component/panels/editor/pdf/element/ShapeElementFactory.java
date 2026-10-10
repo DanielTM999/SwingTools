@@ -20,7 +20,8 @@ public final class ShapeElementFactory extends BasePdfElementFactory {
 
     public PdfShapeKind kind() { return kind; }
 
-    @Override public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
+    @Override
+    public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
         Rectangle2D.Float area = placement.bounds();
         Point2D.Float start = placement.point();
         if (kind == PdfShapeKind.LINE || kind == PdfShapeKind.ARROW) {

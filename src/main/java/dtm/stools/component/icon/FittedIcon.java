@@ -34,8 +34,10 @@ public final class FittedIcon implements Icon {
 
     public Icon getSource() { return source; }
 
-    @Override public int getIconWidth() { return width; }
-    @Override public int getIconHeight() { return height; }
+    @Override
+    public int getIconWidth() { return width; }
+    @Override
+    public int getIconHeight() { return height; }
 
     @Override
     public void paintIcon(Component component, Graphics graphics, int x, int y) {

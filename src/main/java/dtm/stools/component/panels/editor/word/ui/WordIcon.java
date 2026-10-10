@@ -8,9 +8,12 @@ import java.awt.geom.*;
 
 /** Small vector command illustrations, painted in the current theme at any display scale. */
 public record WordIcon(String command, int size) implements Icon {
-    @Override public int getIconWidth() { return UIScale.scale(size); }
-    @Override public int getIconHeight() { return UIScale.scale(size); }
-    @Override public void paintIcon(Component c, Graphics graphics, int x, int y) {
+    @Override
+    public int getIconWidth() { return UIScale.scale(size); }
+    @Override
+    public int getIconHeight() { return UIScale.scale(size); }
+    @Override
+    public void paintIcon(Component c, Graphics graphics, int x, int y) {
         Graphics2D g = (Graphics2D) graphics.create();
         try {
             g.translate(x, y); g.scale(getIconWidth()/24.0, getIconHeight()/24.0);

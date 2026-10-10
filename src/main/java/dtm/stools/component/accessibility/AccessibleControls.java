@@ -50,50 +50,79 @@ public final class AccessibleControls {
         if (component instanceof StepperField c) return numeric(AccessibleRole.SPIN_BOX, c::getValue, () -> c.getNumberField().getMinimumValue(), () -> c.getNumberField().getMaximumValue(),
             n -> c.setValue(n instanceof BigDecimal b ? b : new BigDecimal(n.toString())), () -> c.getNumberField().isEditable(), c::increment, c::decrement);
         if (component instanceof SegmentedField<?> c) return new Model() {
-            @Override public boolean selection() { return true; }
-            @Override public List<String> options() { return c.getSegments().stream().map(SegmentedField.Segment::label).toList(); }
-            @Override public int selectedIndex() { return c.getSelectedIndex(); }
-            @Override public void select(int index) { c.setSelectedIndex(index); }
-            // This component requires one selected segment, so clearSelection is intentionally a no-op.
+            @Override
+            public boolean selection() { return true; }
+            @Override
+            public List<String> options() { return c.getSegments().stream().map(SegmentedField.Segment::label).toList(); }
+            @Override
+            public int selectedIndex() { return c.getSelectedIndex(); }
+            @Override
+            public void select(int index) { c.setSelectedIndex(index); }
+
         };
         if (component instanceof RadioGroupField<?> c) return new Model() {
-            @Override public boolean selection() { return true; }
-            @Override public List<String> options() { return c.getOptions().stream().map(RadioField::getText).toList(); }
-            @Override public int selectedIndex() { return c.getSelectedOption() == null ? -1 : c.getOptions().indexOf(c.getSelectedOption()); }
-            @Override public void select(int index) { c.getOptions().get(index).setSelected(true); }
-            @Override public void clearSelection() { c.clearSelection(true); }
-            @Override public Accessible child(int index) { return c.getOptions().get(index); }
+            @Override
+            public boolean selection() { return true; }
+            @Override
+            public List<String> options() { return c.getOptions().stream().map(RadioField::getText).toList(); }
+            @Override
+            public int selectedIndex() { return c.getSelectedOption() == null ? -1 : c.getOptions().indexOf(c.getSelectedOption()); }
+            @Override
+            public void select(int index) { c.getOptions().get(index).setSelected(true); }
+            @Override
+            public void clearSelection() { c.clearSelection(true); }
+            @Override
+            public Accessible child(int index) { return c.getOptions().get(index); }
         };
         if (component instanceof PinField c) return new Model() {
-            @Override public AccessibleRole role() { return c.isMasked() ? AccessibleRole.PASSWORD_TEXT : AccessibleRole.TEXT; }
-            @Override public String text() { return c.isMasked() ? "•".repeat(c.getValue().length()) : c.getValue(); }
+            @Override
+            public AccessibleRole role() { return c.isMasked() ? AccessibleRole.PASSWORD_TEXT : AccessibleRole.TEXT; }
+            @Override
+            public String text() { return c.isMasked() ? "•".repeat(c.getValue().length()) : c.getValue(); }
         };
         return null;
     }
     private static Model toggle(AccessibleRole role, Supplier<String> name, BooleanSupplier selected, BooleanSupplier mixed, Runnable action) {
         return new Model() {
-            @Override public AccessibleRole role() { return role; }
-            @Override public String name() { return name.get(); }
-            @Override public boolean selected() { return selected.getAsBoolean(); }
-            @Override public boolean mixed() { return mixed.getAsBoolean(); }
-            @Override public int actionCount() { return 1; }
-            @Override public String actionName(int index) { return I18n.getText(AccessibleControls.class, "activate", "Ativar"); }
-            @Override public void action(int index) { action.run(); }
+            @Override
+            public AccessibleRole role() { return role; }
+            @Override
+            public String name() { return name.get(); }
+            @Override
+            public boolean selected() { return selected.getAsBoolean(); }
+            @Override
+            public boolean mixed() { return mixed.getAsBoolean(); }
+            @Override
+            public int actionCount() { return 1; }
+            @Override
+            public String actionName(int index) { return I18n.getText(AccessibleControls.class, "activate", "Ativar"); }
+            @Override
+            public void action(int index) { action.run(); }
         };
     }
     private static Model numeric(AccessibleRole role, Supplier<Number> value, Supplier<Number> minimum, Supplier<Number> maximum, Consumer<Number> setter,
                                  BooleanSupplier editable, Runnable increment, Runnable decrement) {
         return new Model() {
-            @Override public AccessibleRole role() { return role; }
-            @Override public boolean numeric() { return true; }
-            @Override public Number value() { return value.get(); }
-            @Override public Number minimum() { return minimum.get(); }
-            @Override public Number maximum() { return maximum.get(); }
-            @Override public void value(Number n) { setter.accept(n); }
-            @Override public boolean editable() { return editable.getAsBoolean(); }
-            @Override public int actionCount() { return 2; }
-            @Override public String actionName(int index) { return index == 0 ? I18n.getText(AccessibleControls.class, "increment", "Aumentar") : I18n.getText(AccessibleControls.class, "decrement", "Diminuir"); }
-            @Override public void action(int index) { if (index == 0) increment.run(); else decrement.run(); }
+            @Override
+            public AccessibleRole role() { return role; }
+            @Override
+            public boolean numeric() { return true; }
+            @Override
+            public Number value() { return value.get(); }
+            @Override
+            public Number minimum() { return minimum.get(); }
+            @Override
+            public Number maximum() { return maximum.get(); }
+            @Override
+            public void value(Number n) { setter.accept(n); }
+            @Override
+            public boolean editable() { return editable.getAsBoolean(); }
+            @Override
+            public int actionCount() { return 2; }
+            @Override
+            public String actionName(int index) { return index == 0 ? I18n.getText(AccessibleControls.class, "increment", "Aumentar") : I18n.getText(AccessibleControls.class, "decrement", "Diminuir"); }
+            @Override
+            public void action(int index) { if (index == 0) increment.run(); else decrement.run(); }
         };
     }
 }

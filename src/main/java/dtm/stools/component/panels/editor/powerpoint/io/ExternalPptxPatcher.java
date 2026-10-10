@@ -6,7 +6,6 @@ import org.w3c.dom.*;
 import java.io.*;
 import java.util.*;
 
-/** Applies changes to recognized elements while retaining the original package. */
 final class ExternalPptxPatcher {
     private static final String R="http://schemas.openxmlformats.org/officeDocument/2006/relationships",REL="http://schemas.openxmlformats.org/package/2006/relationships";
     static void write(OpcPackage original,Presentation before,Presentation after,OutputStream output)throws IOException {
@@ -42,7 +41,7 @@ final class ExternalPptxPatcher {
                 if(previous==null){Element inserted=(Element)xml.importNode(generated,true);rememberId(inserted,value.id());tree.appendChild(inserted);elements.put(value.id(),inserted);}
                 else patchObject(element,generated,previous,value,scale);
             }
-            // Move recognized nodes into the requested order without dropping unknown nodes.
+
             List<Element> ordered=new ArrayList<>();for(PptObject value:next.objects())ordered.add(elements.get(value.id()));
             List<Element> slots=OoxmlXml.children(tree).stream().filter(ordered::contains).toList();
             List<Node> markers=new ArrayList<>();for(Element slot:slots){Node marker=xml.createComment("object-order");tree.replaceChild(marker,slot);markers.add(marker);}
@@ -126,7 +125,7 @@ final class ExternalPptxPatcher {
     }
     private static void replaceFill(Element props,String xml)throws IOException{Element wrapper=OoxmlXml.parse(("<a:x xmlns:a=\""+PptxVisualXml.A+"\">"+xml+"</a:x>").getBytes(java.nio.charset.StandardCharsets.UTF_8)).getDocumentElement();copyChildren(props,wrapper,Set.of("solidFill","noFill","gradFill","blipFill","pattFill"));}
     private static Element media(Map<String,byte[]> parts,String path,PptObject value,int shapeId,double scale)throws IOException{
-        // Use the native writer for valid picture/media structure and poster generation.
+
         double width=9144000*scale;PptObject normalized=value.geometry(value.x()*1280/width,value.y()*1280/width,value.width()*1280/width,value.height()*1280/width);
         ByteArrayOutputStream data=new ByteArrayOutputStream();new PptxCodec().write(new Presentation(1280,720,List.of(PptSlide.create("Media").addObject(normalized))),data);
         OpcPackage generated=OpcPackage.read(data.toByteArray(),OpcPackage.Limits.DEFAULT);

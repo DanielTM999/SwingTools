@@ -13,10 +13,14 @@ public final class WordLayoutGraphics {
     public static final class Space extends GraphicAttribute {
         private final float advance, ascent, descent;
         public Space(float advance, float ascent, float descent) { super(ROMAN_BASELINE); this.advance = advance; this.ascent = ascent; this.descent = descent; }
-        @Override public float getAscent() { return ascent; }
-        @Override public float getDescent() { return descent; }
-        @Override public float getAdvance() { return advance; }
-        @Override public void draw(Graphics2D graphics, float x, float y) {}
+        @Override
+        public float getAscent() { return ascent; }
+        @Override
+        public float getDescent() { return descent; }
+        @Override
+        public float getAdvance() { return advance; }
+        @Override
+        public void draw(Graphics2D graphics, float x, float y) {}
     }
 
     public static final class Tab extends GraphicAttribute {
@@ -26,10 +30,14 @@ public final class WordLayoutGraphics {
         public Tab(float advance, float ascent, float descent, WordTabStop.Leader leader, Color color) {
             super(ROMAN_BASELINE); this.advance = Math.max(0.5f,advance); this.ascent = ascent; this.descent = descent; this.leader = leader; this.color = color;
         }
-        @Override public float getAscent() { return ascent; }
-        @Override public float getDescent() { return descent; }
-        @Override public float getAdvance() { return advance; }
-        @Override public void draw(Graphics2D graphics, float x, float y) {
+        @Override
+        public float getAscent() { return ascent; }
+        @Override
+        public float getDescent() { return descent; }
+        @Override
+        public float getAdvance() { return advance; }
+        @Override
+        public void draw(Graphics2D graphics, float x, float y) {
             if (leader == null || leader == WordTabStop.Leader.NONE || advance < 6) return;
             Graphics2D g = (Graphics2D)graphics.create();
             try {
@@ -54,10 +62,14 @@ public final class WordLayoutGraphics {
             this.layout = new TextLayout(text.isEmpty() ? " " : text,effective,WordLayoutEngine.FONT_CONTEXT);
             this.color = color; this.background = background; this.rise = superscript ? font.getSize2D()*0.35f : 0;
         }
-        @Override public float getAscent() { return layout.getAscent() + rise; }
-        @Override public float getDescent() { return Math.max(0,layout.getDescent() - rise); }
-        @Override public float getAdvance() { return layout.getAdvance() + (background == null ? 0 : 4); }
-        @Override public void draw(Graphics2D graphics, float x, float y) {
+        @Override
+        public float getAscent() { return layout.getAscent() + rise; }
+        @Override
+        public float getDescent() { return Math.max(0,layout.getDescent() - rise); }
+        @Override
+        public float getAdvance() { return layout.getAdvance() + (background == null ? 0 : 4); }
+        @Override
+        public void draw(Graphics2D graphics, float x, float y) {
             Graphics2D g = (Graphics2D)graphics.create();
             try {
                 if (background != null) {

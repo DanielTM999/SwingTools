@@ -10,5 +10,6 @@ public record WordTableOfContents(UUID id, String title, int maxLevel) implement
         if (maxLevel < 1 || maxLevel > 9) throw new IllegalArgumentException("Invalid TOC depth");
     }
     public static WordTableOfContents create() { return new WordTableOfContents(UUID.randomUUID(),"Sumário",3); }
-    @Override public String plainText() { return title; }
+    @Override
+    public String plainText() { return title; }
 }

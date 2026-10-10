@@ -16,7 +16,8 @@ import static dtm.stools.component.panels.editor.word.WordUiTest.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WordNavigationTest {
-    @Test void outlineTracksCaretAndEditsWithoutChangingSelection() throws Exception {
+    @Test
+    void outlineTracksCaretAndEditsWithoutChangingSelection() throws Exception {
         edt(()->{
             try(WordEditor editor=new WordEditor()) {
                 WordParagraphStyle heading=WordParagraphStyle.DEFAULT.withHeadingLevel(1);
@@ -47,7 +48,8 @@ class WordNavigationTest {
         });
     }
 
-    @Test void navigationAlignsTitlesAcrossPagesZoomAndContinuousLayout() throws Exception {
+    @Test
+    void navigationAlignsTitlesAcrossPagesZoomAndContinuousLayout() throws Exception {
         WordEditor editor=createEditor();
         try {
             for(WordViewMode mode:WordViewMode.values())for(double zoom:new double[]{.75,1,1.5}) {
@@ -64,7 +66,8 @@ class WordNavigationTest {
         } finally {edt(()->{editor.close();return null;});}
     }
 
-    @Test void repeatedClickAndEnterRepositionSelectedHeading() throws Exception {
+    @Test
+    void repeatedClickAndEnterRepositionSelectedHeading() throws Exception {
         WordEditor editor=createEditor();
         try {
             int offset=edt(()->{click(outline(editor),2);return editor.getSession().getSelection().caret();});
@@ -79,7 +82,7 @@ class WordNavigationTest {
                 return null;
             });
             await(()->aligned(editor,offset));
-            // Capture the same navigation destination shown in the bug report for visual review.
+
             edt(()->{
                 java.awt.image.BufferedImage capture=new java.awt.image.BufferedImage(editor.getWidth(),editor.getHeight(),java.awt.image.BufferedImage.TYPE_INT_RGB);
                 Graphics2D g=capture.createGraphics();try{editor.paint(g);}finally{g.dispose();}
@@ -88,7 +91,8 @@ class WordNavigationTest {
         } finally {edt(()->{editor.close();return null;});}
     }
 
-    @Test void pendingNavigationUsesLatestDestinationAndCancelsOnSelectionOrDocumentChange() throws Exception {
+    @Test
+    void pendingNavigationUsesLatestDestinationAndCancelsOnSelectionOrDocumentChange() throws Exception {
         WordEditor editor=createEditor();
         try {
             int offset=edt(()->{
@@ -106,7 +110,8 @@ class WordNavigationTest {
         } finally {edt(()->{editor.close();return null;});}
     }
 
-    @Test void endOfDocumentClampsNavigationToScrollRange() throws Exception {
+    @Test
+    void endOfDocumentClampsNavigationToScrollRange() throws Exception {
         WordEditor editor=createEditor();
         try {
             edt(()->{editor.setViewMode(WordViewMode.CONTINUOUS);return null;});

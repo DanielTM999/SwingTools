@@ -9,5 +9,6 @@ import java.util.Map;
 public record LambdaValue(List<String> parameters, FormulaNode body, Map<String, CellValue> closure) implements CellValue {
     public LambdaValue { parameters = List.copyOf(parameters); closure = Map.copyOf(closure); }
 
-    @Override public String toString() { return "LAMBDA(" + String.join(",", parameters) + ")"; }
+    @Override
+    public String toString() { return "LAMBDA(" + String.join(",", parameters) + ")"; }
 }

@@ -53,7 +53,8 @@ public class PptxCodec {
     }
     public record ImportResult(Presentation presentation,byte[] originalBytes,boolean editable,List<String> diagnostics) {
         public ImportResult {originalBytes=originalBytes.clone();diagnostics=List.copyOf(diagnostics);}
-        @Override public byte[] originalBytes(){return originalBytes.clone();}
+        @Override
+        public byte[] originalBytes(){return originalBytes.clone();}
     }
     public ImportResult read(InputStream input)throws IOException {
         byte[] bytes=OpcPackage.readBounded(input,limits.compressedBytes());

@@ -19,7 +19,8 @@ public final class FormFieldElementFactory extends BasePdfElementFactory {
         this.kind = kind;
     }
 
-    @Override public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
+    @Override
+    public void insert(PdfEditor editor, PdfPlacement placement) throws IOException {
         Optional<String> name = editor.getDialogs().input(editor, title(kind), "Nome do campo:");
         if (name.isEmpty() || name.get().isBlank()) return;
         Rectangle2D.Float area = placement.bounds();

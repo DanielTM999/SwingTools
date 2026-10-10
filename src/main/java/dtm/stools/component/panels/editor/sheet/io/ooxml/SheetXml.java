@@ -32,9 +32,12 @@ public final class SheetXml {
             f.setExpandEntityReferences(false);
             DocumentBuilder b = f.newDocumentBuilder();
             b.setErrorHandler(new ErrorHandler() {
-                @Override public void warning(SAXParseException e) { }
-                @Override public void error(SAXParseException e) throws SAXParseException { throw e; }
-                @Override public void fatalError(SAXParseException e) throws SAXParseException { throw e; }
+                @Override
+                public void warning(SAXParseException e) { }
+                @Override
+                public void error(SAXParseException e) throws SAXParseException { throw e; }
+                @Override
+                public void fatalError(SAXParseException e) throws SAXParseException { throw e; }
             });
             return b.parse(new ByteArrayInputStream(data));
         } catch (Exception e) {

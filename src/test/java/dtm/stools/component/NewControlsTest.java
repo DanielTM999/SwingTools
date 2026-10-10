@@ -31,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class NewControlsTest {
     private void edt(Runnable run) throws Exception { SwingUtilities.invokeAndWait(run); }
 
-    @Test void passwordEyeIsInsideInputAndAccessibleWithoutCoveringText() throws Exception {
+    @Test
+    void passwordEyeIsInsideInputAndAccessibleWithoutCoveringText() throws Exception {
         edt(() -> {
             PasswordField field = new PasswordField().setPassword("secret".toCharArray());
             JPasswordField input = field.getPasswordField(); input.setSize(260, 36); input.doLayout();
@@ -49,7 +50,8 @@ class NewControlsTest {
         });
     }
 
-    @Test void clockSelects24HourTimeAndExactMinutesWithKeyboard() throws Exception {
+    @Test
+    void clockSelects24HourTimeAndExactMinutesWithKeyboard() throws Exception {
         edt(() -> {
             ClockPickerPanel clock = new ClockPickerPanel(Locale.US); clock.setTime(LocalTime.of(8, 17));
             clockButton(clock, 23).doClick(); assertEquals(LocalTime.of(23, 17), clock.getTime()); assertFalse(clock.isSelectingHours());
@@ -69,7 +71,8 @@ class NewControlsTest {
                 .filter(b -> Objects.equals(value, b.getClientProperty("clock.value"))).findFirst().orElseThrow();
     }
 
-    @Test void clockPointerSelectsEveryMinuteIncludingOverNumberButtonsAndDrag() throws Exception {
+    @Test
+    void clockPointerSelectsEveryMinuteIncludingOverNumberButtonsAndDrag() throws Exception {
         edt(() -> {
             ClockPickerPanel clock = new ClockPickerPanel(Locale.US); clock.setTime(LocalTime.of(8, 0)); clock.setSelectingHours(false);
             JComponent dial = descendants(clock).stream().filter(JComponent.class::isInstance).map(JComponent.class::cast)
@@ -96,7 +99,8 @@ class NewControlsTest {
         return new Point((int) Math.round(116 + Math.sin(angle) * 94), (int) Math.round(116 - Math.cos(angle) * 94));
     }
 
-    @Test void requiredClockDistinguishesMissingChoicesFromExplicitMidnight() throws Exception {
+    @Test
+    void requiredClockDistinguishesMissingChoicesFromExplicitMidnight() throws Exception {
         edt(() -> {
             ClockPickerPanel clock = new ClockPickerPanel(Locale.US).setRequired(true);
             assertNull(clock.getTime()); assertFalse(clock.isSelectionValid());
@@ -110,7 +114,8 @@ class NewControlsTest {
         });
     }
 
-    @Test void requiredPeriodAndFormStayInvalidWhenClearedOrReformatted() throws Exception {
+    @Test
+    void requiredPeriodAndFormStayInvalidWhenClearedOrReformatted() throws Exception {
         edt(() -> {
             PeriodField period = new PeriodField(PeriodMode.TIME);
             FormField wrapper = new FormField("time", "Time", period).setRequired(true);
@@ -122,7 +127,8 @@ class NewControlsTest {
         });
     }
 
-    @Test void passwordIsHiddenCopiesArraysAndPreservesSelection() throws Exception {
+    @Test
+    void passwordIsHiddenCopiesArraysAndPreservesSelection() throws Exception {
         edt(() -> {
             PasswordField field = new PasswordField(); char[] source = "test-secret".toCharArray();
             assertFalse(field.isPasswordVisible());
@@ -137,7 +143,8 @@ class NewControlsTest {
             assertEquals(AccessibleRole.PASSWORD_TEXT, field.getPasswordField().getAccessibleContext().getAccessibleRole());
         });
     }
-    @Test void passwordEventsAndValidationNeverContainTheSecret() throws Exception {
+    @Test
+    void passwordEventsAndValidationNeverContainTheSecret() throws Exception {
         edt(() -> {
             PasswordField field = new PasswordField(); AtomicInteger changes = new AtomicInteger();
             field.addEventListener(EventType.CHANGE, e -> { assertNull(e.getValue()); assertTrue(e.getProperties().isEmpty()); changes.incrementAndGet(); });
@@ -155,7 +162,8 @@ class NewControlsTest {
             assertTrue(form.submit()); form.reset(); assertEquals(0, field.getPassword().length);
         });
     }
-    @Test void passwordValidatorTemporaryArrayIsErasedEvenWhenItThrows() throws Exception {
+    @Test
+    void passwordValidatorTemporaryArrayIsErasedEvenWhenItThrows() throws Exception {
         edt(() -> {
             PasswordField field = new PasswordField().setPassword("secret".toCharArray());
             char[][] retained = new char[1][];
@@ -165,7 +173,8 @@ class NewControlsTest {
             assertArrayEquals("secret".toCharArray(), field.getPassword());
         });
     }
-    @Test void periodSupportsThreeModesLimitsAndSilentChanges() throws Exception {
+    @Test
+    void periodSupportsThreeModesLimitsAndSilentChanges() throws Exception {
         edt(() -> {
             PeriodField dates = new PeriodField(PeriodMode.DATE);
             AtomicInteger changes = new AtomicInteger(); dates.addEventListener(EventType.CHANGE, e -> changes.incrementAndGet());
@@ -188,7 +197,8 @@ class NewControlsTest {
             time.clear().setAllowOvernight(false).setValue(new TimeRange(LocalTime.NOON, LocalTime.NOON, false));
         });
     }
-    @Test void invalidDraftPreservesValueAndBlocksFormSubmission() throws Exception {
+    @Test
+    void invalidDraftPreservesValueAndBlocksFormSubmission() throws Exception {
         edt(() -> {
             PeriodField field = new PeriodField(); DateRange range = new DateRange(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 1, 2)); field.setValue(range);
             FormPanel form = new FormPanel().addField("period", "Period", field);
@@ -203,7 +213,8 @@ class NewControlsTest {
             form.reset(); assertNull(field.getValue()); assertTrue(field.isInputValid());
         });
     }
-    @Test void periodFormatAndConfigurationAreAtomic() throws Exception {
+    @Test
+    void periodFormatAndConfigurationAreAtomic() throws Exception {
         edt(() -> {
             PeriodField field = new PeriodField(); DateRange range = new DateRange(LocalDate.of(2024, 2, 29), LocalDate.of(2024, 3, 1)); field.setValue(range);
             field.setLocale(Locale.US); field.setFormat("MM/dd/yyyy"); assertEquals("02/29/2024", field.getStartInput().getText());
@@ -213,7 +224,8 @@ class NewControlsTest {
             field.setEnabled(false); assertFalse(field.getEndInput().isEnabled());
         });
     }
-    @Test void calendarSelectsAcrossMonthsInEitherDirectionAndEnforcesLimits() throws Exception {
+    @Test
+    void calendarSelectsAcrossMonthsInEitherDirectionAndEnforcesLimits() throws Exception {
         edt(() -> {
             RangeCalendarPanel calendar = new RangeCalendarPanel(Locale.US);
             calendar.setLimits(LocalDate.of(2024, 2, 1), LocalDate.of(2024, 3, 31));
@@ -230,7 +242,8 @@ class NewControlsTest {
             assertTrue(descendants(calendar).stream().filter(JToggleButton.class::isInstance).map(JToggleButton.class::cast).anyMatch(b -> b.getAccessibleContext().getAccessibleName().contains("February")));
         });
     }
-    @Test void paletteSearchesAllFieldsWithoutAccentsAndRechecksEnabledState() throws Exception {
+    @Test
+    void paletteSearchesAllFieldsWithoutAccentsAndRechecksEnabledState() throws Exception {
         edt(() -> {
             List<CommandEntry> commands = new ArrayList<>(List.of(
                 new CommandEntry("save", "Salvar", "Edição", "Descrição", "Ctrl+S", true),
@@ -247,7 +260,8 @@ class NewControlsTest {
             palette.getSearchField().setText("disabled"); assertFalse(palette.executeSelected());
         });
     }
-    @Test void paletteRestoresShortcutAndRejectsDuplicateIds() throws Exception {
+    @Test
+    void paletteRestoresShortcutAndRejectsDuplicateIds() throws Exception {
         edt(() -> {
             CommandEntry entry = new CommandEntry("id", "Name", null, null, null, true);
             assertThrows(IllegalArgumentException.class, () -> new CommandPalette(() -> List.of(entry, entry), id -> true));
@@ -261,7 +275,8 @@ class NewControlsTest {
             assertFalse(palette.executeSelected());
         });
     }
-    @Test void togglesExposeRolesStatesAndAccessibleActionsEvenForSilentUpdates() throws Exception {
+    @Test
+    void togglesExposeRolesStatesAndAccessibleActionsEvenForSilentUpdates() throws Exception {
         edt(() -> {
             CheckBoxField check = new CheckBoxField("Accept"); AccessibleContext accessible = check.getAccessibleContext();
             assertEquals(AccessibleRole.CHECK_BOX, accessible.getAccessibleRole()); assertEquals("Accept", accessible.getAccessibleName());
@@ -275,7 +290,8 @@ class NewControlsTest {
             toggle.getAccessibleContext().getAccessibleAction().doAccessibleAction(0); assertTrue(toggle.isSelected());
         });
     }
-    @Test void numericControlsExposeValuesBoundsAndReadonlyBehavior() throws Exception {
+    @Test
+    void numericControlsExposeValuesBoundsAndReadonlyBehavior() throws Exception {
         edt(() -> {
             SliderField slider = new SliderField(0, 10, 2); AccessibleContext accessible = slider.getAccessibleContext();
             assertEquals(AccessibleRole.SLIDER, accessible.getAccessibleRole());
@@ -291,7 +307,8 @@ class NewControlsTest {
             stepper.increment(); assertEquals(0, BigDecimal.TEN.compareTo(stepper.getValue()));
         });
     }
-    @Test void groupsExposeSelectedChildrenAndMaskedPinDoesNotExposeDigits() throws Exception {
+    @Test
+    void groupsExposeSelectedChildrenAndMaskedPinDoesNotExposeDigits() throws Exception {
         edt(() -> {
             RadioGroupField<String> group = new RadioGroupField<>(); group.addOption("A", "a").addOption("B", "b");
             AccessibleSelection selection = group.getAccessibleContext().getAccessibleSelection(); selection.addAccessibleSelection(1);
@@ -307,7 +324,8 @@ class NewControlsTest {
             assertEquals("•", pin.getAccessibleContext().getAccessibleText().getAtIndex(AccessibleText.CHARACTER, 0));
         });
     }
-    @Test void customButtonsAreFocusableNamedAndActionable() throws Exception {
+    @Test
+    void customButtonsAreFocusableNamedAndActionable() throws Exception {
         edt(() -> {
             DualListField<String> dual = new DualListField<>(List.of("A", "B"));
             List<Component> buttons = descendants(dual).stream().filter(c -> c instanceof dtm.stools.component.accessibility.AccessibleButton).toList();
@@ -325,7 +343,8 @@ class NewControlsTest {
             DatePickerInputField date = new DatePickerInputField(); date.setEnabled(false); assertTrue(descendants(date).stream().filter(JButton.class::isInstance).noneMatch(Component::isEnabled));
         });
     }
-    @Test void formLabelsAndErrorsReachNativeInputsAndPreserveApplicationNames() throws Exception {
+    @Test
+    void formLabelsAndErrorsReachNativeInputsAndPreserveApplicationNames() throws Exception {
         edt(() -> {
             var area = new dtm.stools.component.inputfields.textarea.TextAreaField();
             FormField field = new FormField("notes", "Notes", area).setHelperText("Write notes");

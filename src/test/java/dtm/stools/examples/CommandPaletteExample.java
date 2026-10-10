@@ -20,7 +20,8 @@ public final class CommandPaletteExample {
             JButton open = new JButton("Abrir comandos"); open.addActionListener(e -> palette.open(frame));
             AutoCloseable registration = palette.installShortcut(frame.getRootPane(), KeyStroke.getKeyStroke("control shift P"));
             frame.addWindowListener(new WindowAdapter() {
-                @Override public void windowClosed(WindowEvent e) {
+                @Override
+                public void windowClosed(WindowEvent e) {
                     palette.close();
                     try { registration.close(); } catch (Exception error) { throw new IllegalStateException(error); }
                 }

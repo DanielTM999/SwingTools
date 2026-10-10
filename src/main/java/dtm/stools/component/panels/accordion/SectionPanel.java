@@ -308,9 +308,6 @@ public class SectionPanel extends PanelEventListener {
         }
     }
 
-    /**
-     * Cabeçalho clicável que alterna o estado da seção.
-     */
     private final class Header extends JComponent {
 
         private boolean hover;

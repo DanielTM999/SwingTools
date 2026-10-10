@@ -65,7 +65,9 @@ public class SheetRibbon extends JPanel {
         add(cards, BorderLayout.CENTER);
         for (RibbonTab t : SheetRibbonLayout.defaults(editor, this)) addTab(t);
         select(tabs.stream().anyMatch(t -> t.id().equals("home")) ? "home" : tabs.getFirst().id());
-        addComponentListener(new ComponentAdapter() { @Override public void componentResized(ComponentEvent e) { adapt(); } });
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) { adapt(); } });
     }
 
     public void addTab(RibbonTab tab) {

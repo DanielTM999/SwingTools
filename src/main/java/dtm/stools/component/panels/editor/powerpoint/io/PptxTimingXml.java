@@ -5,7 +5,6 @@ import dtm.stools.component.panels.editor.word.io.ooxml.OoxmlXml;
 import org.w3c.dom.Element;
 import java.util.*;
 
-/** PresentationML timing tree for the editor's supported visual effects and embedded media. */
 final class PptxTimingXml {
     private PptxTimingXml(){}
     static String write(PptSlide slide){

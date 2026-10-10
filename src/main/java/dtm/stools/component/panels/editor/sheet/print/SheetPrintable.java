@@ -20,7 +20,8 @@ public final class SheetPrintable implements Printable, Pageable {
         for (SheetPageLayout l : layouts) for (SheetPage p : l.pages()) entries.add(new Entry(l, p));
     }
 
-    @Override public int getNumberOfPages() { return entries.size(); }
+    @Override
+    public int getNumberOfPages() { return entries.size(); }
 
     @Override
     public PageFormat getPageFormat(int index) {
@@ -35,7 +36,8 @@ public final class SheetPrintable implements Printable, Pageable {
         return pf;
     }
 
-    @Override public Printable getPrintable(int index) { return this; }
+    @Override
+    public Printable getPrintable(int index) { return this; }
 
     @Override
     public int print(Graphics graphics, PageFormat format, int index) {

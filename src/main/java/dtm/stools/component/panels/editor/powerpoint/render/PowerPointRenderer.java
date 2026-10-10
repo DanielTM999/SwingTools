@@ -13,7 +13,8 @@ import java.util.Map;
 public class PowerPointRenderer {
     private final PptTextLayout textLayout=new PptTextLayout();
     private final Map<PptObject,BufferedImage> images=new LinkedHashMap<>(16,.75f,true){
-        @Override protected boolean removeEldestEntry(Map.Entry<PptObject,BufferedImage> e){return size()>32;}
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<PptObject,BufferedImage> e){return size()>32;}
     };
     public PptTextLayout textLayout(){return textLayout;}
 

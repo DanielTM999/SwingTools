@@ -310,12 +310,18 @@ public class KeyPanel extends PanelEventListener {
             return new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE);
         }
 
-        @Override public void addLayoutComponent(Component comp, Object constraints) {}
-        @Override public void addLayoutComponent(String name, Component comp) {}
-        @Override public void removeLayoutComponent(Component comp) {}
-        @Override public float getLayoutAlignmentX(Container target) { return 0.5f; }
-        @Override public float getLayoutAlignmentY(Container target) { return 0.5f; }
-        @Override public void invalidateLayout(Container target) {}
+        @Override
+        public void addLayoutComponent(Component comp, Object constraints) {}
+        @Override
+        public void addLayoutComponent(String name, Component comp) {}
+        @Override
+        public void removeLayoutComponent(Component comp) {}
+        @Override
+        public float getLayoutAlignmentX(Container target) { return 0.5f; }
+        @Override
+        public float getLayoutAlignmentY(Container target) { return 0.5f; }
+        @Override
+        public void invalidateLayout(Container target) {}
     }
 
     private static class KeyPanelContextChangeEventImple implements KeyPanelContextChangeEvent{

@@ -74,7 +74,9 @@ public final class PowerPointCanvas extends JComponent {
         inline.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE,0),"ppt.cancel");inline.getActionMap().put("ppt.cancel",new AbstractAction(){public void actionPerformed(ActionEvent e){cancelEditing();}});
         inline.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,InputEvent.CTRL_DOWN_MASK),"ppt.commit");inline.getActionMap().put("ppt.commit",new AbstractAction(){public void actionPerformed(ActionEvent e){commitEditing();}});
         if(object.kind()==PptObject.Kind.TABLE)for(int direction:new int[]{-1,1}){String key="ppt.cell"+direction;inline.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_TAB,direction<0?InputEvent.SHIFT_DOWN_MASK:0),key);inline.getActionMap().put(key,new AbstractAction(){public void actionPerformed(ActionEvent e){navigateCell(direction);}});}
-        inline.addFocusListener(new FocusAdapter(){@Override public void focusLost(FocusEvent e){Component next=e.getOppositeComponent();if(next==null)return;SwingUtilities.invokeLater(()->{if(inline!=null&&!SwingUtilities.isDescendingFrom(next,PowerPointCanvas.this)&&!isEditorControl(next))commitEditing();});}});
+        inline.addFocusListener(new FocusAdapter(){
+            @Override
+            public void focusLost(FocusEvent e){Component next=e.getOppositeComponent();if(next==null)return;SwingUtilities.invokeLater(()->{if(inline!=null&&!SwingUtilities.isDescendingFrom(next,PowerPointCanvas.this)&&!isEditorControl(next))commitEditing();});}});
         inline.requestFocusInWindow();revalidate();repaint();
     }
     private boolean isEditorControl(Component component){Container editor=getParent();return editor!=null&&SwingUtilities.isDescendingFrom(component,editor);}
@@ -104,7 +106,8 @@ public final class PowerPointCanvas extends JComponent {
             PptObject selected=currentSlide().objects().stream().filter(o->o.id().equals(session.selectedObjectId())).findFirst().orElse(null);if(selected!=null&&selected.kind()==PptObject.Kind.TABLE){var table=selected.visual().table();selectedRow=Math.min(selectedRow,table.rows().size()-1);endRow=Math.min(endRow,table.rows().size()-1);selectedColumn=Math.min(selectedColumn,table.columns().size()-1);endColumn=Math.min(endColumn,table.columns().size()-1);}
         });
         addMouseListener(new MouseAdapter(){
-            @Override public void mousePressed(MouseEvent e){
+            @Override
+            public void mousePressed(MouseEvent e){
                 commitEditing();requestFocusInWindow();if(presenting)return;
                 Point logical=logical(e.getPoint());
                 PptSlide slide=currentSlide();
@@ -121,7 +124,8 @@ public final class PowerPointCanvas extends JComponent {
                 }
                 session.selectObject(null);dragStart=null;dragObject=null;
             }
-            @Override public void mouseReleased(MouseEvent e){
+            @Override
+            public void mouseReleased(MouseEvent e){
                 if(dragObject!=null&&dragPreview!=null&&!session.isReadOnly()){
                     int slideIndex=session.selectedSlide();PptObject moved=endpoint>=0?snapConnector(dragPreview,endpoint):dragPreview;
                     session.edit(doc->doc.withSlide(slideIndex,doc.slides().get(slideIndex).replaceObject(dragObject.id(),moved)));
@@ -130,7 +134,8 @@ public final class PowerPointCanvas extends JComponent {
             }
         });
         addMouseMotionListener(new MouseMotionAdapter(){
-            @Override public void mouseDragged(MouseEvent e){
+            @Override
+            public void mouseDragged(MouseEvent e){
                 if(dragStart==null||dragObject==null||session.isReadOnly())return;
                 Point p=logical(e.getPoint());double dx=p.x-dragStart.x,dy=p.y-dragStart.y;
                 if(dx==0&&dy==0)return;
@@ -166,7 +171,8 @@ public final class PowerPointCanvas extends JComponent {
         return new Point((int)Math.round((point.x-slideBounds.getX())*doc.width()/Math.max(1,slideBounds.getWidth())),
                 (int)Math.round((point.y-slideBounds.getY())*doc.height()/Math.max(1,slideBounds.getHeight())));
     }
-    @Override protected void paintComponent(Graphics graphics){
+    @Override
+    protected void paintComponent(Graphics graphics){
         super.paintComponent(graphics);Graphics2D g=(Graphics2D)graphics.create();
         try {
             g.setColor(UiTokens.background());g.fillRect(0,0,getWidth(),getHeight());

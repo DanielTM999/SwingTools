@@ -159,7 +159,8 @@ public final class PdfRenderScheduler implements AutoCloseable {
         }));
     }
 
-    @Override public void close() {
+    @Override
+    public void close() {
         closed = true;
         executor.shutdownNow();
         pages.clear();

@@ -14,8 +14,10 @@ public record PdfChange(int[] pages, int[] mapping) {
     public static PdfChange structure(int[] mapping, int... pages) { return new PdfChange(pages, mapping); }
     public boolean affectsAll() { return pages == null; }
     public boolean structural() { return mapping != null; }
-    @Override public int[] pages() { return pages == null ? null : pages.clone(); }
-    @Override public int[] mapping() { return mapping == null ? null : mapping.clone(); }
+    @Override
+    public int[] pages() { return pages == null ? null : pages.clone(); }
+    @Override
+    public int[] mapping() { return mapping == null ? null : mapping.clone(); }
     public PdfChange inverse(int pageCountAfter) {
         if (mapping == null) return this;
         int[] inverse = new int[pageCountAfter];

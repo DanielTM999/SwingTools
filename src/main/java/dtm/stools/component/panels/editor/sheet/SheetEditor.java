@@ -188,7 +188,8 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
         internal.add(session.addChangeListener(this::changed));
         internal.add(session.addListener(this::sessionEvent));
         internal.add(engine.addListener(new CalcListener() {
-            @Override public void valuesChanged(Map<String, List<CellRange>> changed) { valuesRecalculated(changed); }
+            @Override
+            public void valuesChanged(Map<String, List<CellRange>> changed) { valuesRecalculated(changed); }
         }));
         setLayout(new BorderLayout());
         canvas = services.uiFactory().createCanvas(this);
@@ -225,10 +226,12 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
         horizontal.addAdjustmentListener(e -> { if (!updatingScroll) canvas.setScroll(horizontal.getValue(), canvas.scrollY()); });
         vertical.addAdjustmentListener(e -> { if (!updatingScroll) canvas.setScroll(canvas.scrollX(), vertical.getValue()); });
         canvas.addComponentListener(new ComponentAdapter() {
-            @Override public void componentResized(ComponentEvent e) { canvas.invalidateGeometry(); updateScrollBars(); editing.reposition(); }
+            @Override
+            public void componentResized(ComponentEvent e) { canvas.invalidateGeometry(); updateScrollBars(); editing.reposition(); }
         });
         addComponentListener(new ComponentAdapter() {
-            @Override public void componentResized(ComponentEvent e) {
+            @Override
+            public void componentResized(ComponentEvent e) {
                 horizontal.setPreferredSize(new Dimension(Math.max(160, (int) (getWidth() * 0.42)), horizontal.getPreferredSize().height));
                 tabRow.revalidate();
             }
@@ -258,8 +261,10 @@ public class SheetEditor extends BlockingPanel implements AutoCloseable {
         }
     }
 
-    @Override public void addNotify() { super.addNotify(); updateScreenLifecycle(); }
-    @Override public void removeNotify() {
+    @Override
+    public void addNotify() { super.addNotify(); updateScreenLifecycle(); }
+    @Override
+    public void removeNotify() {
         if (screenActive) {
             screenActive = false;
             statusTimer.stop();

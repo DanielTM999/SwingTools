@@ -12,11 +12,33 @@ form.setValues(Map.of("senha", new char[]{'a', 'b', 'c'}));
 | API | Contrato |
 |---|---|
 | `getPassword()` | Retorna um novo `char[]`; o consumidor deve apagar a cópia após usá-la |
+| `getPasswordAsString()` | Retorna o conteúdo da senha como `String`; vazio retorna `""` |
 | `setPassword(char[], boolean)` | Copia a entrada; `false` suprime eventos da biblioteca |
 | `clear(boolean)` | Limpa o conteúdo |
 | `setPasswordVisible(boolean, boolean)` | Alterna a exibição, preservando cursor e seleção |
 | `setEditable(boolean)` | Controla edição e botão de visibilidade |
 | `getPasswordField()` | Permite personalizar o controle Swing nativo e gerenciar foco |
+| `setLabel(String)` / `getLabel()` | Define o rótulo flutuante e o nome acessível; `null` equivale a vazio |
+| `setFieldLayoutManager(FieldLayoutManager)` / `getFieldLayoutManager()` | Aplica o layout ao editor nativo; `null` restaura o visual convencional |
+
+Para ler a senha como texto:
+
+```java
+String valor = senha.getPasswordAsString();
+```
+
+O mesmo `MaterialLayout` dos campos de texto também funciona neste componente:
+
+```java
+MaterialLayout material = new MaterialLayout();
+PasswordField senha = new PasswordField()
+        .setLabel("Senha")
+        .setFieldLayoutManager(material);
+material.setError("Senha inválida");
+material.setErrorColor(Color.RED);
+```
+
+O botão de mostrar senha fica na área do editor, acima da mensagem de erro. O layout mantém a senha oculta, a seleção, os eventos e a acessibilidade do `JPasswordField`. A mensagem permanece até `material.setError(null)`.
 
 A senha começa oculta. Clique no olho ou use Alt+V com o foco no campo para mostrar/ocultar; o botão também aceita foco e acionamento pelo teclado. `EventType.CHANGE` informa alteração com valor `null` e sem conteúdo nas propriedades. `VISIBILITY_CHANGED` entrega um booleano. O campo mantém a semântica acessível nativa `PASSWORD_TEXT`; o botão tem nome acessível indicando mostrar ou ocultar.
 

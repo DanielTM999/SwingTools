@@ -52,7 +52,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PdfEditorTest {
-    @Test void viewingIsDefaultAndDoesNotSelectCanvasObjects() throws Throwable {
+    @Test
+    void viewingIsDefaultAndDoesNotSelectCanvasObjects() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             onEdt(() -> {
@@ -90,16 +91,20 @@ class PdfEditorTest {
         if (failure.get() != null) throw failure.get();
     }
 
-    @Test void ocrIsAvailableOnlyWhileAnApplicationProviderIsRegistered() throws Throwable {
+    @Test
+    void ocrIsAvailableOnlyWhileAnApplicationProviderIsRegistered() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             assertTrue(editor.active(PdfOcrProvider.class).isEmpty());
             assertFalse(editor.getCommands().get("pdf.ocr").isEnabled());
             assertThrows(IllegalStateException.class, () -> editor.recognizePage(0, "por", true));
             PdfOcrProvider custom = new PdfOcrProvider() {
-                @Override public String id() { return "test.ocr"; }
-                @Override public int priority() { return 10; }
-                @Override public PdfOcrResult recognize(BufferedImage image, String languages, java.util.function.IntConsumer progress) {
+                @Override
+                public String id() { return "test.ocr"; }
+                @Override
+                public int priority() { return 10; }
+                @Override
+                public PdfOcrResult recognize(BufferedImage image, String languages, java.util.function.IntConsumer progress) {
                     return new PdfOcrResult("custom", List.of(new PdfOcrWord("custom", 10, 10, 20, 10)));
                 }
             };
@@ -117,10 +122,13 @@ class PdfEditorTest {
         } finally { SwingUtilities.invokeAndWait(editor::close); }
     }
 
-    @Test void servicesInjectOcrBeforeFirstDocument() throws Throwable {
+    @Test
+    void servicesInjectOcrBeforeFirstDocument() throws Throwable {
         PdfOcrProvider custom = new PdfOcrProvider() {
-            @Override public String id() { return "test.initial.ocr"; }
-            @Override public PdfOcrResult recognize(BufferedImage image, String language, java.util.function.IntConsumer progress) {
+            @Override
+            public String id() { return "test.initial.ocr"; }
+            @Override
+            public PdfOcrResult recognize(BufferedImage image, String language, java.util.function.IntConsumer progress) {
                 return new PdfOcrResult("injected", List.of());
             }
         };
@@ -130,7 +138,8 @@ class PdfEditorTest {
         finally { SwingUtilities.invokeAndWait(ref.get()::close); }
     }
 
-    @Test void respectsEncryptedPdfPermissions() throws Throwable {
+    @Test
+    void respectsEncryptedPdfPermissions() throws Throwable {
         Path file = Files.createTempFile("pdf-protected-", ".pdf");
         try {
             org.apache.pdfbox.pdmodel.PDDocument source = new org.apache.pdfbox.pdmodel.PDDocument();
@@ -152,7 +161,8 @@ class PdfEditorTest {
         } finally { Files.deleteIfExists(file); }
     }
 
-    @Test void replacesSimpleTextWithoutRasterizationAndUsesConfiguredFallback() throws Throwable {
+    @Test
+    void replacesSimpleTextWithoutRasterizationAndUsesConfiguredFallback() throws Throwable {
         PdfBoxBackendProvider backend = new PdfBoxBackendProvider();
         try (PdfDocument document = backend.create()) {
             document.addText(0, "Original", 50, 700, 12);
@@ -166,7 +176,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void signsAndValidatesWithTrustedCertificate() throws Throwable {
+    @Test
+    void signsAndValidatesWithTrustedCertificate() throws Throwable {
         Path source = Files.createTempFile("pdf-unsigned-", ".pdf");
         Path signed = Files.createTempFile("pdf-signed-", ".pdf");
         Path storeFile = Files.createTempFile("pdf-key-", ".p12");
@@ -188,9 +199,12 @@ class PdfEditorTest {
             PdfBoxSignatureProvider signatures = new PdfBoxSignatureProvider();
             signatures.sign(source, signed, storeFile, password, "Test");
             PdfTrustProvider trust = new PdfTrustProvider() {
-                @Override public String id() { return "test"; }
-                @Override public Set<TrustAnchor> anchors() { return Set.of(new TrustAnchor(certificate, null)); }
-                @Override public boolean checkRevocation() { return false; }
+                @Override
+                public String id() { return "test"; }
+                @Override
+                public Set<TrustAnchor> anchors() { return Set.of(new TrustAnchor(certificate, null)); }
+                @Override
+                public boolean checkRevocation() { return false; }
             };
             assertEquals(PdfSignatureStatus.VALID, signatures.validate(signed, trust).getFirst().status());
             Files.write(signed, new byte[]{'X'}, java.nio.file.StandardOpenOption.APPEND);
@@ -202,7 +216,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void pdfBoxRoundTripPreservesPagesTextAnnotationsAndForms() throws Throwable {
+    @Test
+    void pdfBoxRoundTripPreservesPagesTextAnnotationsAndForms() throws Throwable {
         Path file = Files.createTempFile("pdf-editor-", ".pdf");
         Path picture = Files.createTempFile("pdf-picture-", ".png");
         BufferedImage pixel = new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB);
@@ -243,7 +258,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void editorUndoReturnsToCleanStateAndCanSaveAndOpen() throws Throwable {
+    @Test
+    void editorUndoReturnsToCleanStateAndCanSaveAndOpen() throws Throwable {
         PdfEditor editor = createEditor();
         Path file = Files.createTempFile("pdf-editor-save-", ".pdf");
         try {
@@ -266,7 +282,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void geometryMapsRotatedPagesBackToPdfPoints() {
+    @Test
+    void geometryMapsRotatedPagesBackToPdfPoints() {
         for (int rotation : new int[]{0, 90, 180, 270}) {
             PdfPageGeometry geometry = new PdfPageGeometry(10, 20, 600, 800, rotation, 1.5);
             for (float[] point : new float[][]{{10, 20}, {310, 420}, {610, 820}}) {
@@ -282,7 +299,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void pageMappingsSupportStructuralUndo() {
+    @Test
+    void pageMappingsSupportStructuralUndo() {
         int[] moved = PdfChange.moved(4, 0, 2);
         assertArrayEquals(new int[]{2, 0, 1, 3}, moved);
         PdfChange forward = PdfChange.structure(PdfChange.removed(3, 1));
@@ -291,7 +309,8 @@ class PdfEditorTest {
         assertArrayEquals(new int[]{0, 1, 3, 4}, PdfChange.inserted(4, 2, 1));
     }
 
-    @Test void selectionOperationsRemoveContentAndKeepEditableAnnotations() throws Throwable {
+    @Test
+    void selectionOperationsRemoveContentAndKeepEditableAnnotations() throws Throwable {
         Path file = Files.createTempFile("pdf-selection-", ".pdf");
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addText(0, "REMOVE", 50, 700, 12);
@@ -316,7 +335,8 @@ class PdfEditorTest {
         } finally { Files.deleteIfExists(file); }
     }
 
-    @Test void areaTransformMovesPixelsAndRemovesOriginalTextLayer() throws Throwable {
+    @Test
+    void areaTransformMovesPixelsAndRemovesOriginalTextLayer() throws Throwable {
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addText(0, "MOVE", 50, 700, 14);
             assertTrue(document.pageElements(0).stream().anyMatch(element -> element.type().equals("Text") && element.text().contains("MOVE")));
@@ -329,7 +349,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void importedTextIsDeletedWithoutRasterizingThePage() throws Throwable {
+    @Test
+    void importedTextIsDeletedWithoutRasterizingThePage() throws Throwable {
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addText(0, "DELETE these words", 60, 620, 16);
             PdfPageElement word = document.pageElements(0).stream()
@@ -343,7 +364,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void textWordsMoveAndDuplicateAsVectorContent() throws Throwable {
+    @Test
+    void textWordsMoveAndDuplicateAsVectorContent() throws Throwable {
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addText(0, "Alpha Beta", 60, 600, 18);
             PdfPageElement beta = document.pageElements(0).stream().filter(element -> element.text().equals("Beta")).findFirst().orElseThrow();
@@ -357,7 +379,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void annotationsCanBeStyledDuplicatedRotatedAndCopied() throws Throwable {
+    @Test
+    void annotationsCanBeStyledDuplicatedRotatedAndCopied() throws Throwable {
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addShape(0, PdfShapeKind.ELLIPSE, new Rectangle2D.Float(100, 100, 80, 40), PdfShapeStyle.defaults());
             document.addLine(0, 50, 50, 150, 80, true, PdfShapeStyle.defaults());
@@ -375,7 +398,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void textBoxesAndImageStampsAreEditableObjects() throws Throwable {
+    @Test
+    void textBoxesAndImageStampsAreEditableObjects() throws Throwable {
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             PdfTextStyle style = PdfTextStyle.defaults().withSize(16).withBold(true).withColor(Color.BLUE);
             document.addTextBox(0, new Rectangle2D.Float(72, 700, 0, 0), "Olá, edição\nsegunda linha", style);
@@ -393,7 +417,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void eraserEditsPartiallyCoveredImagesInsteadOfRasterizingThePage() throws Throwable {
+    @Test
+    void eraserEditsPartiallyCoveredImagesInsteadOfRasterizingThePage() throws Throwable {
         Path picture = Files.createTempFile("pdf-erase-", ".png");
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             BufferedImage red = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
@@ -413,7 +438,8 @@ class PdfEditorTest {
         } finally { Files.deleteIfExists(picture); }
     }
 
-    @Test void eraserRemovesEverythingItTouchesIncludingFormFields() throws Exception {
+    @Test
+    void eraserRemovesEverythingItTouchesIncludingFormFields() throws Exception {
         Path file = Files.createTempFile("pdf-eraser-fields-", ".pdf");
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addCheckBox(0, "aceite", 100, 600, 20);
@@ -437,7 +463,8 @@ class PdfEditorTest {
         } finally { Files.deleteIfExists(file); }
     }
 
-    @Test void formFieldsCanBeRenamedAndHaveTheirOptionsEdited() throws Exception {
+    @Test
+    void formFieldsCanBeRenamedAndHaveTheirOptionsEdited() throws Exception {
         Path file = Files.createTempFile("pdf-fields-edit-", ".pdf");
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addRadioGroup(0, "prioridade", List.of("Baixa", "Alta"), 100, 600, 18, 6);
@@ -471,7 +498,8 @@ class PdfEditorTest {
         } finally { Files.deleteIfExists(file); }
     }
 
-    @Test void contextMenuOffersFieldSpecificActions() throws Throwable {
+    @Test
+    void contextMenuOffersFieldSpecificActions() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             onEdt(() -> {
@@ -487,7 +515,8 @@ class PdfEditorTest {
         } finally { SwingUtilities.invokeAndWait(editor::close); }
     }
 
-    @Test void derivesANewPdfWithOnlyTheChosenPagesAndTheirFields() throws Exception {
+    @Test
+    void derivesANewPdfWithOnlyTheChosenPagesAndTheirFields() throws Exception {
         Path file = Files.createTempFile("pdf-extract-", ".pdf");
         try (PdfDocument document = new PdfBoxBackendProvider().create()) {
             document.addText(0, "Primeira", 72, 700, 14);
@@ -511,7 +540,8 @@ class PdfEditorTest {
         assertThrows(IllegalArgumentException.class, () -> dtm.stools.component.panels.editor.pdf.command.PdfCommandCatalog.parsePages("9", 5));
     }
 
-    @Test void thumbnailsSupportMultiplePageSelection() throws Throwable {
+    @Test
+    void thumbnailsSupportMultiplePageSelection() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             onEdt(() -> {
@@ -530,7 +560,8 @@ class PdfEditorTest {
         } finally { SwingUtilities.invokeAndWait(editor::close); }
     }
 
-    @Test void editorDeletesSelectionAndUndoRestoresIt() throws Throwable {
+    @Test
+    void editorDeletesSelectionAndUndoRestoresIt() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             onEdt(() -> {
@@ -551,7 +582,8 @@ class PdfEditorTest {
         } finally { SwingUtilities.invokeAndWait(editor::close); }
     }
 
-    @Test void textToolCreatesTextBoxAtTheClickedPoint() throws Throwable {
+    @Test
+    void textToolCreatesTextBoxAtTheClickedPoint() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             onEdt(() -> {
@@ -571,7 +603,8 @@ class PdfEditorTest {
         } finally { SwingUtilities.invokeAndWait(editor::close); }
     }
 
-    @Test void renderSchedulerKeepsPreviousImageUntilTheNewOneIsReady() throws Throwable {
+    @Test
+    void renderSchedulerKeepsPreviousImageUntilTheNewOneIsReady() throws Throwable {
         try (PdfDocument document = new PdfBoxBackendProvider().create();
              PdfRenderScheduler scheduler = new PdfRenderScheduler(() -> document,
                      page -> new PdfPageGeometry(0, 0, document.pageWidth(page), document.pageHeight(page), 0, 1), () -> 4)) {
@@ -592,7 +625,8 @@ class PdfEditorTest {
         }
     }
 
-    @Test void editingOnePageKeepsOtherPagesCached() throws Throwable {
+    @Test
+    void editingOnePageKeepsOtherPagesCached() throws Throwable {
         PdfEditor editor = createEditor();
         try {
             onEdt(() -> editor.insertBlankPage(1));
@@ -613,7 +647,8 @@ class PdfEditorTest {
         } finally { SwingUtilities.invokeAndWait(editor::close); }
     }
 
-    @Test void uiFactoryAndElementFactoryCanBeInstalledAndRemoved() throws Throwable {
+    @Test
+    void uiFactoryAndElementFactoryCanBeInstalledAndRemoved() throws Throwable {
         AtomicReference<PdfCanvas> created = new AtomicReference<>();
         PdfUiFactory ui = owner -> {
             PdfCanvas canvas = new PdfCanvas(owner);
@@ -626,9 +661,12 @@ class PdfEditorTest {
         try {
             assertNotNull(created.get());
             PdfElementFactory factory = new PdfElementFactory() {
-                @Override public String id() { return "test.element"; }
-                @Override public String title() { return "Marca"; }
-                @Override public void insert(PdfEditor owner, PdfPlacement placement) throws java.io.IOException {
+                @Override
+                public String id() { return "test.element"; }
+                @Override
+                public String title() { return "Marca"; }
+                @Override
+                public void insert(PdfEditor owner, PdfPlacement placement) throws java.io.IOException {
                     owner.addSquare(placement.page(), placement.point().x, placement.point().y, 20, 20);
                 }
             };

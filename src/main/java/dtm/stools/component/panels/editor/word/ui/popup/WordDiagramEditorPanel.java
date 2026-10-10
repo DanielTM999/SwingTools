@@ -22,7 +22,8 @@ public final class WordDiagramEditorPanel extends WordPropertiesPanel<WordDiagra
     private final JLabel error = new JLabel(" ");
     private WordDiagram last;
     private final JComponent preview = new JComponent() {
-        @Override protected void paintComponent(Graphics g) {
+        @Override
+        protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D)g.create();
             try {
                 g2.setColor(Color.WHITE); g2.fillRect(0,0,getWidth(),getHeight());
@@ -61,6 +62,8 @@ public final class WordDiagramEditorPanel extends WordPropertiesPanel<WordDiagra
         WordDiagram parsed = WordDiagram.parse(gallery.getSelectedValue() == null ? diagram.layout() : gallery.getSelectedValue(),outline.getText());
         return diagram.withLayout(parsed.layout()).withNodes(parsed.nodes()).withColor(color.color()).resize(value(width),value(height));
     }
-    @Override public String title() { return "Diagrama"; }
-    @Override public WordDiagram result() { return build().withPlacement(placement.get()).withAltText(alt.getText().strip()); }
+    @Override
+    public String title() { return "Diagrama"; }
+    @Override
+    public WordDiagram result() { return build().withPlacement(placement.get()).withAltText(alt.getText().strip()); }
 }

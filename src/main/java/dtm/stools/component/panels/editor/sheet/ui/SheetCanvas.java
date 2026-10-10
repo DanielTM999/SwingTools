@@ -114,13 +114,20 @@ public class SheetCanvas extends JComponent implements Accessible {
         marquee = new Timer(120, e -> { marqueePhase = (marqueePhase + 1) % 8; if (editor.copySource() != null) repaintMarquee(); });
         autoScroll = new Timer(50, e -> autoScrollStep());
         MouseAdapter mouse = new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { press(e); }
-            @Override public void mouseDragged(MouseEvent e) { dragged(e); }
-            @Override public void mouseReleased(MouseEvent e) { release(e); }
-            @Override public void mouseMoved(MouseEvent e) { moved(e); }
-            @Override public void mouseClicked(MouseEvent e) { clicked(e); }
-            @Override public void mouseWheelMoved(MouseWheelEvent e) { wheel(e); }
-            @Override public void mouseExited(MouseEvent e) { setCursor(Cursor.getDefaultCursor()); }
+            @Override
+            public void mousePressed(MouseEvent e) { press(e); }
+            @Override
+            public void mouseDragged(MouseEvent e) { dragged(e); }
+            @Override
+            public void mouseReleased(MouseEvent e) { release(e); }
+            @Override
+            public void mouseMoved(MouseEvent e) { moved(e); }
+            @Override
+            public void mouseClicked(MouseEvent e) { clicked(e); }
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) { wheel(e); }
+            @Override
+            public void mouseExited(MouseEvent e) { setCursor(Cursor.getDefaultCursor()); }
         };
         addMouseListener(mouse);
         addMouseMotionListener(mouse);
@@ -208,7 +215,8 @@ public class SheetCanvas extends JComponent implements Accessible {
         else setScroll(scrollX, scrollY + direction * (long) ((getHeight() - g.bodyY()) / g.zoom()));
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(900, 520); }
+    @Override
+    public Dimension getPreferredSize() { return new Dimension(900, 520); }
 
     @Override
     protected void paintComponent(Graphics graphics) {
@@ -1157,9 +1165,12 @@ public class SheetCanvas extends JComponent implements Accessible {
     @Override
     public AccessibleContext getAccessibleContext() {
         if (accessibleContext == null) accessibleContext = new AccessibleJComponent() {
-            @Override public AccessibleRole getAccessibleRole() { return AccessibleRole.TABLE; }
-            @Override public String getAccessibleName() { return "Planilha " + editor.getSession().getActiveSheet().name(); }
-            @Override public String getAccessibleDescription() {
+            @Override
+            public AccessibleRole getAccessibleRole() { return AccessibleRole.TABLE; }
+            @Override
+            public String getAccessibleName() { return "Planilha " + editor.getSession().getActiveSheet().name(); }
+            @Override
+            public String getAccessibleDescription() {
                 CellAddress a = editor.getSession().getSelection().active();
                 return a.toA1() + ": " + editor.displayText(a);
             }

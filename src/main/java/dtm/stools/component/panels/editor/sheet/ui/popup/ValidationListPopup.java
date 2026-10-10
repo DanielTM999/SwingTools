@@ -26,9 +26,12 @@ public final class ValidationListPopup {
         int idx = items.indexOf(current);
         if (idx >= 0) { list.setSelectedIndex(idx); list.ensureIndexIsVisible(idx); }
         Runnable accept = () -> { String v = list.getSelectedValue(); popup.setVisible(false); if (v != null) pick.accept(v); };
-        list.addMouseListener(new MouseAdapter() { @Override public void mouseReleased(MouseEvent e) { accept.run(); } });
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) { accept.run(); } });
         list.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) {
+            @Override
+            public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) { e.consume(); accept.run(); }
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) { e.consume(); popup.setVisible(false); }
             }

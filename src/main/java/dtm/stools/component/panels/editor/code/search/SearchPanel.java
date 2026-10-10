@@ -388,7 +388,8 @@ public class SearchPanel extends JPanel {
         ActionMap am = getActionMap();
         im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "search.close");
         am.put("search.close", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) { editor.hideSearchPanel(); }
+            @Override
+            public void actionPerformed(ActionEvent e) { editor.hideSearchPanel(); }
         });
     }
 

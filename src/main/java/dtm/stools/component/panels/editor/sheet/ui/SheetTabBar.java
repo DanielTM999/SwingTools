@@ -45,23 +45,29 @@ public class SheetTabBar extends JComponent {
         setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         setToolTipText("");
         MouseAdapter m = new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { press(e); }
-            @Override public void mouseDragged(MouseEvent e) { if (dragIndex >= 0) { dropIndex = dropAt(e.getX()); repaint(); } }
-            @Override public void mouseReleased(MouseEvent e) {
+            @Override
+            public void mousePressed(MouseEvent e) { press(e); }
+            @Override
+            public void mouseDragged(MouseEvent e) { if (dragIndex >= 0) { dropIndex = dropAt(e.getX()); repaint(); } }
+            @Override
+            public void mouseReleased(MouseEvent e) {
                 if (e.isPopupTrigger()) popup(e);
                 if (dragIndex >= 0 && dropIndex >= 0 && dropIndex != dragIndex && dropIndex != dragIndex + 1) editor.moveSheet(dragIndex, dropIndex > dragIndex ? dropIndex - 1 : dropIndex);
                 dragIndex = -1; dropIndex = -1; repaint();
             }
-            @Override public void mouseWheelMoved(java.awt.event.MouseWheelEvent e) { scrollTabs(e.getWheelRotation()); }
+            @Override
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent e) { scrollTabs(e.getWheelRotation()); }
         };
         addMouseListener(m);
         addMouseMotionListener(m);
         addMouseWheelListener(m);
     }
 
-    @Override public Dimension getPreferredSize() { return new Dimension(420, 30); }
+    @Override
+    public Dimension getPreferredSize() { return new Dimension(420, 30); }
 
-    @Override public String getToolTipText(MouseEvent e) {
+    @Override
+    public String getToolTipText(MouseEvent e) {
         if (addButton != null && addButton.contains(e.getPoint())) return "Nova planilha (Shift+F11)";
         Tab t = tabAt(e.getX(), e.getY());
         return t == null ? null : editor.getSession().getWorkbook().sheet(t.index()).name();
@@ -123,9 +129,12 @@ public class SheetTabBar extends JComponent {
             editor.getCanvas().requestFocusInWindow();
         };
         renameField.addActionListener(e -> finish.run());
-        renameField.addFocusListener(new FocusAdapter() { @Override public void focusLost(FocusEvent e) { finish.run(); } });
+        renameField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) { finish.run(); } });
         renameField.addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) {
+            @Override
+            public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) { JTextField f = renameField; renameField = null; remove(f); repaint(); editor.getCanvas().requestFocusInWindow(); }
             }
         });

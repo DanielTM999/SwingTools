@@ -23,7 +23,8 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.*;
 
 class NewControlsVisualTest {
-    @Test void rendersNewComponentsInBothThemesAndThreeScales() throws Exception {
+    @Test
+    void rendersNewComponentsInBothThemesAndThreeScales() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             LookAndFeel original = UIManager.getLookAndFeel(); float originalScale = UiTokens.getScaleFactor();
             try {

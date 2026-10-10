@@ -11,9 +11,11 @@ final class PdfRenderTask implements Runnable, Comparable<PdfRenderTask> {
         this.body = body;
     }
 
-    @Override public void run() { body.run(); }
+    @Override
+    public void run() { body.run(); }
 
-    @Override public int compareTo(PdfRenderTask other) {
+    @Override
+    public int compareTo(PdfRenderTask other) {
         int order = Integer.compare(other.priority, priority);
         return order != 0 ? order : Long.compare(other.sequence, sequence);
     }

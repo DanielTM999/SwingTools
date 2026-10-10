@@ -8,7 +8,8 @@ import java.util.Map;
 public final class Formulas {
     private static final int CACHE_SIZE = 8192;
     private static final Map<String, FormulaNode> CACHE = new LinkedHashMap<>(256, .75f, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, FormulaNode> eldest) { return size() > CACHE_SIZE; }
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, FormulaNode> eldest) { return size() > CACHE_SIZE; }
     };
 
     private Formulas() {}

@@ -76,7 +76,9 @@ public class PdfRibbon extends JPanel {
         for (PdfRibbonTab tab : PdfRibbonLayout.defaults(editor, this)) addTab(tab);
         select(tabs.stream().anyMatch(tab -> tab.id().equals("home")) ? "home" : tabs.getFirst().id());
         rebuildQuickAccess();
-        addComponentListener(new ComponentAdapter() { @Override public void componentResized(ComponentEvent event) { adapt(); } });
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent event) { adapt(); } });
     }
 
     public void addTab(PdfRibbonTab tab) {

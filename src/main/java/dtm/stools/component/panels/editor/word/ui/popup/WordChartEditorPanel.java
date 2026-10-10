@@ -34,7 +34,8 @@ public final class WordChartEditorPanel extends WordPropertiesPanel<WordChart> {
         JPanel legendRow = new JPanel(new FlowLayout(FlowLayout.LEADING,0,0)); legendRow.setOpaque(false);
         legend.setSelected(chart.legend()); legend.setOpaque(false); legendPosition.setSelectedItem(chart.legendPosition());
         legendPosition.setRenderer(new DefaultListCellRenderer() {
-            @Override public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus) {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean selected,boolean focus) {
                 String label=value instanceof WordChart.LegendPosition position ? switch(position) {
                     case RIGHT -> "À direita";case BOTTOM -> "Abaixo";case TOP -> "Acima";case LEFT -> "À esquerda";
                 } : "";
@@ -76,7 +77,8 @@ public final class WordChartEditorPanel extends WordPropertiesPanel<WordChart> {
         wide(tools,0);
         wide(scroll,1);
         preview = new JComponent() {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D)g.create();
                 try {
                     WordChart c = last; float s = Math.min(getWidth()/c.width(),getHeight()/c.height());
@@ -136,8 +138,10 @@ public final class WordChartEditorPanel extends WordPropertiesPanel<WordChart> {
         catch (NumberFormatException e) { throw new IllegalArgumentException("Valor inválido na linha " + row + ", série " + (series+1) + ": " + value); }
     }
     private static String format(double v) { return v == Math.rint(v) && Math.abs(v) < 1e12 ? Long.toString((long)v) : Double.toString(v).replace('.',','); }
-    @Override public String title() { return "Dados e formatação do gráfico"; }
-    @Override public WordChart result() {
+    @Override
+    public String title() { return "Dados e formatação do gráfico"; }
+    @Override
+    public WordChart result() {
         if (grid.isEditing()) grid.getCellEditor().stopCellEditing();
         return build().withPlacement(placement.get());
     }

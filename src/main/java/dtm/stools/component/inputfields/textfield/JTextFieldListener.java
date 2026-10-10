@@ -6,6 +6,8 @@ import dtm.stools.component.events.EventSubscription;
 import dtm.stools.component.events.EventType;
 
 import dtm.stools.component.icon.FittedIcon;
+import dtm.stools.component.inputfields.textfield.layout.FieldLayoutManager;
+import dtm.stools.component.inputfields.textfield.layout.FieldLayoutTarget;
 import dtm.stools.utils.ColorUtils;
 import dtm.stools.utils.PaintUtils;
 
@@ -26,21 +28,26 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class JTextFieldListener extends JTextField implements EventListenerComponent {
+public class JTextFieldListener extends JTextField implements EventListenerComponent, FieldLayoutTarget {
 
-    @Override public javax.accessibility.AccessibleContext getAccessibleContext() {
+    @Override
+    public javax.accessibility.AccessibleContext getAccessibleContext() {
         if (accessibleContext == null) accessibleContext = new AccessibleClearTextField();
         return accessibleContext;
     }
 
     protected class AccessibleClearTextField extends AccessibleJTextField implements javax.accessibility.AccessibleAction {
-        @Override public javax.accessibility.AccessibleAction getAccessibleAction() { return this; }
-        @Override public int getAccessibleActionCount() { return super.getAccessibleActionCount() + (isClearButtonVisible() ? 1 : 0); }
-        @Override public String getAccessibleActionDescription(int index) {
+        @Override
+        public javax.accessibility.AccessibleAction getAccessibleAction() { return this; }
+        @Override
+        public int getAccessibleActionCount() { return super.getAccessibleActionCount() + (isClearButtonVisible() ? 1 : 0); }
+        @Override
+        public String getAccessibleActionDescription(int index) {
             if (index >= 0 && index < super.getAccessibleActionCount()) return super.getAccessibleActionDescription(index);
             return index == super.getAccessibleActionCount() && isClearButtonVisible() ? dtm.stools.i18n.I18n.getText(JTextFieldListener.class, "clear", "Limpar texto") : null;
         }
-        @Override public boolean doAccessibleAction(int index) {
+        @Override
+        public boolean doAccessibleAction(int index) {
             if (index >= 0 && index < super.getAccessibleActionCount()) return super.doAccessibleAction(index);
             if (index != super.getAccessibleActionCount() || !isClearButtonVisible()) return false;
             if (SwingUtilities.isEventDispatchThread()) performClear();
@@ -75,6 +82,10 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
     private Icon clearIcon;
     private Color clearIconColor;
 
+    private String label = "";
+    private FieldLayoutManager fieldLayoutManager;
+    private boolean originalOpaque;
+
     private Rectangle clearBounds;
     private boolean clearHovered;
     private boolean clearPressed;
@@ -85,10 +96,108 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
     private int tintCacheSize;
 
     private final DocumentListener repaintOnTextChange = new DocumentListener() {
-        @Override public void insertUpdate(DocumentEvent e) { repaint(); }
-        @Override public void removeUpdate(DocumentEvent e) { repaint(); }
-        @Override public void changedUpdate(DocumentEvent e) { repaint(); }
+        @Override
+        public void insertUpdate(DocumentEvent e) { fieldContentChanged(); }
+        @Override
+        public void removeUpdate(DocumentEvent e) { fieldContentChanged(); }
+        @Override
+        public void changedUpdate(DocumentEvent e) { fieldContentChanged(); }
     };
+
+    @Override
+    public JTextField getFieldComponent() { return this; }
+
+    @Override
+    public String getLabel() { return label == null ? "" : label; }
+
+    public void setLabel(String label) {
+        String previous = getLabel();
+        this.label = label == null ? "" : label;
+        getAccessibleContext().setAccessibleName(this.label);
+        firePropertyChange("label", previous, this.label);
+        refreshLayout();
+    }
+
+    public FieldLayoutManager getFieldLayoutManager() { return fieldLayoutManager; }
+
+    /** null restaura o visual convencional; chamadas repetidas com a mesma instância são inócuas. */
+    public void setFieldLayoutManager(FieldLayoutManager next) {
+        FieldLayoutManager previous = fieldLayoutManager;
+        if (previous == next) return;
+        if (previous == null) originalOpaque = isOpaque();
+        if (previous != null) previous.uninstall(this);
+        fieldLayoutManager = next;
+        try {
+            if (next != null) {
+                setOpaque(false);
+                next.install(this);
+            } else {
+                setOpaque(originalOpaque);
+            }
+        } catch (RuntimeException | Error failure) {
+            fieldLayoutManager = previous;
+            if (previous != null) previous.install(this);
+            else setOpaque(originalOpaque);
+            refreshLayout();
+            throw failure;
+        }
+        clearBounds = null;
+        clearHovered = clearPressed = false;
+        firePropertyChange("fieldLayoutManager", previous, next);
+        refreshLayout();
+    }
+
+    /** Subclasses com máscaras podem definir vazio a partir do valor limpo. */
+    @Override
+    public boolean isFieldContentEmpty() { return getText() == null || getText().isEmpty(); }
+
+    /** Área útil do editor após margens, ícone e botão de limpar. */
+    @Override
+    public Rectangle getFieldContentBounds() {
+        Insets insets = getInsets();
+        return new Rectangle(insets.left, insets.top,
+                Math.max(0, getWidth() - insets.left - insets.right),
+                Math.max(0, getHeight() - insets.top - insets.bottom));
+    }
+
+    protected boolean isFieldEditorVisible() { return true; }
+
+    protected boolean isFieldPlaceholderVisible() {
+        return isFieldEditorVisible() && (fieldLayoutManager == null
+                || fieldLayoutManager.isPlaceholderVisible(this));
+    }
+
+    private Insets decorationInsets() {
+        return fieldLayoutManager == null ? super.getInsets() : fieldLayoutManager.getInsets(this);
+    }
+
+    private void fieldContentChanged() {
+        if (fieldLayoutManager != null) fieldLayoutManager.fieldChanged(this);
+        repaint();
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        if (fieldLayoutManager != null) {
+            setOpaque(false);
+            fieldLayoutManager.themeChanged(this);
+        }
+    }
+
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension natural = super.getPreferredSize();
+        return fieldLayoutManager == null || isPreferredSizeSet() ? natural
+                : fieldLayoutManager.getPreferredSize(this, natural);
+    }
+
+    @Override
+    public Dimension getMinimumSize() {
+        Dimension natural = super.getMinimumSize();
+        return fieldLayoutManager == null || isMinimumSizeSet() ? natural
+                : fieldLayoutManager.getMinimumSize(this, natural);
+    }
 
     public Icon getIcon() {
         return icon;
@@ -148,17 +257,17 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
 
     @Override
     public Insets getInsets() {
-        Insets insets = super.getInsets();
+        Insets insets = decorationInsets();
         return new Insets(insets.top, insets.left + leadingExtent(),
                 insets.bottom, insets.right + trailingExtent());
     }
 
     @Override
     public Insets getInsets(Insets insets) {
-        Insets resolved = super.getInsets(insets);
-        resolved.left += leadingExtent();
-        resolved.right += trailingExtent();
-        return resolved;
+        if (insets == null) return getInsets();
+        Insets resolved = getInsets();
+        insets.set(resolved.top, resolved.left, resolved.bottom, resolved.right);
+        return insets;
     }
 
     @Override
@@ -171,6 +280,7 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
         if (document != null && repaintOnTextChange != null) {
             document.addDocumentListener(repaintOnTextChange);
         }
+        fieldContentChanged();
     }
 
     @Override
@@ -187,7 +297,26 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+        if (fieldLayoutManager == null) {
+            if (isFieldEditorVisible()) super.paintComponent(g);
+            else {
+                g.setColor(getBackground());
+                g.fillRect(0, 0, getWidth(), getHeight());
+            }
+        } else {
+            Graphics2D background = PaintUtils.antialias((Graphics2D) g.create());
+            try { fieldLayoutManager.paintBackground(background, this); }
+            finally { background.dispose(); }
+            if (isFieldEditorVisible()) {
+                Graphics content = g.create();
+                try {
+                    Rectangle bounds = getFieldContentBounds();
+                    content.clipRect(bounds.x, bounds.y, bounds.width, bounds.height);
+                    super.paintComponent(content);
+                } finally { content.dispose(); }
+            }
+        }
+        if (!isFieldEditorVisible()) { clearBounds = null; return; }
         Graphics2D g2 = PaintUtils.antialias((Graphics2D) g.create());
         try {
             paintLeadingIcon(g2);
@@ -195,6 +324,23 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
         } finally {
             g2.dispose();
         }
+    }
+
+    @Override
+    protected void paintBorder(Graphics g) {
+        if (fieldLayoutManager == null) { super.paintBorder(g); return; }
+        Graphics2D g2 = PaintUtils.antialias((Graphics2D) g.create());
+        try { fieldLayoutManager.paintBorder(g2, this); }
+        finally { g2.dispose(); }
+    }
+
+    @Override
+    protected void paintChildren(Graphics g) {
+        super.paintChildren(g);
+        if (fieldLayoutManager == null) return;
+        Graphics2D g2 = PaintUtils.antialias((Graphics2D) g.create());
+        try { fieldLayoutManager.paintOverlay(g2, this); }
+        finally { g2.dispose(); }
     }
 
     protected void performClear() {
@@ -225,19 +371,21 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
     }
 
     private void refreshLayout() {
+        clearBounds = null;
         revalidate();
         repaint();
     }
 
     private void paintLeadingIcon(Graphics2D g2) {
         if (icon == null) return;
-        Insets insets = super.getInsets();
+        Insets insets = decorationInsets();
         int available = getHeight() - insets.top - insets.bottom;
         if (available <= 0) return;
         Icon resolved = resolveIcon(available);
         if (resolved == null) return;
         int x = insets.left;
-        int y = (getHeight() - resolved.getIconHeight()) / 2;
+        int y = fieldLayoutManager == null ? (getHeight() - resolved.getIconHeight()) / 2
+                : insets.top + (available - resolved.getIconHeight()) / 2;
         resolved.paintIcon(this, g2, x, y);
     }
 
@@ -246,7 +394,7 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
             clearBounds = null;
             return;
         }
-        Insets insets = super.getInsets();
+        Insets insets = decorationInsets();
         int available = getHeight() - insets.top - insets.bottom;
         if (available <= 0) {
             clearBounds = null;
@@ -257,7 +405,8 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
                 : Math.min(DEFAULT_CLEAR_SIZE, Math.max(8, available));
         int width = clearIcon != null ? Math.max(1, clearIcon.getIconWidth()) : size;
         int x = getWidth() - insets.right - width;
-        int y = (getHeight() - size) / 2;
+        int y = fieldLayoutManager == null ? (getHeight() - size) / 2
+                : insets.top + (available - size) / 2;
         clearBounds = new Rectangle(x - 3, y - 3, width + 6, size + 6);
 
         if (clearIcon != null) {
@@ -452,9 +601,16 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
     @Override
     public void addNotify() {
         super.addNotify();
+        if (fieldLayoutManager != null) fieldLayoutManager.fieldShown(this);
         SwingUtilities.invokeLater(() -> {
             dispachEvent(EventType.LOAD, this, this);
         });
+    }
+
+    @Override
+    public void removeNotify() {
+        if (fieldLayoutManager != null) fieldLayoutManager.fieldRemoved(this);
+        super.removeNotify();
     }
 
     protected void registerValidEvents(Set<String> events){

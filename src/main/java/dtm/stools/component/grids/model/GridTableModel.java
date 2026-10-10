@@ -13,10 +13,12 @@ public abstract class GridTableModel<T> extends AbstractTableModel {
     public record Edit<T>(T item, int row, int column, Object oldValue, Object newValue) {}
 
     private record CacheKey(Object item, String key) {
-        @Override public boolean equals(Object other) {
+        @Override
+        public boolean equals(Object other) {
             return other instanceof CacheKey cell && cell.item == item && cell.key.equals(key);
         }
-        @Override public int hashCode() { return System.identityHashCode(item) * 31 + key.hashCode(); }
+        @Override
+        public int hashCode() { return System.identityHashCode(item) * 31 + key.hashCode(); }
     }
 
     private final Map<CacheKey, Object> referenceValueTableMap;
@@ -33,7 +35,8 @@ public abstract class GridTableModel<T> extends AbstractTableModel {
         this.allowEditGetter = allowEditGetter == null ? () -> false : allowEditGetter;
         this.columns = validated(columns);
         this.referenceValueTableMap = new LinkedHashMap<>(64, 0.75f, true) {
-            @Override protected boolean removeEldestEntry(Map.Entry<CacheKey, Object> eldest) { return size() > 512; }
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<CacheKey, Object> eldest) { return size() > 512; }
         };
     }
 

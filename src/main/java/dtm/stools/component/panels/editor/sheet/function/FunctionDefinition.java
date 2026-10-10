@@ -36,15 +36,24 @@ public final class FunctionDefinition implements SheetFunction {
     public static Builder raw(String name, FunctionCategory category, int min, int max, RawBody body) { return new Builder(name, category, min, max).raw(body); }
     public static Builder scalar(String name, FunctionCategory category, int min, int max, ScalarBody body) { return new Builder(name, category, min, max).scalar(body); }
 
-    @Override public String name() { return name; }
-    @Override public FunctionCategory category() { return category; }
-    @Override public int minArgs() { return min; }
-    @Override public int maxArgs() { return max; }
-    @Override public boolean isVolatile() { return volatileFlag; }
-    @Override public boolean returnsReference() { return returnsReference; }
-    @Override public FunctionOrigin origin() { return origin; }
-    @Override public String description() { return description; }
-    @Override public List<String> parameters() { return parameters; }
+    @Override
+    public String name() { return name; }
+    @Override
+    public FunctionCategory category() { return category; }
+    @Override
+    public int minArgs() { return min; }
+    @Override
+    public int maxArgs() { return max; }
+    @Override
+    public boolean isVolatile() { return volatileFlag; }
+    @Override
+    public boolean returnsReference() { return returnsReference; }
+    @Override
+    public FunctionOrigin origin() { return origin; }
+    @Override
+    public String description() { return description; }
+    @Override
+    public List<String> parameters() { return parameters; }
 
     @Override
     public CellValue call(FunctionContext context, FunctionArgs args) {

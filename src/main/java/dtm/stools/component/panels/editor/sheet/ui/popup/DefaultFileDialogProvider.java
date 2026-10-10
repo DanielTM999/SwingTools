@@ -11,7 +11,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 public final class DefaultFileDialogProvider implements SheetFileDialogProvider {
-    @Override public String id() { return "sheet.popup.files.default"; }
+    @Override
+    public String id() { return "sheet.popup.files.default"; }
 
     @Override
     public Optional<Path> choose(SheetFileDialogRequest request) {

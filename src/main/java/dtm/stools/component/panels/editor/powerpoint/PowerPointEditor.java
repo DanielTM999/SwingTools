@@ -87,10 +87,14 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         if(!GraphicsEnvironment.isHeadless())thumbnails.setDragEnabled(true);
         thumbnails.setDropMode(DropMode.INSERT);
         thumbnails.setTransferHandler(new TransferHandler(){
-            @Override protected Transferable createTransferable(JComponent source){return new StringSelection(Integer.toString(thumbnails.getSelectedIndex()));}
-            @Override public int getSourceActions(JComponent source){return MOVE;}
-            @Override public boolean canImport(TransferSupport support){return support.isDrop()&&support.isDataFlavorSupported(DataFlavor.stringFlavor)&&!session.isReadOnly();}
-            @Override public boolean importData(TransferSupport support){
+            @Override
+            protected Transferable createTransferable(JComponent source){return new StringSelection(Integer.toString(thumbnails.getSelectedIndex()));}
+            @Override
+            public int getSourceActions(JComponent source){return MOVE;}
+            @Override
+            public boolean canImport(TransferSupport support){return support.isDrop()&&support.isDataFlavorSupported(DataFlavor.stringFlavor)&&!session.isReadOnly();}
+            @Override
+            public boolean importData(TransferSupport support){
                 if(!canImport(support))return false;
                 try{int from=Integer.parseInt((String)support.getTransferable().getTransferData(DataFlavor.stringFlavor));
                     int drop=((JList.DropLocation)support.getDropLocation()).getIndex();
@@ -101,8 +105,10 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         });
         thumbnails.addListSelectionListener(e->{if(!updatingUi&&!e.getValueIsAdjusting()&&thumbnails.getSelectedIndex()>=0)session.selectSlide(thumbnails.getSelectedIndex());});
         thumbnails.addMouseListener(new MouseAdapter(){
-            @Override public void mousePressed(MouseEvent e){showSlideMenu(e);}
-            @Override public void mouseReleased(MouseEvent e){showSlideMenu(e);}
+            @Override
+            public void mousePressed(MouseEvent e){showSlideMenu(e);}
+            @Override
+            public void mouseReleased(MouseEvent e){showSlideMenu(e);}
         });
         west.setName("powerpoint.slides.sidebar");west.setBackground(UiTokens.background());
         west.setBorder(BorderFactory.createMatteBorder(0,0,0,1,UiTokens.border()));
@@ -122,17 +128,23 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         east.setBorder(BorderFactory.createMatteBorder(0,1,0,0,UiTokens.border()));
         east.add(buildProperties(),BorderLayout.CENTER);east.setPreferredSize(UIScale.scale(new Dimension(270,100)));add(east,BorderLayout.EAST);
         canvas.addMouseListener(new MouseAdapter(){
-            @Override public void mousePressed(MouseEvent e){showObjectMenu(e);}
-            @Override public void mouseReleased(MouseEvent e){showObjectMenu(e);}
+            @Override
+            public void mousePressed(MouseEvent e){showObjectMenu(e);}
+            @Override
+            public void mouseReleased(MouseEvent e){showObjectMenu(e);}
         });
-        addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){adaptSidebars();}});
+        addComponentListener(new ComponentAdapter(){
+            @Override
+            public void componentResized(ComponentEvent e){adaptSidebars();}});
         status.setOpaque(true);status.setBackground(UIManager.getColor("Panel.background"));
         status.setBorder(BorderFactory.createEmptyBorder(6,12,6,12));add(status,BorderLayout.SOUTH);
         session.setEditValidator(next->{Optional<String> rejection=services.pptx().validateEdit(origin,session.getPresentation(),next);if(rejection.isPresent()){active(PowerPointDialogProvider.class).orElse(defaultDialogs).message(this,"Alteracao indisponivel",rejection.get());return false;}return true;});
         session.addListener(this::refresh);
         animationTimer=new javax.swing.Timer(16,e->tickAnimation());
         transitionTimer=new javax.swing.Timer(16,e->tickTransition());
-        canvas.addMouseListener(new MouseAdapter(){@Override public void mouseClicked(MouseEvent e){if(presenting&&SwingUtilities.isLeftMouseButton(e))advancePresentation();}});
+        canvas.addMouseListener(new MouseAdapter(){
+            @Override
+            public void mouseClicked(MouseEvent e){if(presenting&&SwingUtilities.isLeftMouseButton(e))advancePresentation();}});
         bind(KeyEvent.VK_ESCAPE,0,"stop",this::stopPresentation);
         bind(KeyEvent.VK_RIGHT,0,"next",this::advancePresentation);bind(KeyEvent.VK_SPACE,0,"space",this::advancePresentation);
         bind(KeyEvent.VK_ENTER,0,"enter",this::advancePresentation);bind(KeyEvent.VK_LEFT,0,"previous",this::previousPresentation);
@@ -149,7 +161,9 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
     private void bind(int key,int modifiers,String id,Runnable action){
         KeyStroke stroke=KeyStroke.getKeyStroke(key,modifiers);
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(stroke,id);
-        getActionMap().put(id,new AbstractAction(){@Override public void actionPerformed(ActionEvent e){action.run();}});
+        getActionMap().put(id,new AbstractAction(){
+            @Override
+            public void actionPerformed(ActionEvent e){action.run();}});
     }
     private JComponent buildProperties(){
         JPanel panel=new JPanel(new BorderLayout());panel.setOpaque(false);
@@ -231,8 +245,10 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         button.setFocusable(false);button.addActionListener(e->action.run());button.setAlignmentX(Component.LEFT_ALIGNMENT);return button;}
     private static final class RoundedCard extends JPanel {
         RoundedCard(){setOpaque(false);}
-        @Override public Dimension getMaximumSize(){return new Dimension(Integer.MAX_VALUE,getPreferredSize().height);}
-        @Override protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();try{
+        @Override
+        public Dimension getMaximumSize(){return new Dimension(Integer.MAX_VALUE,getPreferredSize().height);}
+        @Override
+        protected void paintComponent(Graphics graphics){Graphics2D g=(Graphics2D)graphics.create();try{
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
             g.setColor(UiTokens.surface());g.fill(new RoundRectangle2D.Double(0,0,getWidth()-1,getHeight()-1,14,14));
             g.setColor(UiTokens.border());g.draw(new RoundRectangle2D.Double(0.5,0.5,getWidth()-2,getHeight()-2,14,14));
@@ -245,7 +261,8 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         if(west.getPreferredSize().width!=left||east.getPreferredSize().width!=right){
             west.setPreferredSize(new Dimension(left,100));east.setPreferredSize(new Dimension(right,100));revalidate();}
     }
-    @Override public void doLayout(){adaptSidebars();super.doLayout();}
+    @Override
+    public void doLayout(){adaptSidebars();super.doLayout();}
     private void showSlideMenu(MouseEvent event){if(!event.isPopupTrigger())return;
         int index=thumbnails.locationToIndex(event.getPoint());
         if(index<0||!thumbnails.getCellBounds(index,index).contains(event.getPoint()))return;
@@ -549,14 +566,18 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
     }
     public void chooseSave(){active(PowerPointFileDialogProvider.class).orElse(defaultFiles).chooseSave(this,currentFile)
             .ifPresent(path->save(path).completion().exceptionally(error->{errorHandler.accept(error);return null;}));}
-    @Override public void removeNotify(){stopPresentation();animationTimer.stop();stopMedia();super.removeNotify();}
-    @Override public void close(){if(closed)return;stopPresentation();canvas.cancelEditing();closed=true;animationTimer.stop();stopMedia();files.shutdownNow();
+    @Override
+    public void removeNotify(){stopPresentation();animationTimer.stop();stopMedia();super.removeNotify();}
+    @Override
+    public void close(){if(closed)return;stopPresentation();canvas.cancelEditing();closed=true;animationTimer.stop();stopMedia();files.shutdownNow();
         for(AutoCloseable registration:List.copyOf(registrations.values()))try{registration.close();}catch(Exception error){errorHandler.accept(error);}registrations.clear();providers.clear();}
     private final class ThumbnailRenderer extends JPanel implements ListCellRenderer<String> {
         private String label;private int index;private boolean selected;
         ThumbnailRenderer(){setOpaque(false);setPreferredSize(new Dimension(210,UIScale.scale(132)));}
-        @Override public Component getListCellRendererComponent(JList<? extends String> list,String value,int index,boolean selected,boolean focus){this.label=value;this.index=index;this.selected=selected;return this;}
-        @Override protected void paintComponent(Graphics graphics){super.paintComponent(graphics);Graphics2D g=(Graphics2D)graphics.create();try{
+        @Override
+        public Component getListCellRendererComponent(JList<? extends String> list,String value,int index,boolean selected,boolean focus){this.label=value;this.index=index;this.selected=selected;return this;}
+        @Override
+        protected void paintComponent(Graphics graphics){super.paintComponent(graphics);Graphics2D g=(Graphics2D)graphics.create();try{
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
             int width=getWidth(),cardX=7,cardY=5,cardW=Math.max(30,width-14),cardH=Math.max(40,getHeight()-9);
             g.setColor(selected?(UiTokens.isDarkTheme()?new Color(0x30445F):new Color(0xE8F2FF)):UiTokens.surface());

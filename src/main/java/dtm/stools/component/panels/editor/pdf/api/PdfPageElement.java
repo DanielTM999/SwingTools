@@ -11,7 +11,8 @@ public record PdfPageElement(String id, String type, Rectangle2D.Float bounds, i
         bounds = (Rectangle2D.Float) bounds.clone();
         text = text == null ? "" : text;
     }
-    @Override public Rectangle2D.Float bounds() { return (Rectangle2D.Float) bounds.clone(); }
+    @Override
+    public Rectangle2D.Float bounds() { return (Rectangle2D.Float) bounds.clone(); }
     public boolean annotation() { return id.startsWith("annotation:"); }
     public boolean textual() { return id.startsWith("text:"); }
     public boolean textBox() { return annotation() && "FreeText".equals(type); }

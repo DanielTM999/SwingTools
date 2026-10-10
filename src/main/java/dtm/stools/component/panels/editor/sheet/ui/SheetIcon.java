@@ -31,8 +31,10 @@ public final class SheetIcon implements Icon {
     public static SheetIcon large(String name) { return new SheetIcon(name, 28); }
 
     public String name() { return name; }
-    @Override public int getIconWidth() { return size; }
-    @Override public int getIconHeight() { return size; }
+    @Override
+    public int getIconWidth() { return size; }
+    @Override
+    public int getIconHeight() { return size; }
 
     @Override
     public void paintIcon(Component c, Graphics g0, int x, int y) {

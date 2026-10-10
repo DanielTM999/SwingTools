@@ -29,8 +29,10 @@ import java.security.cert.*;
 import java.util.*;
 
 public final class PdfBoxSignatureProvider implements PdfSignatureProvider {
-    @Override public String id() { return "pdf.signature.pdfbox"; }
-    @Override public void sign(Path source, Path destination, Path pkcs12, char[] password, String reason) throws IOException {
+    @Override
+    public String id() { return "pdf.signature.pdfbox"; }
+    @Override
+    public void sign(Path source, Path destination, Path pkcs12, char[] password, String reason) throws IOException {
         Objects.requireNonNull(source); Objects.requireNonNull(destination); Objects.requireNonNull(pkcs12);
         try {
             KeyStore store = KeyStore.getInstance("PKCS12");
@@ -69,7 +71,8 @@ public final class PdfBoxSignatureProvider implements PdfSignatureProvider {
         } catch (IOException error) { throw error; }
         catch (Exception error) { throw new IOException("Falha ao carregar PKCS#12", error); }
     }
-    @Override public List<PdfSignatureValidation> validate(Path source, PdfTrustProvider trust) throws IOException {
+    @Override
+    public List<PdfSignatureValidation> validate(Path source, PdfTrustProvider trust) throws IOException {
         byte[] bytes = Files.readAllBytes(source);
         try (PDDocument document = Loader.loadPDF(bytes)) {
             List<PdfSignatureValidation> results = new ArrayList<>();

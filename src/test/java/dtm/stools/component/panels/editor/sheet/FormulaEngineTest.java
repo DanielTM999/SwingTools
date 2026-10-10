@@ -26,7 +26,8 @@ class FormulaEngineTest {
         return ((NumberValue) v).value();
     }
 
-    @Test void parsesAndPrintsCanonicalAndLocalized() {
+    @Test
+    void parsesAndPrintsCanonicalAndLocalized() {
         String canonical = Formulas.toCanonical("=SOMA(A1:B2;'Minha Planilha'!$C$3)*1,5", FormulaLocale.PT_BR);
         assertEquals("SUM(A1:B2,'Minha Planilha'!$C$3)*1.5", canonical);
         assertEquals("SOMA(A1:B2;'Minha Planilha'!$C$3)*1,5", Formulas.toDisplay(canonical, FormulaLocale.PT_BR));
@@ -37,7 +38,8 @@ class FormulaEngineTest {
         assertEquals("R[-1]C", new FormulaPrinter(FormulaLocale.EN, new CellAddress(5, 2), true).print(FormulaParser.parse("C5", FormulaLocale.EN)));
     }
 
-    @Test void arithmeticPrecedenceAndCoercion() {
+    @Test
+    void arithmeticPrecedenceAndCoercion() {
         SheetTestSupport t = new SheetTestSupport();
         assertEquals(4, num(t.eval("=-2^2")));
         assertEquals(7, num(t.eval("=1+2*3")));
@@ -49,7 +51,8 @@ class FormulaEngineTest {
         assertEquals(CellError.VALUE, ((ErrorValue) t.eval("=\"x\"+2")).error());
     }
 
-    @Test void recalculatesDependentsAndDetectsCycles() {
+    @Test
+    void recalculatesDependentsAndDetectsCycles() {
         SheetTestSupport t = new SheetTestSupport();
         t.set("A1", 2).set("A2", "=A1*10").set("A3", "=SUM(A1:A2)").recalc();
         assertEquals(22, num(t.value("A3")));
@@ -60,7 +63,8 @@ class FormulaEngineTest {
         assertFalse(t.engine.circularReferences().isEmpty());
     }
 
-    @Test void dynamicArraysSpillAndBlock() {
+    @Test
+    void dynamicArraysSpillAndBlock() {
         SheetTestSupport t = new SheetTestSupport();
         t.set("A1", "=SEQUENCE(3,2)").recalc();
         assertEquals(6, num(t.value("B3")));
@@ -71,7 +75,8 @@ class FormulaEngineTest {
         assertEquals(CellError.SPILL, ((ErrorValue) t.value("A1")).error());
     }
 
-    @Test void lookupAndTextFunctions() {
+    @Test
+    void lookupAndTextFunctions() {
         SheetTestSupport t = new SheetTestSupport();
         t.set("A1", "Maçã").set("B1", 3).set("A2", "Pera").set("B2", 5).set("A3", "Uva").set("B3", 7);
         assertEquals(5, num(t.eval("=VLOOKUP(\"pera\",A1:B3,2,FALSE)")));
@@ -90,7 +95,8 @@ class FormulaEngineTest {
         assertEquals(15, num(t.eval("=REDUCE(0,B1:B3,LAMBDA(acc,v,acc+v))")));
     }
 
-    @Test void dateStatisticsAndFinance() {
+    @Test
+    void dateStatisticsAndFinance() {
         SheetTestSupport t = new SheetTestSupport();
         assertEquals(45658, num(t.eval("=DATE(2025,1,1)")));
         assertEquals(60, num(t.eval("=DATE(1900,2,29)")));
@@ -107,7 +113,8 @@ class FormulaEngineTest {
         assertEquals(0.3048, num(t.eval("=CONVERT(1,\"ft\",\"m\")")), 1e-12);
     }
 
-    @Test void googleQuery() {
+    @Test
+    void googleQuery() {
         SheetTestSupport t = new SheetTestSupport();
         t.set("A1", "Nome").set("B1", "Setor").set("C1", "Valor");
         t.set("A2", "Ana").set("B2", "TI").set("C2", 10);
@@ -118,7 +125,8 @@ class FormulaEngineTest {
         assertEquals(40, num(t.value("F2")));
     }
 
-    @Test void portugueseInputAndSession() {
+    @Test
+    void portugueseInputAndSession() {
         SheetSession session = new SheetSession();
         CalcEngine engine = new CalcEngine(SheetTestSupport.REGISTRY);
         engine.setLocale(Locale.forLanguageTag("pt-BR"));
@@ -136,7 +144,8 @@ class FormulaEngineTest {
         assertTrue(session.isDirty());
     }
 
-    @Test void chainedRecalculationIsFast() {
+    @Test
+    void chainedRecalculationIsFast() {
         SheetTestSupport t = new SheetTestSupport();
         t.set("A1", 1);
         for (int r = 2; r <= 100_000; r++) t.workbook.sheet(0).put(r - 1, 0, SheetCell.formula("A" + (r - 1) + "+1"));

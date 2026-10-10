@@ -118,6 +118,7 @@ EventListenerComponent
 | Componente | Arquivo | Uso principal |
 |---|---|---|
 | `JTextFieldListener` | [JTextFieldListener.md](JTextFieldListener.md) | `JTextField` com eventos |
+| `MaterialLayout` | [MaterialLayout.md](MaterialLayout.md) | Estratégia de rótulo flutuante, borda contornada e erro nos campos existentes |
 | `MaskedTextField` | [MaskedTextField.md](MaskedTextField.md) | Texto com mascara, placeholder e read-only |
 | `CurrencyField` | [CurrencyField.md](CurrencyField.md) | Campo monetario com `BigDecimal` |
 | `PasswordField` | [PasswordField.md](PasswordField.md) | Senha com olho dentro do campo, `char[]` e integração com formulários |

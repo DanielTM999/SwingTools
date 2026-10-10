@@ -155,5 +155,6 @@ public interface PdfDocument extends AutoCloseable {
     boolean canModify();
     boolean canExtractContent();
     void print() throws IOException;
-    @Override void close() throws IOException;
+    @Override
+    void close() throws IOException;
 }

@@ -694,11 +694,6 @@ public class TabbedPanel extends PanelEventListener {
         return window;
     }
 
-    /**
-     * A janela padrao e um JFrame para ganhar os botoes de minimizar/maximizar/fechar, entao ela
-     * nao tem dono e nao acompanha o estado da janela principal automaticamente. Este bind
-     * reproduz o comportamento de janela filha: minimiza, restaura e fecha junto com o owner.
-     */
     private void bindTabWindowToOwner(JFrame window, Window owner) {
         if (!(owner instanceof Frame ownerFrame)) return;
 
@@ -3154,7 +3149,6 @@ public class TabbedPanel extends PanelEventListener {
             }
         }
     }
-
 
     private Map<String, Object> createHeaderMouseProperties(JComponent header, Component internalComponent, MouseEvent event) {
         Point pointInHeader = SwingUtilities.convertPoint(

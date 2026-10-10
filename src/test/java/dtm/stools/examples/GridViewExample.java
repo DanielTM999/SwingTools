@@ -97,9 +97,12 @@ public final class GridViewExample {
         search.putClientProperty("JTextField.placeholderText", "Buscar produto");
         search.getDocument().addDocumentListener(new DocumentListener() {
             private void update() { grid.setColumnTextFilter("name", search.getText()); }
-            @Override public void insertUpdate(DocumentEvent event) { update(); }
-            @Override public void removeUpdate(DocumentEvent event) { update(); }
-            @Override public void changedUpdate(DocumentEvent event) { update(); }
+            @Override
+            public void insertUpdate(DocumentEvent event) { update(); }
+            @Override
+            public void removeUpdate(DocumentEvent event) { update(); }
+            @Override
+            public void changedUpdate(DocumentEvent event) { update(); }
         });
 
         JComboBox<String> category = new JComboBox<>(new String[]{
@@ -307,7 +310,8 @@ public final class GridViewExample {
 
         public Vendor() {}
         public Vendor(String name, VendorAddress address) { this.name = name; this.address = address; }
-        @Override public String toString() { return name == null || name.isBlank() ? "Novo fornecedor" : name; }
+        @Override
+        public String toString() { return name == null || name.isBlank() ? "Novo fornecedor" : name; }
     }
 
     public static final class VendorAddress {
@@ -316,6 +320,7 @@ public final class GridViewExample {
 
         public VendorAddress() {}
         public VendorAddress(String city) { this.city = city; }
-        @Override public String toString() { return city == null || city.isBlank() ? "Novo endereço" : city; }
+        @Override
+        public String toString() { return city == null || city.isBlank() ? "Novo endereço" : city; }
     }
 }

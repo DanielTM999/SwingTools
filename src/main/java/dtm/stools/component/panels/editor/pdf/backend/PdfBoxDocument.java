@@ -83,17 +83,25 @@ final class PdfBoxDocument implements PdfDocument {
         if (index < 0 || index >= document.getNumberOfPages()) throw new IndexOutOfBoundsException(index);
         return document.getPage(index);
     }
-    @Override public synchronized int pageCount() { return document.getNumberOfPages(); }
-    @Override public synchronized float pageWidth(int page) { return page(page).getCropBox().getWidth(); }
-    @Override public synchronized float pageHeight(int page) { return page(page).getCropBox().getHeight(); }
-    @Override public synchronized float pageX(int page) { return page(page).getCropBox().getLowerLeftX(); }
-    @Override public synchronized float pageY(int page) { return page(page).getCropBox().getLowerLeftY(); }
-    @Override public synchronized int pageRotation(int page) { return page(page).getRotation(); }
-    @Override public synchronized BufferedImage render(int page, float dpi) throws IOException {
+    @Override
+    public synchronized int pageCount() { return document.getNumberOfPages(); }
+    @Override
+    public synchronized float pageWidth(int page) { return page(page).getCropBox().getWidth(); }
+    @Override
+    public synchronized float pageHeight(int page) { return page(page).getCropBox().getHeight(); }
+    @Override
+    public synchronized float pageX(int page) { return page(page).getCropBox().getLowerLeftX(); }
+    @Override
+    public synchronized float pageY(int page) { return page(page).getCropBox().getLowerLeftY(); }
+    @Override
+    public synchronized int pageRotation(int page) { return page(page).getRotation(); }
+    @Override
+    public synchronized BufferedImage render(int page, float dpi) throws IOException {
         page(page);
         return new PDFRenderer(document).renderImageWithDPI(page, dpi);
     }
-    @Override public synchronized String text(int page) throws IOException {
+    @Override
+    public synchronized String text(int page) throws IOException {
         page(page);
         if (!canExtractContent()) throw new IOException("Extração de texto não permitida neste PDF");
         PDFTextStripper stripper = new PDFTextStripper();
@@ -101,22 +109,27 @@ final class PdfBoxDocument implements PdfDocument {
         stripper.setEndPage(page + 1);
         return stripper.getText(document);
     }
-    @Override public synchronized void save(Path destination) throws IOException { document.save(destination.toFile()); }
-    @Override public synchronized byte[] snapshot() throws IOException {
+    @Override
+    public synchronized void save(Path destination) throws IOException { document.save(destination.toFile()); }
+    @Override
+    public synchronized byte[] snapshot() throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         document.save(output);
         return output.toByteArray();
     }
-    @Override public synchronized void rotate(int page, int degrees) {
+    @Override
+    public synchronized void rotate(int page, int degrees) {
         if (degrees % 90 != 0) throw new IllegalArgumentException("Rotation must be a multiple of 90");
         PDPage p = page(page);
         p.setRotation(Math.floorMod(p.getRotation() + degrees, 360));
     }
-    @Override public synchronized void remove(int page) {
+    @Override
+    public synchronized void remove(int page) {
         if (pageCount() == 1) throw new IllegalStateException("The last page cannot be removed");
         document.removePage(page);
     }
-    @Override public synchronized void move(int source, int destination) {
+    @Override
+    public synchronized void move(int source, int destination) {
         PDPage selected = page(source);
         if (destination < 0 || destination >= pageCount()) throw new IndexOutOfBoundsException(destination);
         if (source == destination) return;
@@ -124,7 +137,8 @@ final class PdfBoxDocument implements PdfDocument {
         if (destination == document.getNumberOfPages()) document.addPage(selected);
         else document.getPages().insertBefore(selected, document.getPage(destination));
     }
-    @Override public synchronized void insertPages(Path source, int destination) throws IOException {
+    @Override
+    public synchronized void insertPages(Path source, int destination) throws IOException {
         if (destination < 0 || destination > pageCount()) throw new IndexOutOfBoundsException(destination);
         try (PDDocument other = Loader.loadPDF(source.toFile())) {
             PDAcroForm incomingForm = other.getDocumentCatalog().getAcroForm();
@@ -141,7 +155,8 @@ final class PdfBoxDocument implements PdfDocument {
             }
         }
     }
-    @Override public synchronized void addText(int page, String text, float x, float y, float fontSize) throws IOException {
+    @Override
+    public synchronized void addText(int page, String text, float x, float y, float fontSize) throws IOException {
         if (text == null || text.isBlank() || fontSize <= 0) throw new IllegalArgumentException("Text and font size required");
         try (PDPageContentStream stream = new PDPageContentStream(document, page(page),
                 PDPageContentStream.AppendMode.APPEND, true, true)) {
@@ -152,7 +167,8 @@ final class PdfBoxDocument implements PdfDocument {
             stream.endText();
         }
     }
-    @Override public synchronized void addNote(int page, String text, float x, float y) throws IOException {
+    @Override
+    public synchronized void addNote(int page, String text, float x, float y) throws IOException {
         PDAnnotationText note = new PDAnnotationText();
         note.setContents(text);
         note.setRectangle(new PDRectangle(x, y, 24, 24));
@@ -161,7 +177,8 @@ final class PdfBoxDocument implements PdfDocument {
         note.constructAppearances(document);
         add(page, note);
     }
-    @Override public synchronized void addHighlight(int page, float x, float y, float width, float height) throws IOException {
+    @Override
+    public synchronized void addHighlight(int page, float x, float y, float width, float height) throws IOException {
         PDAnnotationTextMarkup mark = new PDAnnotationHighlight();
         mark.setRectangle(new PDRectangle(x, y, width, height));
         mark.setQuadPoints(new float[]{x,y+height,x+width,y+height,x,y,x+width,y});
@@ -171,14 +188,16 @@ final class PdfBoxDocument implements PdfDocument {
         mark.constructAppearances(document);
         add(page, mark);
     }
-    @Override public synchronized List<String> formFields() {
+    @Override
+    public synchronized List<String> formFields() {
         PDAcroForm form = document.getDocumentCatalog().getAcroForm();
         if (form == null) return List.of();
         List<String> names = new ArrayList<>();
         for (PDField field : form.getFieldTree()) names.add(field.getFullyQualifiedName());
         return List.copyOf(names);
     }
-    @Override public synchronized void setFormField(String name, String value) throws IOException {
+    @Override
+    public synchronized void setFormField(String name, String value) throws IOException {
         PDAcroForm form = document.getDocumentCatalog().getAcroForm();
         PDField field = form == null ? null : form.getField(name);
         if (field == null) throw new IllegalArgumentException("Unknown field: " + name);
@@ -187,7 +206,8 @@ final class PdfBoxDocument implements PdfDocument {
             else check.unCheck();
         } else field.setValue(value);
     }
-    @Override public synchronized void addTextField(int page, String name, float x, float y, float width, float height) throws IOException {
+    @Override
+    public synchronized void addTextField(int page, String name, float x, float y, float width, float height) throws IOException {
         if (name == null || name.isBlank() || width <= 0 || height <= 0) throw new IllegalArgumentException("Invalid field");
         PDPage p = page(page);
         PDAcroForm form = ensureForm();
@@ -225,7 +245,8 @@ final class PdfBoxDocument implements PdfDocument {
         }
         return form;
     }
-    @Override public synchronized void addOcrLayer(int page, PdfOcrResult result, float dpi) throws IOException {
+    @Override
+    public synchronized void addOcrLayer(int page, PdfOcrResult result, float dpi) throws IOException {
         PDPage p = page(page);
         float height = p.getMediaBox().getHeight();
         try (PDPageContentStream stream = new PDPageContentStream(document, p,
@@ -243,7 +264,8 @@ final class PdfBoxDocument implements PdfDocument {
             }
         }
     }
-    @Override public synchronized boolean replaceText(int page, String original, String replacement,
+    @Override
+    public synchronized boolean replaceText(int page, String original, String replacement,
                                                        Rectangle2D.Float area, boolean allowReconstruction) throws IOException {
         PDPage p = page(page);
         if (original == null || original.isBlank() || replacement == null) throw new IllegalArgumentException("Texto inválido");
@@ -290,14 +312,16 @@ final class PdfBoxDocument implements PdfDocument {
         }
         return true;
     }
-    @Override public synchronized void addImage(int page, Path image, float x, float y, float width, float height) throws IOException {
+    @Override
+    public synchronized void addImage(int page, Path image, float x, float y, float width, float height) throws IOException {
         PDImageXObject picture = PDImageXObject.createFromFileByContent(image.toFile(), document);
         try (PDPageContentStream content = new PDPageContentStream(document, page(page),
                 PDPageContentStream.AppendMode.APPEND, true, true)) {
             content.drawImage(picture, x, y, width, height);
         }
     }
-    @Override public synchronized List<String> imageResources(int page) throws IOException {
+    @Override
+    public synchronized List<String> imageResources(int page) throws IOException {
         PDResources resources = page(page).getResources();
         if (resources == null) return List.of();
         List<String> names = new ArrayList<>();
@@ -305,7 +329,8 @@ final class PdfBoxDocument implements PdfDocument {
             if (resources.getXObject(name) instanceof PDImageXObject) names.add(name.getName());
         return List.copyOf(names);
     }
-    @Override public synchronized void replaceImageResource(int page, String resourceName, Path image) throws IOException {
+    @Override
+    public synchronized void replaceImageResource(int page, String resourceName, Path image) throws IOException {
         PDPage p = page(page);
         PDResources original = p.getResources();
         COSName name = COSName.getPDFName(resourceName);
@@ -319,7 +344,8 @@ final class PdfBoxDocument implements PdfDocument {
         local.put(name, PDImageXObject.createFromFileByContent(image.toFile(), document));
         p.setResources(local);
     }
-    @Override public synchronized void addChoiceField(int page, String name, List<String> options,
+    @Override
+    public synchronized void addChoiceField(int page, String name, List<String> options,
                                                         float x, float y, float width, float height) throws IOException {
         if (options == null || options.isEmpty()) throw new IllegalArgumentException("Opções necessárias");
         PDPage p = page(page);
@@ -337,7 +363,8 @@ final class PdfBoxDocument implements PdfDocument {
         form.getFields().add(field);
         field.setValue(options.getFirst());
     }
-    @Override public synchronized void addCheckBox(int page, String name, float x, float y, float size) throws IOException {
+    @Override
+    public synchronized void addCheckBox(int page, String name, float x, float y, float size) throws IOException {
         if (name == null || name.isBlank() || size <= 0) throw new IllegalArgumentException("Caixa inválida");
         PDPage p = page(page);
         PDAcroForm form = ensureForm();
@@ -377,7 +404,8 @@ final class PdfBoxDocument implements PdfDocument {
         }
         return appearance;
     }
-    @Override public synchronized void addRadioGroup(int page, String name, List<String> options,
+    @Override
+    public synchronized void addRadioGroup(int page, String name, List<String> options,
                                                        float x, float y, float size, float gap) throws IOException {
         if (name == null || name.isBlank() || options == null || options.size() < 2 || size <= 0 || gap < 0)
             throw new IllegalArgumentException("Grupo de opções inválido");
@@ -406,14 +434,17 @@ final class PdfBoxDocument implements PdfDocument {
         field.setExportValues(options);
         form.getFields().add(field);
     }
-    @Override public synchronized void addSquare(int page, float x, float y, float width, float height) throws IOException {
+    @Override
+    public synchronized void addSquare(int page, float x, float y, float width, float height) throws IOException {
         add(page, PdfBoxAnnotations.shape(document, PdfShapeKind.RECTANGLE, new Rectangle2D.Float(x, y, width, height),
                 PdfShapeStyle.defaults()));
     }
-    @Override public synchronized void addInk(int page, float[] points) throws IOException {
+    @Override
+    public synchronized void addInk(int page, float[] points) throws IOException {
         add(page, PdfBoxAnnotations.ink(document, points, PdfShapeStyle.defaults().withStroke(Color.BLACK)));
     }
-    @Override public synchronized void eraseArea(int page, Rectangle2D.Float area) throws IOException {
+    @Override
+    public synchronized void eraseArea(int page, Rectangle2D.Float area) throws IOException {
         if (area == null || area.width <= 0 || area.height <= 0) throw new IllegalArgumentException("Área inválida");
         PDPage selected = page(page);
         PDRectangle crop = selected.getCropBox();
@@ -456,7 +487,8 @@ final class PdfBoxDocument implements PdfDocument {
                     crop.getWidth(), crop.getHeight());
         }
     }
-    @Override public synchronized BufferedImage copyArea(int page, Rectangle2D.Float area, float dpi) throws IOException {
+    @Override
+    public synchronized BufferedImage copyArea(int page, Rectangle2D.Float area, float dpi) throws IOException {
         if (area == null || area.width <= 0 || area.height <= 0 || dpi <= 0) throw new IllegalArgumentException("Área inválida");
         PDPage selected = page(page);
         PDRectangle crop = selected.getCropBox();
@@ -478,7 +510,8 @@ final class PdfBoxDocument implements PdfDocument {
         finally { graphics.dispose(); }
         return copied;
     }
-    @Override public synchronized void pasteImage(int page, BufferedImage image, Rectangle2D.Float bounds) throws IOException {
+    @Override
+    public synchronized void pasteImage(int page, BufferedImage image, Rectangle2D.Float bounds) throws IOException {
         if (image == null || bounds == null || bounds.width <= 0 || bounds.height <= 0)
             throw new IllegalArgumentException("Imagem ou limites inválidos");
         PDImageXObject picture = LosslessFactory.createFromImage(document, image);
@@ -487,7 +520,8 @@ final class PdfBoxDocument implements PdfDocument {
             content.drawImage(picture, bounds.x, bounds.y, bounds.width, bounds.height);
         }
     }
-    @Override public synchronized void transformArea(int page, Rectangle2D.Float source,
+    @Override
+    public synchronized void transformArea(int page, Rectangle2D.Float source,
                                                       Rectangle2D.Float destination, float clockwiseDegrees) throws IOException {
         if (source == null || destination == null || source.width <= 0 || source.height <= 0
                 || destination.width <= 0 || destination.height <= 0 || !Float.isFinite(clockwiseDegrees))
@@ -542,7 +576,8 @@ final class PdfBoxDocument implements PdfDocument {
                     crop.getWidth(), crop.getHeight());
         }
     }
-    @Override public synchronized List<PdfPageElement> pageElements(int page) throws IOException {
+    @Override
+    public synchronized List<PdfPageElement> pageElements(int page) throws IOException {
         PDPage selected = page(page);
         List<PdfPageElement> elements = new ArrayList<>();
         if (canExtractContent()) elements.addAll(new PdfBoxPageContent(document, selected).elements());
@@ -645,7 +680,8 @@ final class PdfBoxDocument implements PdfDocument {
         if (field instanceof PDTextField text) text.setValue(text.getValue() == null ? "" : text.getValue());
         else if (field instanceof PDComboBox combo && !combo.getValue().isEmpty()) combo.setValue(combo.getValue().getFirst());
     }
-    @Override public synchronized void renameField(String name, String newName) throws IOException {
+    @Override
+    public synchronized void renameField(String name, String newName) throws IOException {
         if (newName == null || newName.isBlank() || newName.contains(".")) throw new IllegalArgumentException("Nome de campo inválido");
         PDField field = field(name);
         String clean = newName.strip();
@@ -653,7 +689,8 @@ final class PdfBoxDocument implements PdfDocument {
             throw new IllegalArgumentException("Já existe um campo chamado " + clean);
         field.setPartialName(clean);
     }
-    @Override public synchronized void setFieldOptions(String name, List<String> options) throws IOException {
+    @Override
+    public synchronized void setFieldOptions(String name, List<String> options) throws IOException {
         List<String> clean = options.stream().map(String::strip).filter(option -> !option.isEmpty()).distinct().toList();
         if (clean.isEmpty()) throw new IllegalArgumentException("Informe pelo menos uma opção");
         if (!(field(name) instanceof org.apache.pdfbox.pdmodel.interactive.form.PDChoice choice))
@@ -662,7 +699,8 @@ final class PdfBoxDocument implements PdfDocument {
         choice.setOptions(clean);
         choice.setValue(!current.isEmpty() && clean.contains(current.getFirst()) ? current.getFirst() : clean.getFirst());
     }
-    @Override public synchronized void setFieldFlags(String name, boolean required, boolean readOnly, boolean multiline) throws IOException {
+    @Override
+    public synchronized void setFieldFlags(String name, boolean required, boolean readOnly, boolean multiline) throws IOException {
         PDField field = field(name);
         field.setRequired(required);
         field.setReadOnly(readOnly);
@@ -671,14 +709,16 @@ final class PdfBoxDocument implements PdfDocument {
             refreshAppearance(text);
         }
     }
-    @Override public synchronized void setFieldFontSize(String name, float size) throws IOException {
+    @Override
+    public synchronized void setFieldFontSize(String name, float size) throws IOException {
         if (!Float.isFinite(size) || size < 0 || size > 200) throw new IllegalArgumentException("Tamanho de fonte inválido");
         if (!(field(name) instanceof org.apache.pdfbox.pdmodel.interactive.form.PDVariableText text))
             throw new IOException("O campo não possui texto");
         text.setDefaultAppearance(String.format(java.util.Locale.ROOT, "/Helv %.1f Tf 0 g", size));
         refreshAppearance(text);
     }
-    @Override public synchronized void addRadioOption(int page, String name, String option) throws IOException {
+    @Override
+    public synchronized void addRadioOption(int page, String name, String option) throws IOException {
         if (option == null || !option.matches("[A-Za-z0-9_]+")) throw new IllegalArgumentException("Use letras, números ou _ no valor da opção");
         if (!(field(name) instanceof PDRadioButton radio)) throw new IOException("O campo não é um grupo de opções");
         List<String> values = new ArrayList<>(radio.getExportValues());
@@ -705,7 +745,8 @@ final class PdfBoxDocument implements PdfDocument {
         radio.setExportValues(values);
         add(page, widget);
     }
-    @Override public synchronized void renameRadioOption(int page, String id, String option) throws IOException {
+    @Override
+    public synchronized void renameRadioOption(int page, String id, String option) throws IOException {
         if (option == null || !option.matches("[A-Za-z0-9_]+")) throw new IllegalArgumentException("Use letras, números ou _ no valor da opção");
         if (!(page(page).getAnnotations().get(annotationIndex(page, id)) instanceof PDAnnotationWidget widget))
             throw new IOException("O elemento não é uma opção");
@@ -745,7 +786,8 @@ final class PdfBoxDocument implements PdfDocument {
                 return field.getFullyQualifiedName();
         return "";
     }
-    @Override public synchronized void deleteTarget(int page, PdfTarget target) throws IOException {
+    @Override
+    public synchronized void deleteTarget(int page, PdfTarget target) throws IOException {
         List<Integer> indexes = annotationIndexes(page, target);
         if (hasContent(target)) {
             PdfBoxPageContent content = content(page);
@@ -754,11 +796,13 @@ final class PdfBoxDocument implements PdfDocument {
         }
         removeAnnotations(page, indexes);
     }
-    @Override public synchronized void eraseRegion(int page, Rectangle2D.Float area) throws IOException {
+    @Override
+    public synchronized void eraseRegion(int page, Rectangle2D.Float area) throws IOException {
         if (area == null || area.width <= 0 || area.height <= 0) throw new IllegalArgumentException("Área inválida");
         eraseShape(page, area);
     }
-    @Override public synchronized void eraseShape(int page, java.awt.Shape area) throws IOException {
+    @Override
+    public synchronized void eraseShape(int page, java.awt.Shape area) throws IOException {
         Rectangle2D bounds = area.getBounds2D();
         if (bounds.isEmpty()) throw new IllegalArgumentException("Área inválida");
         PDPage selected = page(page);
@@ -781,7 +825,8 @@ final class PdfBoxDocument implements PdfDocument {
         }
         removeAnnotations(page, remove);
     }
-    @Override public synchronized Optional<PdfFieldInfo> fieldInfo(int page, String id) throws IOException {
+    @Override
+    public synchronized Optional<PdfFieldInfo> fieldInfo(int page, String id) throws IOException {
         if (!(page(page).getAnnotations().get(annotationIndex(page, id)) instanceof PDAnnotationWidget widget)) return Optional.empty();
         PDAcroForm form = document.getDocumentCatalog().getAcroForm();
         if (form == null) return Optional.empty();
@@ -805,7 +850,8 @@ final class PdfBoxDocument implements PdfDocument {
         }
         return Optional.empty();
     }
-    @Override public synchronized void transformTarget(int page, PdfTarget target, AffineTransform transform) throws IOException {
+    @Override
+    public synchronized void transformTarget(int page, PdfTarget target, AffineTransform transform) throws IOException {
         if (transform == null || transform.getDeterminant() == 0) throw new IllegalArgumentException("Transformação inválida");
         if (hasContent(target)) {
             PdfBoxPageContent content = content(page);
@@ -815,7 +861,8 @@ final class PdfBoxDocument implements PdfDocument {
         List<PDAnnotation> annotations = page(page).getAnnotations();
         for (int index : annotationIndexes(page, target)) PdfBoxAnnotations.transform(document, annotations.get(index), transform);
     }
-    @Override public synchronized void duplicateTarget(int page, PdfTarget target, AffineTransform transform) throws IOException {
+    @Override
+    public synchronized void duplicateTarget(int page, PdfTarget target, AffineTransform transform) throws IOException {
         if (hasContent(target)) {
             PdfBoxPageContent content = content(page);
             content.duplicate(content.glyphs(target), content.items(target), transform);
@@ -833,7 +880,8 @@ final class PdfBoxDocument implements PdfDocument {
         annotations.addAll(copies);
         selected.setAnnotations(annotations);
     }
-    @Override public synchronized void replaceElementText(int page, String id, String text) throws IOException {
+    @Override
+    public synchronized void replaceElementText(int page, String id, String text) throws IOException {
         if (id.startsWith("annotation:")) {
             PDAnnotation annotation = page(page).getAnnotations().get(annotationIndex(page, id));
             if (annotation instanceof PDAnnotationFreeText box) {
@@ -855,38 +903,47 @@ final class PdfBoxDocument implements PdfDocument {
         content.replaceWord(id, PdfBoxAnnotations.safe(font, text == null ? "" : text), font);
         content.commit();
     }
-    @Override public synchronized void addShape(int page, PdfShapeKind kind, Rectangle2D.Float bounds, PdfShapeStyle style) throws IOException {
+    @Override
+    public synchronized void addShape(int page, PdfShapeKind kind, Rectangle2D.Float bounds, PdfShapeStyle style) throws IOException {
         add(page, PdfBoxAnnotations.shape(document, kind, bounds, style));
     }
-    @Override public synchronized void addLine(int page, float x1, float y1, float x2, float y2, boolean arrow,
+    @Override
+    public synchronized void addLine(int page, float x1, float y1, float x2, float y2, boolean arrow,
                                                PdfShapeStyle style) throws IOException {
         if (Math.hypot(x2 - x1, y2 - y1) < 1) throw new IllegalArgumentException("Linha sem comprimento");
         add(page, PdfBoxAnnotations.line(document, x1, y1, x2, y2, arrow, style));
     }
-    @Override public synchronized void addInk(int page, float[] points, PdfShapeStyle style) throws IOException {
+    @Override
+    public synchronized void addInk(int page, float[] points, PdfShapeStyle style) throws IOException {
         add(page, PdfBoxAnnotations.ink(document, points, style));
     }
-    @Override public synchronized void addTextBox(int page, Rectangle2D.Float bounds, String text, PdfTextStyle style) throws IOException {
+    @Override
+    public synchronized void addTextBox(int page, Rectangle2D.Float bounds, String text, PdfTextStyle style) throws IOException {
         if (text == null || text.isBlank()) throw new IllegalArgumentException("Texto vazio");
         add(page, PdfBoxAnnotations.textBox(document, bounds, text, style));
     }
-    @Override public synchronized void updateTextBox(int page, String id, String text, PdfTextStyle style) throws IOException {
+    @Override
+    public synchronized void updateTextBox(int page, String id, String text, PdfTextStyle style) throws IOException {
         if (!(page(page).getAnnotations().get(annotationIndex(page, id)) instanceof PDAnnotationFreeText box))
             throw new IOException("O elemento não é uma caixa de texto");
         PdfBoxAnnotations.updateTextBox(document, box, text, style);
     }
-    @Override public synchronized Optional<PdfTextStyle> textBoxStyle(int page, String id) throws IOException {
+    @Override
+    public synchronized Optional<PdfTextStyle> textBoxStyle(int page, String id) throws IOException {
         return page(page).getAnnotations().get(annotationIndex(page, id)) instanceof PDAnnotationFreeText box
                 ? Optional.of(PdfBoxAnnotations.textStyle(box)) : Optional.empty();
     }
-    @Override public synchronized Optional<String> textBoxText(int page, String id) throws IOException {
+    @Override
+    public synchronized Optional<String> textBoxText(int page, String id) throws IOException {
         return page(page).getAnnotations().get(annotationIndex(page, id)) instanceof PDAnnotationFreeText box
                 ? Optional.of(box.getContents() == null ? "" : box.getContents()) : Optional.empty();
     }
-    @Override public synchronized void addImageStamp(int page, BufferedImage image, Rectangle2D.Float bounds) throws IOException {
+    @Override
+    public synchronized void addImageStamp(int page, BufferedImage image, Rectangle2D.Float bounds) throws IOException {
         add(page, PdfBoxAnnotations.imageStamp(document, image, bounds));
     }
-    @Override public synchronized void setAnnotationStyle(int page, String id, PdfShapeStyle style) throws IOException {
+    @Override
+    public synchronized void setAnnotationStyle(int page, String id, PdfShapeStyle style) throws IOException {
         PDAnnotation annotation = page(page).getAnnotations().get(annotationIndex(page, id));
         if (annotation instanceof PDAnnotationFreeText box) {
             PdfBoxAnnotations.updateTextBox(document, box, box.getContents() == null ? "" : box.getContents(),
@@ -896,7 +953,8 @@ final class PdfBoxDocument implements PdfDocument {
             PdfBoxAnnotations.styleShape(document, markup, style);
         } else throw new IOException("Este elemento não possui estilo editável");
     }
-    @Override public synchronized byte[] exportAnnotations(int page, List<String> ids) throws IOException {
+    @Override
+    public synchronized byte[] exportAnnotations(int page, List<String> ids) throws IOException {
         PDPage source = page(page);
         List<PDAnnotation> annotations = source.getAnnotations();
         try (PDDocument exported = new PDDocument()) {
@@ -915,7 +973,8 @@ final class PdfBoxDocument implements PdfDocument {
             return output.toByteArray();
         }
     }
-    @Override public synchronized void importAnnotations(int page, byte[] data, float dx, float dy) throws IOException {
+    @Override
+    public synchronized void importAnnotations(int page, byte[] data, float dx, float dy) throws IOException {
         PDPage selected = page(page);
         List<PDAnnotation> annotations = selected.getAnnotations();
         try (PDDocument imported = Loader.loadPDF(data)) {
@@ -928,7 +987,8 @@ final class PdfBoxDocument implements PdfDocument {
         }
         selected.setAnnotations(annotations);
     }
-    @Override public synchronized void insertBlankPage(int destination, float width, float height) throws IOException {
+    @Override
+    public synchronized void insertBlankPage(int destination, float width, float height) throws IOException {
         if (destination < 0 || destination > pageCount()) throw new IndexOutOfBoundsException(destination);
         PDPage blank = new PDPage(new PDRectangle(width, height));
         if (destination == pageCount()) document.addPage(blank);
@@ -941,20 +1001,23 @@ final class PdfBoxDocument implements PdfDocument {
         annotations.add(annotation);
         selected.setAnnotations(annotations);
     }
-    @Override public synchronized void movePageElementLayer(int page, String id, boolean forward) throws IOException {
+    @Override
+    public synchronized void movePageElementLayer(int page, String id, boolean forward) throws IOException {
         var annotations = page(page).getAnnotations();
         int index = annotationIndex(page, id);
         int target = index + (forward ? 1 : -1);
         if (target < 0 || target >= annotations.size()) return;
         java.util.Collections.swap(annotations, index, target);
     }
-    @Override public synchronized void extractPages(int first, int last, Path destination) throws IOException {
+    @Override
+    public synchronized void extractPages(int first, int last, Path destination) throws IOException {
         if (first < 0 || last < first || last >= pageCount()) throw new IndexOutOfBoundsException();
         List<Integer> pages = new ArrayList<>();
         for (int page = first; page <= last; page++) pages.add(page);
         extractPages(pages, destination);
     }
-    @Override public synchronized void extractPages(List<Integer> pages, Path destination) throws IOException {
+    @Override
+    public synchronized void extractPages(List<Integer> pages, Path destination) throws IOException {
         if (pages == null || pages.isEmpty()) throw new IllegalArgumentException("Nenhuma página selecionada");
         List<Integer> order = new ArrayList<>();
         for (int page : pages) {
@@ -1008,17 +1071,24 @@ final class PdfBoxDocument implements PdfDocument {
         if (form.getFields().isEmpty()) copy.getDocumentCatalog().setAcroForm(null);
         else form.setSignaturesExist(false);
     }
-    @Override public synchronized String title() { return document.getDocumentInformation().getTitle(); }
-    @Override public synchronized void setTitle(String title) { document.getDocumentInformation().setTitle(title); }
-    @Override public synchronized boolean hasSignatures() { return !document.getSignatureDictionaries().isEmpty(); }
-    @Override public synchronized boolean canModify() { return document.getCurrentAccessPermission().canModify(); }
-    @Override public synchronized boolean canExtractContent() { return document.getCurrentAccessPermission().canExtractContent(); }
-    @Override public synchronized void print() throws IOException {
+    @Override
+    public synchronized String title() { return document.getDocumentInformation().getTitle(); }
+    @Override
+    public synchronized void setTitle(String title) { document.getDocumentInformation().setTitle(title); }
+    @Override
+    public synchronized boolean hasSignatures() { return !document.getSignatureDictionaries().isEmpty(); }
+    @Override
+    public synchronized boolean canModify() { return document.getCurrentAccessPermission().canModify(); }
+    @Override
+    public synchronized boolean canExtractContent() { return document.getCurrentAccessPermission().canExtractContent(); }
+    @Override
+    public synchronized void print() throws IOException {
         if (!document.getCurrentAccessPermission().canPrint()) throw new IOException("Impressão não permitida neste PDF");
         PrinterJob job = PrinterJob.getPrinterJob();
         job.setPageable(new PDFPageable(document));
         if (job.printDialog()) try { job.print(); }
         catch (java.awt.print.PrinterException error) { throw new IOException("Falha na impressão", error); }
     }
-    @Override public synchronized void close() throws IOException { document.close(); }
+    @Override
+    public synchronized void close() throws IOException { document.close(); }
 }

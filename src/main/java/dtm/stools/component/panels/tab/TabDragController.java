@@ -415,7 +415,7 @@ public class TabDragController {
                 previewWindow.setBackground(new Color(0, 0, 0, 0));
                 previewWindow.setAlwaysOnTop(true);
             } catch (RuntimeException ignored) {
-                // Some window managers do not support per-pixel transparency or always-on-top.
+
             }
             previewWindow.setContentPane(createDetachedPreviewComponent(image));
             previewWindow.pack();

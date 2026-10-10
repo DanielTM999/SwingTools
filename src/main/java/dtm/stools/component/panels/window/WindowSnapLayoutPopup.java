@@ -160,7 +160,8 @@ public class WindowSnapLayoutPopup extends JPopupMenu {
             }
         }
 
-        @Override public void doLayout() {
+        @Override
+        public void doLayout() {
             Rectangle area = new Rectangle(1, 1,
                     Math.max(1, getWidth() - 2), Math.max(1, getHeight() - 2));
             for (SnapZoneButton button : buttons) {
@@ -190,20 +191,24 @@ public class WindowSnapLayoutPopup extends JPopupMenu {
             setToolTipText(resolveZoneTooltip(snap));
             getAccessibleContext().setAccessibleName(resolveZoneTooltip(snap));
             addMouseListener(new MouseAdapter() {
-                @Override public void mouseEntered(MouseEvent event) {
+                @Override
+                public void mouseEntered(MouseEvent event) {
                     desktop.previewSnapLayout(window, SnapZoneButton.this.layout, snap);
                 }
 
-                @Override public void mouseExited(MouseEvent event) {
+                @Override
+                public void mouseExited(MouseEvent event) {
                     desktop.clearSnapLayoutPreview();
                 }
             });
             addFocusListener(new FocusAdapter() {
-                @Override public void focusGained(FocusEvent event) {
+                @Override
+                public void focusGained(FocusEvent event) {
                     desktop.previewSnapLayout(window, SnapZoneButton.this.layout, snap);
                 }
 
-                @Override public void focusLost(FocusEvent event) {
+                @Override
+                public void focusLost(FocusEvent event) {
                     desktop.clearSnapLayoutPreview();
                 }
             });
@@ -213,7 +218,8 @@ public class WindowSnapLayoutPopup extends JPopupMenu {
         public WindowSnap getSnap() { return snap; }
         public List<WindowSnap> getSnapLayout() { return layout; }
 
-        @Override protected void paintComponent(Graphics graphics) {
+        @Override
+        protected void paintComponent(Graphics graphics) {
             Graphics2D g = (Graphics2D) graphics.create();
             try {
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

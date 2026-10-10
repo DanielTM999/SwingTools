@@ -43,7 +43,8 @@ import java.util.Map;
 
 public class SheetRenderer {
     private final Map<String, Font> fonts = new LinkedHashMap<>(128, .75f, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<String, Font> e) { return size() > 256; }
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Font> e) { return size() > 256; }
     };
     private final Map<String, Paint> patterns = new HashMap<>();
     private final ChartPainter charts = new ChartPainter();

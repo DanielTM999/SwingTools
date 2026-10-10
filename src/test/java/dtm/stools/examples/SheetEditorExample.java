@@ -64,14 +64,18 @@ public class SheetEditorExample {
             editor.getSession().markSaved();
             editor.addProvider(new SheetFileRecoveryStore(Path.of(System.getProperty("java.io.tmpdir"), "swingtools-sheet-recovery")));
             editor.addProvider(new SheetFunctionProvider() {
-                @Override public String id() { return "example.functions"; }
-                @Override public List<SheetFunction> functions() { return List.of(ExampleFunctions.discount()); }
+                @Override
+                public String id() { return "example.functions"; }
+                @Override
+                public List<SheetFunction> functions() { return List.of(ExampleFunctions.discount()); }
             });
             frame.add(editor, BorderLayout.CENTER);
             frame.setSize(1400, 900);
             frame.setLocationRelativeTo(null);
             frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            frame.addWindowListener(new WindowAdapter() { @Override public void windowClosed(WindowEvent e) { editor.close(); } });
+            frame.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosed(WindowEvent e) { editor.close(); } });
             frame.setVisible(true);
         });
     }

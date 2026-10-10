@@ -72,7 +72,9 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
             if(accessibleContext!=null) accessibleContext.firePropertyChange(AccessibleContext.ACCESSIBLE_TEXT_PROPERTY,null,event.revision());
         });
         installInput();
-        addComponentListener(new ComponentAdapter(){@Override public void componentResized(ComponentEvent e){if(viewMode==WordViewMode.CONTINUOUS)scheduleLayoutIfShowing();}});
+        addComponentListener(new ComponentAdapter(){
+            @Override
+            public void componentResized(ComponentEvent e){if(viewMode==WordViewMode.CONTINUOUS)scheduleLayoutIfShowing();}});
     }
     private void selectPageSection(WordLayout.Page page){
         if(!isLayoutCurrent())return;
@@ -127,7 +129,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     private double pageX(WordLayout.Page p){return Math.max(24,(getWidth()-p.width()*scale())/2);}
     private double pageY(int index){double y=24;for(int i=0;i<index;i++)y+=snapshot.pages().get(i).height()*scale()+24;return y;}
     public Point2D toScreen(WordLayout.Page page,float x,float y){return new Point2D.Double(pageX(page)+x*scale(),pageY(page.index())+y*scale());}
-    @Override public Dimension getPreferredSize(){
+    @Override
+    public Dimension getPreferredSize(){
         if(snapshot==null)return new Dimension(840,1150);
         double width=0,height=24;for(var page:snapshot.pages()){width=Math.max(width,page.width()*scale()+48);height+=page.height()*scale()+24;}
         return new Dimension((int)Math.ceil(width),(int)Math.min(Integer.MAX_VALUE-1,Math.ceil(height)));
@@ -139,7 +142,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         return new PageHit(chosen,(float)((point.x-pageX(chosen))/scale()),(float)((point.y-pageY(chosen.index()))/scale()));
     }
 
-    @Override protected void paintComponent(Graphics graphics){
+    @Override
+    protected void paintComponent(Graphics graphics){
         Graphics2D g=(Graphics2D)graphics.create();
         try {
             g.setColor(UiTokens.surfaceAlt());g.fillRect(0,0,getWidth(),getHeight());
@@ -281,7 +285,7 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         SwingUtilities.invokeLater(()->{
             if(closed||ticket!=topRevealTicket||topRevealOffset==null||layoutTicket!=generation||!isLayoutCurrent())return;
             if(getParent() instanceof JViewport viewport){
-                // Revalidation is deferred in Swing; use the new view size before clamping the destination.
+
                 viewport.doLayout();
                 Rectangle target=boundsAt(topRevealOffset);
                 Dimension extent=viewport.getExtentSize();
@@ -416,7 +420,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
     }
     private void installInput(){
         addMouseListener(new MouseAdapter(){
-            @Override public void mousePressed(MouseEvent e){
+            @Override
+            public void mousePressed(MouseEvent e){
                 if(!SwingUtilities.isLeftMouseButton(e))return;requestFocusInWindow();
                 if(!isLayoutCurrent())return;
                 PageHit hit=pageAt(e.getPoint());if(hit==null)return;
@@ -465,13 +470,15 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
                     if(session.getDocument().sameContainer(start,end)&&session.getDocument().isBoundary(start)&&session.getDocument().isBoundary(end))session.setSelection(start,end);}
                 if(e.getClickCount()>=3){var doc=session.getDocument();int i=doc.paragraphIndex(offset);session.setSelection(doc.paragraphStart(i),doc.paragraphEnd(i));}
             }
-            @Override public void mouseReleased(MouseEvent e){
+            @Override
+            public void mouseReleased(MouseEvent e){
                 try{commitDrag(e);}catch(RuntimeException error){errorHandler.accept(error);}
                 finally{drag=Drag.NONE;ghost=null;dragBox=null;boundary=null;handle=-1;repaint();}
             }
         });
         addMouseMotionListener(new MouseMotionAdapter(){
-            @Override public void mouseDragged(MouseEvent e){
+            @Override
+            public void mouseDragged(MouseEvent e){
                 if((e.getModifiersEx()&InputEvent.BUTTON1_DOWN_MASK)==0||dragStart==null)return;
                 float dx=(float)((e.getX()-dragStart.x)/scale()),dy=(float)((e.getY()-dragStart.y)/scale());
                 switch(drag){
@@ -483,7 +490,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
                     default -> {}
                 }
             }
-            @Override public void mouseMoved(MouseEvent e){
+            @Override
+            public void mouseMoved(MouseEvent e){
                 if(!isLayoutCurrent())return;
                 PageHit hit=pageAt(e.getPoint());if(hit==null)return;
                 int h=handleAt(hit);
@@ -498,7 +506,11 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
                 setToolTipText(tip);setCursor(Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR));
             }
         });
-        addFocusListener(new FocusAdapter(){@Override public void focusGained(FocusEvent e){repaint();}@Override public void focusLost(FocusEvent e){repaint();}});
+        addFocusListener(new FocusAdapter(){
+            @Override
+            public void focusGained(FocusEvent e){repaint();}
+            @Override
+            public void focusLost(FocusEvent e){repaint();}});
         bind("copy",KeyStroke.getKeyStroke(KeyEvent.VK_C,InputEvent.CTRL_DOWN_MASK),this::copy);
         bind("cut",KeyStroke.getKeyStroke(KeyEvent.VK_X,InputEvent.CTRL_DOWN_MASK),this::cut);
         bind("paste",KeyStroke.getKeyStroke(KeyEvent.VK_V,InputEvent.CTRL_DOWN_MASK),this::paste);
@@ -512,7 +524,8 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         bind("pageBreak",KeyStroke.getKeyStroke(KeyEvent.VK_ENTER,InputEvent.CTRL_DOWN_MASK),()->{if(!session.isReadOnly())session.insertObject(WordBreak.of(WordBreak.Kind.PAGE));});
         addKeyListener(new KeyAdapter(){
             private char highSurrogate;
-            @Override public void keyTyped(KeyEvent e){
+            @Override
+            public void keyTyped(KeyEvent e){
                 if(session.isReadOnly() || e.isControlDown()&&!e.isAltDown() || e.isMetaDown())return;
                 char c=e.getKeyChar();if(Character.isISOControl(c)||c==KeyEvent.CHAR_UNDEFINED)return;
                 if(Character.isHighSurrogate(c)){highSurrogate=c;return;}
@@ -520,19 +533,22 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
                 if(Character.isLowSurrogate(c)&&text.length()==1)return;
                 try{session.replaceSelection(text);}catch(RuntimeException error){errorHandler.accept(error);}e.consume();
             }
-            @Override public void keyPressed(KeyEvent e){
+            @Override
+            public void keyPressed(KeyEvent e){
                 try{handleKey(e);}catch(RuntimeException error){errorHandler.accept(error);e.consume();}
             }
         });
         addInputMethodListener(new InputMethodListener(){
-            @Override public void inputMethodTextChanged(InputMethodEvent event){
+            @Override
+            public void inputMethodTextChanged(InputMethodEvent event){
                 AttributedCharacterIterator iterator=event.getText();StringBuilder value=new StringBuilder();
                 if(iterator!=null)for(char c=iterator.first();c!=AttributedCharacterIterator.DONE;c=iterator.next())value.append(c);
                 int committed=Math.min(event.getCommittedCharacterCount(),value.length());
                 if(!session.isReadOnly()&&committed>0)session.replaceSelection(value.substring(0,committed));
                 composition=session.isReadOnly()?"":value.substring(committed);event.consume();repaint();
             }
-            @Override public void caretPositionChanged(InputMethodEvent event){event.consume();}
+            @Override
+            public void caretPositionChanged(InputMethodEvent event){event.consume();}
         });
     }
     private void handleKey(KeyEvent e){
@@ -608,26 +624,45 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
         }
     }
     public void bind(String id,KeyStroke key,Runnable runnable){
-        getInputMap(WHEN_FOCUSED).put(key,id);getActionMap().put(id,new AbstractAction(){@Override public void actionPerformed(ActionEvent e){try{runnable.run();}catch(RuntimeException error){errorHandler.accept(error);}}});
+        getInputMap(WHEN_FOCUSED).put(key,id);getActionMap().put(id,new AbstractAction(){
+            @Override
+            public void actionPerformed(ActionEvent e){try{runnable.run();}catch(RuntimeException error){errorHandler.accept(error);}}});
     }
-    @Override public Dimension getPreferredScrollableViewportSize(){return new Dimension(850,650);}
-    @Override public int getScrollableUnitIncrement(Rectangle visible,int orientation,int direction){return 24;}
-    @Override public int getScrollableBlockIncrement(Rectangle visible,int orientation,int direction){return Math.max(24,visible.height-48);}
-    @Override public boolean getScrollableTracksViewportWidth(){return viewMode==WordViewMode.CONTINUOUS || getParent()!=null&&getParent().getWidth()>getPreferredSize().width;}
-    @Override public boolean getScrollableTracksViewportHeight(){return false;}
-    @Override public InputMethodRequests getInputMethodRequests(){return this;}
-    @Override public Rectangle getTextLocation(TextHitInfo offset){Rectangle r=caretBounds();if(isShowing()){Point p=getLocationOnScreen();r.translate(p.x,p.y);}return r;}
-    @Override public TextHitInfo getLocationOffset(int x,int y){if(isShowing()){Point p=getLocationOnScreen();return TextHitInfo.leading(hitTest(new Point(x-p.x,y-p.y)));}return null;}
-    @Override public int getInsertPositionOffset(){return session.getSelection().caret();}
-    @Override public AttributedCharacterIterator getCommittedText(int begin,int end,AttributedCharacterIterator.Attribute[] attributes){return new AttributedString(session.getDocument().text().substring(begin,end)).getIterator();}
-    @Override public int getCommittedTextLength(){return session.getDocument().length();}
-    @Override public AttributedCharacterIterator cancelLatestCommittedText(AttributedCharacterIterator.Attribute[] attributes){return null;}
-    @Override public AttributedCharacterIterator getSelectedText(AttributedCharacterIterator.Attribute[] attributes){var s=session.getSelection();return new AttributedString(session.getDocument().text().substring(s.start(),s.end())).getIterator();}
-    @Override public AccessibleContext getAccessibleContext(){if(accessibleContext==null)accessibleContext=new AccessibleWordCanvas();return accessibleContext;}
+    @Override
+    public Dimension getPreferredScrollableViewportSize(){return new Dimension(850,650);}
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visible,int orientation,int direction){return 24;}
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visible,int orientation,int direction){return Math.max(24,visible.height-48);}
+    @Override
+    public boolean getScrollableTracksViewportWidth(){return viewMode==WordViewMode.CONTINUOUS || getParent()!=null&&getParent().getWidth()>getPreferredSize().width;}
+    @Override
+    public boolean getScrollableTracksViewportHeight(){return false;}
+    @Override
+    public InputMethodRequests getInputMethodRequests(){return this;}
+    @Override
+    public Rectangle getTextLocation(TextHitInfo offset){Rectangle r=caretBounds();if(isShowing()){Point p=getLocationOnScreen();r.translate(p.x,p.y);}return r;}
+    @Override
+    public TextHitInfo getLocationOffset(int x,int y){if(isShowing()){Point p=getLocationOnScreen();return TextHitInfo.leading(hitTest(new Point(x-p.x,y-p.y)));}return null;}
+    @Override
+    public int getInsertPositionOffset(){return session.getSelection().caret();}
+    @Override
+    public AttributedCharacterIterator getCommittedText(int begin,int end,AttributedCharacterIterator.Attribute[] attributes){return new AttributedString(session.getDocument().text().substring(begin,end)).getIterator();}
+    @Override
+    public int getCommittedTextLength(){return session.getDocument().length();}
+    @Override
+    public AttributedCharacterIterator cancelLatestCommittedText(AttributedCharacterIterator.Attribute[] attributes){return null;}
+    @Override
+    public AttributedCharacterIterator getSelectedText(AttributedCharacterIterator.Attribute[] attributes){var s=session.getSelection();return new AttributedString(session.getDocument().text().substring(s.start(),s.end())).getIterator();}
+    @Override
+    public AccessibleContext getAccessibleContext(){if(accessibleContext==null)accessibleContext=new AccessibleWordCanvas();return accessibleContext;}
     protected class AccessibleWordCanvas extends AccessibleJComponent implements AccessibleText {
-        @Override public AccessibleRole getAccessibleRole(){return AccessibleRole.TEXT;}
-        @Override public AccessibleText getAccessibleText(){return this;}
-        @Override public String getAccessibleDescription(){
+        @Override
+        public AccessibleRole getAccessibleRole(){return AccessibleRole.TEXT;}
+        @Override
+        public AccessibleText getAccessibleText(){return this;}
+        @Override
+        public String getAccessibleDescription(){
             var selected=session.getSelectedObject();
             if(selected.isPresent())return "Objeto selecionado: "+selected.get().type()+(selected.get().altText().isBlank()?"":" — "+selected.get().altText());
             return session.getContentSelection() instanceof WordCellSelection c?"Células selecionadas: "+c.rowCount()+" x "+c.columnCount():"Documento";
@@ -651,5 +686,6 @@ public class WordCanvas extends JComponent implements Scrollable,AutoCloseable,I
             return start<0||end<0?null:text.substring(start,end);
         }
     }
-    @Override public void close(){if(closed)return;closed=true;pauseVisualWork();listener.close();}
+    @Override
+    public void close(){if(closed)return;closed=true;pauseVisualWork();listener.close();}
 }

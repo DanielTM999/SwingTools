@@ -27,6 +27,8 @@ public final class WordNumbering {
         while (lists.containsKey(Integer.toString(n))) n++;
         return Integer.toString(n);
     }
-    @Override public boolean equals(Object o) { return o instanceof WordNumbering n && n.lists.equals(lists); }
-    @Override public int hashCode() { return lists.hashCode(); }
+    @Override
+    public boolean equals(Object o) { return o instanceof WordNumbering n && n.lists.equals(lists); }
+    @Override
+    public int hashCode() { return lists.hashCode(); }
 }
