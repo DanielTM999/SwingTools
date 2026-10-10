@@ -51,7 +51,7 @@ active.addEventListener(EventType.CHANGE, event -> {
 | `setTexts(String on, String off)` | Textos |
 | `setColors(Color on, Color off, Color thumb)` | Cores principais |
 | `setDisabledColor(Color)` | Cor disabled |
-| `setFocusPainted(boolean)` | Mostra/oculta o contorno de foco; desativado por padrao |
+| `setFocusPainted(boolean)` | Mostra/oculta o contorno de foco; ativado por padrão |
 | `setFocusColor(Color)` | Cor do foco |
 | `setTextColor(Color)` | Cor do texto |
 

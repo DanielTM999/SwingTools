@@ -407,6 +407,8 @@ public class DualListField<T> extends PanelEventListener {
         configureFilter(availableFilter, I18n.getText(DualListField.class, "filter.placeholder", "Filtrar..."));
         configureFilter(selectedFilter, I18n.getText(DualListField.class, "filter.placeholder", "Filtrar..."));
 
+        availableList.getAccessibleContext().setAccessibleName(I18n.getText(DualListField.class, "title.available", "Disponíveis"));
+        selectedList.getAccessibleContext().setAccessibleName(I18n.getText(DualListField.class, "title.selected", "Selecionados"));
         configureList(availableList);
         configureList(selectedList);
 
@@ -751,7 +753,7 @@ public class DualListField<T> extends PanelEventListener {
     /**
      * Botão compacto que desenha o glifo de transferência ou reordenação.
      */
-    private static final class GlyphButton extends JComponent {
+    private static final class GlyphButton extends dtm.stools.component.accessibility.AccessibleButton {
 
         private final Glyph glyph;
         private Runnable action = () -> { };
@@ -761,12 +763,14 @@ public class DualListField<T> extends PanelEventListener {
         private GlyphButton(Glyph glyph) {
             this.glyph = glyph;
             setOpaque(false);
-            setFocusable(false);
+            setFocusable(true);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             setPreferredSize(new Dimension(UiTokens.scale(32), UiTokens.scale(28)));
             setMaximumSize(new Dimension(UiTokens.scale(32), UiTokens.scale(28)));
             installMouse();
         }
+
+        @Override protected void activate() { if (isEnabled()) action.run(); }
 
         private void onClick(Runnable action) {
             this.action = action != null ? action : () -> { };

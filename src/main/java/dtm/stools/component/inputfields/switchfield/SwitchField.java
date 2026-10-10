@@ -20,7 +20,7 @@ public class SwitchField extends PanelEventListener {
     private boolean selected;
     private boolean animated = true;
     private boolean showText;
-    private boolean focusPainted;
+    private boolean focusPainted = true;
     private float animationProgress;
     private float animationStartProgress;
     private float animationTargetProgress;

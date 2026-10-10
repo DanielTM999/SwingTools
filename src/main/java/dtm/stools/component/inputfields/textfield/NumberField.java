@@ -102,6 +102,7 @@ public class NumberField extends JTextFieldListener {
         replaceDocumentText(formatValue(normalized));
         this.value = normalized;
         this.committedValue = normalized;
+        firePropertyChange("numericValue", oldValue, normalized);
         if (fireEvent && valuesDiffer(oldValue, normalized)) {
             dispachEvent(EventType.CHANGE, this::getValue);
         }
@@ -203,6 +204,7 @@ public class NumberField extends JTextFieldListener {
         replaceDocumentText(formatValue(normalized));
         value = normalized;
         committedValue = normalized;
+        firePropertyChange("numericValue", oldValue, normalized);
         if (valuesDiffer(oldValue, normalized)) {
             dispachEvent(EventType.CHANGE, this::getValue);
         }
@@ -216,6 +218,7 @@ public class NumberField extends JTextFieldListener {
         replaceDocumentText(formatValue(next));
         value = next;
         committedValue = next;
+        firePropertyChange("numericValue", oldValue, next);
         dispachEvent(EventType.INPUT, this::getValue);
         if (valuesDiffer(oldValue, next)) {
             dispachEvent(EventType.CHANGE, this::getValue);
@@ -223,10 +226,12 @@ public class NumberField extends JTextFieldListener {
     }
 
     private void normalizeAfterConfigurationChange() {
+        BigDecimal oldValue = committedValue;
         BigDecimal normalized = normalize(value);
         replaceDocumentText(formatValue(normalized));
         value = normalized;
         committedValue = normalized;
+        firePropertyChange("numericValue", oldValue, normalized);
     }
 
     private BigDecimal normalize(BigDecimal candidate) {

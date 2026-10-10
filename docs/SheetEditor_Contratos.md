@@ -63,6 +63,8 @@ Os providers síncronos, chamados na EDT, substituem os diálogos padrão (`ui.p
 | `SheetSearchPopupProvider` | `SheetSearchContext` (`findAll`, `select`, `replace`, `replaceAll`) | `SheetPopupHandle` |
 | `SheetCommandPaletteProvider` | `SheetCommandPaletteContext` (`commands()`, `execute(id)`) | `SheetPopupHandle` |
 
+O provider padrão da paleta adapta o catálogo à [`CommandPalette`](CommandPalette.md) independente, preservando nomes, grupos, atalhos e estado habilitado. O ID `sheet.popup.palette.default`, a interface e o handle permanecem iguais. Aplicativos podem continuar fornecendo outra interface por um provider personalizado; o componente geral não depende do editor.
+
 Os IDs dos diálogos internos ficam em `controller.SheetDialogIds`, como `sheet.formatCells`, `sheet.insertFunction` e `sheet.nameManager`. Um `SheetDialogProvider` pode usá-los para personalizar diálogos específicos.
 
 ## Arquivos

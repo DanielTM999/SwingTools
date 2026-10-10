@@ -1,6 +1,6 @@
 # SwingTools — documentação de uso
 
-Esta pasta é a referência da **SwingTools 1.3.0**, compilada com Java 25. As páginas explicam como integrar cada recurso em uma aplicação Swing. O [README principal](../README.md) mostra instalação via JitPack, requisitos e uma visão geral; o [Guia do Desenvolvedor](Guia_do_Desenvolvedor.md) ensina a montar uma aplicação.
+Esta pasta é a referência da **SwingTools 1.4.3**, compilada com Java 25. As páginas explicam como integrar cada recurso em uma aplicação Swing. O [README principal](../README.md) mostra instalação via JitPack, requisitos e uma visão geral; o [Guia do Desenvolvedor](Guia_do_Desenvolvedor.md) ensina a montar uma aplicação.
 
 As áreas mais completas da biblioteca são a composição de áreas de trabalho ([abas](TabbedPanel.md), [dock](DockPanel.md), [janelas internas](WindowPanel.md)), os editores ([código](CodeEditor.md), [documentos](WordEditor.md), [planilhas](SheetEditor.md), [PDF](PdfEditor.md), [apresentações](PowerPointEditor.md)) e os componentes de dados e formulários ([tabela](GridView.md), [árvore](TreeView.md), [formulário](FormPanel.md)). Use a tabela abaixo para partir da tarefa da aplicação.
 
@@ -55,6 +55,8 @@ IWindowComponent
         SliderField
         RatingField
         PinField
+        PasswordField
+        PeriodField
         StepperField
         TextAreaField
         DualListField<T>
@@ -76,6 +78,9 @@ IWindowComponent
         StepsPanel
         PaginationPanel
         AvatarLabel
+
+CommandPalette extends JPanel
+RangeCalendarPanel extends JPanel
 
 EventListenerComponent
   PanelEventListener
@@ -105,6 +110,7 @@ EventListenerComponent
 | `DelegatedBlockingPanel` | [DelegatedBlockingPanel.md](DelegatedBlockingPanel.md) | Painel com controller delegado |
 | `DelegatedKeyPanel` | [DelegatedKeyPanel.md](DelegatedKeyPanel.md) | Navegacao por chave com controller delegado |
 | `UiTokens` | [UiTokens.md](UiTokens.md) | Tokens centrais de cor, espacamento, raio e tipografia |
+| Acessibilidade | [Acessibilidade.md](Acessibilidade.md) | Papéis, estados, teclado e integração com leitores de tela nos campos |
 | `PaintUtils` | [PaintUtils.md](PaintUtils.md) | Rotinas de pintura, texto e easing compartilhadas |
 
 ## Inputs
@@ -114,6 +120,8 @@ EventListenerComponent
 | `JTextFieldListener` | [JTextFieldListener.md](JTextFieldListener.md) | `JTextField` com eventos |
 | `MaskedTextField` | [MaskedTextField.md](MaskedTextField.md) | Texto com mascara, placeholder e read-only |
 | `CurrencyField` | [CurrencyField.md](CurrencyField.md) | Campo monetario com `BigDecimal` |
+| `PasswordField` | [PasswordField.md](PasswordField.md) | Senha com olho dentro do campo, `char[]` e integração com formulários |
+| `PeriodField` | [PeriodField.md](PeriodField.md) | Seleção de duas datas e relógios para horas/minutos |
 | `NumberField` | [NumberField.md](NumberField.md) | Campo numerico com locale, limites e passo |
 | `SearchTextField` | [SearchTextField.md](SearchTextField.md) | Busca/autocomplete assincrono |
 | `PathTextField` | [PathTextField.md](PathTextField.md) | Campo de path com comportamento visual proprio |
@@ -162,6 +170,7 @@ EventListenerComponent
 | `MenuBar` | [MenuBar.md](MenuBar.md) | Barra de menu configuravel |
 | `CollapsibleMenuBar` | [CollapsibleMenuBar.md](CollapsibleMenuBar.md) | Menu recolhivel |
 | `ActionPopupMenu` | [ActionPopupMenu.md](ActionPopupMenu.md) | Popup menu fluente |
+| `CommandPalette` | [CommandPalette.md](CommandPalette.md) | Busca e execução de comandos, independente dos editores |
 | `ModernDialog` | [ModernDialog.md](ModernDialog.md) | Dialog visual moderno |
 | `ModernComponentDialog` | [ModernComponentDialog.md](ModernComponentDialog.md) | Dialog moderno com componente customizado e retorno tipado |
 | `ModernInputDialog` | [ModernInputDialog.md](ModernInputDialog.md) | Dialog de entrada com validacao |

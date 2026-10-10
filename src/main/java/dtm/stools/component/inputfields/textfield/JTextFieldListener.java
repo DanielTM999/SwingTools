@@ -28,6 +28,27 @@ import java.util.function.Supplier;
 
 public class JTextFieldListener extends JTextField implements EventListenerComponent {
 
+    @Override public javax.accessibility.AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) accessibleContext = new AccessibleClearTextField();
+        return accessibleContext;
+    }
+
+    protected class AccessibleClearTextField extends AccessibleJTextField implements javax.accessibility.AccessibleAction {
+        @Override public javax.accessibility.AccessibleAction getAccessibleAction() { return this; }
+        @Override public int getAccessibleActionCount() { return super.getAccessibleActionCount() + (isClearButtonVisible() ? 1 : 0); }
+        @Override public String getAccessibleActionDescription(int index) {
+            if (index >= 0 && index < super.getAccessibleActionCount()) return super.getAccessibleActionDescription(index);
+            return index == super.getAccessibleActionCount() && isClearButtonVisible() ? dtm.stools.i18n.I18n.getText(JTextFieldListener.class, "clear", "Limpar texto") : null;
+        }
+        @Override public boolean doAccessibleAction(int index) {
+            if (index >= 0 && index < super.getAccessibleActionCount()) return super.doAccessibleAction(index);
+            if (index != super.getAccessibleActionCount() || !isClearButtonVisible()) return false;
+            if (SwingUtilities.isEventDispatchThread()) performClear();
+            else SwingUtilities.invokeLater(() -> { if (isClearButtonVisible()) performClear(); });
+            return true;
+        }
+    }
+
     private final Set<String> validEvents = new HashSet<>();
     protected final Map<String, List<Consumer<EventComponent>>> listeners = new ConcurrentHashMap<>();
 

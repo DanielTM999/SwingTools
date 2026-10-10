@@ -172,6 +172,9 @@ public final class Validators {
         if (value instanceof Collection<?> collection) {
             return collection.isEmpty();
         }
+        if (value instanceof char[] password) {
+            return password.length == 0;
+        }
         if (value instanceof Object[] array) {
             return array.length == 0;
         }

@@ -22,9 +22,11 @@ class SwitchFieldTest {
         onEdt(() -> {
             TestSwitchField field = new TestSwitchField();
             assertEquals(new Dimension(56, 30), field.getPreferredSize());
-            assertFalse(field.isFocusPainted());
+            assertTrue(field.isFocusPainted());
 
             field.setSize(56, 30);
+            assertEquals(new Rectangle(2, 2, 52, 26), field.switchBounds());
+            field.setFocusPainted(false);
             assertEquals(new Rectangle(0, 0, 56, 30), field.switchBounds());
 
             field.setShowText(true);

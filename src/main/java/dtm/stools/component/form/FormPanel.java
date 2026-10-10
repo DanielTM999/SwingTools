@@ -133,7 +133,7 @@ public class FormPanel extends PanelEventListener {
             }
         });
 
-        Map<String, Object> props = Map.of("errors", errors, "values", getValues());
+        Map<String, Object> props = Map.of("errors", errors, "values", nonSensitiveValues());
         dispatchEvent(errors.isEmpty() ? VALIDATION_PASSED : VALIDATION_FAILED, this, errors, props);
         dispatchEvent(EventType.VALIDATE, this, errors.isEmpty(), props);
         return errors;
@@ -164,7 +164,7 @@ public class FormPanel extends PanelEventListener {
      */
     public FormPanel reset() {
         fields.values().forEach(FormField::reset);
-        dispatchEvent(EventType.CLEAR, this, getValues(), Map.of());
+        dispatchEvent(EventType.CLEAR, this, nonSensitiveValues(), Map.of());
         return this;
     }
 
@@ -224,6 +224,34 @@ public class FormPanel extends PanelEventListener {
         if (fields != null) {
             fields.values().forEach(field -> field.setEnabled(enabled));
         }
+    }
+
+    private Map<String, Object> nonSensitiveValues() {
+        Map<String, Object> values = new LinkedHashMap<>();
+        fields.forEach((name, field) -> { if (!field.isSensitive()) values.put(name, field.getValue()); });
+        return values;
+    }
+
+    /** Computes all rows before pack(), when the wrapping layout has no width yet. */
+    @Override public java.awt.Dimension getPreferredSize() {
+        if (isPreferredSizeSet() || fields == null) return super.getPreferredSize();
+        int columnWidth = 0, fullWidth = 0, height = 0, rowHeight = 0, rowItems = 0;
+        for (Component component : getComponents()) {
+            if (!component.isVisible()) continue;
+            java.awt.Dimension preferred = component.getPreferredSize();
+            if (component instanceof FormField) {
+                columnWidth = Math.max(columnWidth, preferred.width);
+                rowHeight = Math.max(rowHeight, preferred.height);
+                if (++rowItems == columns) { height += rowHeight; rowItems = 0; rowHeight = 0; }
+            } else {
+                height += rowHeight + Math.max(preferred.height, UiTokens.scale(28));
+                rowItems = 0; rowHeight = 0; fullWidth = Math.max(fullWidth, preferred.width);
+            }
+        }
+        height += rowHeight;
+        java.awt.Insets insets = getInsets();
+        return new java.awt.Dimension(Math.max(columnWidth * columns, fullWidth) + insets.left + insets.right,
+                height + insets.top + insets.bottom);
     }
 
     private void applyLayout() {

@@ -63,6 +63,10 @@ public class StepperField extends PanelEventListener {
         add(numberField, FlexBoxLayout.FlexConstraints.of().grow(1));
         add(incrementButton, FlexBoxLayout.FlexConstraints.of().fixedWidth(buttonWidth));
 
+        numberField.addPropertyChangeListener("numericValue", e -> firePropertyChange("value", e.getOldValue(), e.getNewValue()));
+        numberField.addPropertyChangeListener("editable", e -> { firePropertyChange("editable", e.getOldValue(), e.getNewValue()); updateButtonStates(); });
+        decrementButton.setToolTipText(dtm.stools.i18n.I18n.getText(StepperField.class, "decrement", "Diminuir"));
+        incrementButton.setToolTipText(dtm.stools.i18n.I18n.getText(StepperField.class, "increment", "Aumentar"));
         installListeners();
         setPreferredSize(new Dimension(UiTokens.scale(150), preferredHeight));
         setMinimumSize(new Dimension(UiTokens.scale(100), preferredHeight));
@@ -222,7 +226,7 @@ public class StepperField extends PanelEventListener {
     }
 
     private StepperField shift(boolean up) {
-        if (!isEnabled()) {
+        if (!isEnabled() || !numberField.isEditable()) {
             return this;
         }
 
@@ -257,7 +261,7 @@ public class StepperField extends PanelEventListener {
         BigDecimal minimum = numberField.getMinimumValue();
         BigDecimal maximum = numberField.getMaximumValue();
 
-        boolean enabled = isEnabled();
+        boolean enabled = isEnabled() && numberField.isEditable();
         decrementButton.setEnabled(enabled && (minimum == null || current == null || current.compareTo(minimum) > 0));
         incrementButton.setEnabled(enabled && (maximum == null || current == null || current.compareTo(maximum) < 0));
     }
@@ -284,7 +288,7 @@ public class StepperField extends PanelEventListener {
     /**
      * Botão lateral que aplica o passo e repete enquanto permanecer pressionado.
      */
-    private static final class StepButton extends JComponent {
+    private static final class StepButton extends dtm.stools.component.accessibility.AccessibleButton {
 
         private static final int INITIAL_DELAY = 400;
         private static final int REPEAT_DELAY = 70;
@@ -302,10 +306,12 @@ public class StepperField extends PanelEventListener {
             this.repeatTimer.setInitialDelay(INITIAL_DELAY);
 
             setOpaque(false);
-            setFocusable(false);
+            setFocusable(true);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             installMouse();
         }
+
+        @Override protected void activate() { if (isEnabled()) action.run(); }
 
         private void onStep(Runnable action) {
             this.action = action != null ? action : () -> { };

@@ -77,8 +77,10 @@ public class TagInputField extends PanelEventListener {
         inputField = createInputField(columns);
         inputField.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
         inputField.setOpaque(false);
+        inputField.getAccessibleContext().setAccessibleName(text("placeholder.addTag", "Adicionar tag"));
 
         addButton = createAddButton();
+        addButton.getAccessibleContext().setAccessibleName(text("tooltip.addTag", "Adicionar tag"));
 
         JPanel inputRow = new JPanel(new BorderLayout(4, 0));
         inputRow.setOpaque(false);
@@ -98,7 +100,7 @@ public class TagInputField extends PanelEventListener {
 
     protected JButton createAddButton() {
         JButton button = new JButton("+");
-        button.setFocusable(false);
+        button.setFocusable(true);
         button.setMargin(new Insets(2, 8, 2, 8));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.setToolTipText(text("tooltip.addTag", "Adicionar tag"));
@@ -118,14 +120,15 @@ public class TagInputField extends PanelEventListener {
 
         if (removable) {
             JButton remove = new JButton("x");
-            remove.setFocusable(false);
+            remove.setFocusable(true);
+            remove.getAccessibleContext().setAccessibleName(text("tooltip.removeTag", "Remover tag") + " " + tag);
             remove.setBorderPainted(false);
             remove.setContentAreaFilled(false);
             remove.setForeground(tagRemoveForeground);
             remove.setMargin(new Insets(0, 4, 0, 6));
             remove.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             remove.setToolTipText(text("tooltip.removeTag", "Remover tag"));
-            remove.addActionListener(e -> removeTagAt(index));
+            remove.addActionListener(e -> { if (isEnabled()) removeTagAt(index); });
             chip.add(remove, BorderLayout.EAST);
         }
 
@@ -148,7 +151,7 @@ public class TagInputField extends PanelEventListener {
         inputField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER || e.getKeyCode() == KeyEvent.VK_TAB) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     commitInput();
                     dispatchEvent(EventType.SUBMIT, getTags());
                     e.consume();
@@ -374,11 +377,17 @@ public class TagInputField extends PanelEventListener {
         inputField.setEnabled(enabled);
         addButton.setEnabled(enabled);
         for (Component component : tagPanel.getComponents()) {
-            component.setEnabled(enabled);
+            enableTree(component, enabled);
         }
     }
 
+    private void enableTree(Component component, boolean enabled) {
+        component.setEnabled(enabled);
+        if (component instanceof Container container) for (Component child : container.getComponents()) enableTree(child, enabled);
+    }
+
     protected void commitInput() {
+        if (!isEnabled()) return;
         List<String> parsed = parseTags(inputField.getText());
         if (parsed.isEmpty()) return;
 

@@ -182,6 +182,8 @@ registration.close(); // remove contribuições e libera recursos; operação id
 
 IDs de providers e comandos devem ser únicos. `attach` retorna a limpeza dos recursos instalados. `WordToolbarContributor` adiciona componentes à barra e `WordContextMenuProvider` contribui para o menu contextual.
 
+O provider padrão de `WordCommandPaletteProvider` adapta o catálogo do editor à [`CommandPalette`](CommandPalette.md) independente. A interface, o ID `word.popup.palette.default`, o handle e o callback `closed()` permanecem disponíveis. Providers personalizados continuam responsáveis por sua própria interface e não precisam usar o componente geral.
+
 `WordServices` injeta `DocxCodec`, `WordLayoutEngine`, `WordRenderer` e `WordUiFactory`. As classes de serviço são extensíveis, e a factory permite uma subclasse de `WordCanvas`. `setRibbon` substitui a barra padrão.
 
 O registro completo de tipos de bloco com persistência e colaboração ainda está pendente. Providers nesta entrega estendem serviços, interface, comandos e integrações; não constituem ainda toda a infraestrutura de blocos prevista no plano.
@@ -215,4 +217,4 @@ mvn -q '-Dnative.build.skip=true' '-Dlicense.skipDownloadLicenses=true' '-Dlicen
 
 `WordVisualSmokeTest` gera `target/word-editor-preview.png` e `target/word-page-preview.png` para inspeção. Os testes também cobrem grafemas, histórico, transações, arquivos malformados, limites ZIP, XML externo, preservação de partes, providers, arquivos alterados externamente, modelos e escopo da IA.
 
-Continuam pendentes: composição incremental para documentos extensos, estilos herdados, listas, tabelas, imagens, seções avançadas, revisão, blocos personalizados completos, gráficos, SmartArt, equações, colaboração, recuperação persistente, adaptador PDF e homologação da matriz do Microsoft 365. A implementação atual é uma base de desenvolvimento; não é a versão estável completa descrita no plano.
+O código atual já contém estilos herdados, listas, tabelas, imagens, seções, comandos para gráficos/equações, recuperação em disco e provider de exportação PDF. Esses recursos não devem ser tratados como ausentes: seu suporte segue os contratos e limites descritos acima, sem garantir fidelidade integral a todos os recursos do Microsoft 365. A composição incremental de documentos extensos, o registro completo de blocos com persistência/colaboração e a homologação visual com arquivos reais e versões identificadas dos aplicativos externos continuam como pontos de evolução. A presença de providers de colaboração não implica um serviço colaborativo pronto.

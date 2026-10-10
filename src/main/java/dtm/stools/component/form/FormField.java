@@ -7,6 +7,9 @@ import dtm.stools.configs.UiTokens;
 import dtm.stools.layouts.FlexBoxLayout;
 import dtm.stools.utils.PaintUtils;
 
+import dtm.stools.component.inputfields.passwordfield.PasswordField;
+import dtm.stools.component.inputfields.periodfield.PeriodField;
+import javax.swing.JPasswordField;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.event.DocumentEvent;
@@ -111,6 +114,7 @@ public class FormField extends PanelEventListener {
      */
     public FormField setRequired(boolean required) {
         this.required = required;
+        if (control instanceof PeriodField period) period.setRequired(required);
         refreshLabel();
         return this;
     }
@@ -160,17 +164,16 @@ public class FormField extends PanelEventListener {
      */
     public ValidationResult validateField() {
         Object value = getValue();
-        ValidationResult result = ValidationResult.ok();
+        ValidationResult result = control instanceof PeriodField period && !period.isInputValid()
+                ? ValidationResult.error(period.getValidationMessage()) : ValidationResult.ok();
 
-        if (required) {
-            result = Validators.required().validate(value);
+        try {
+            if (required && result.valid()) result = Validators.required().validate(value);
+            if (result.valid() && validator != null) result = validator.validate(value);
+            applyResult(result);
+            return result;
         }
-        if (result.valid() && validator != null) {
-            result = validator.validate(value);
-        }
-
-        applyResult(result);
-        return result;
+        finally { if (value instanceof char[] password) java.util.Arrays.fill(password, (char) 0); }
     }
 
     /**
@@ -226,6 +229,7 @@ public class FormField extends PanelEventListener {
     }
 
     private void configureLabel() {
+        label.setLabelFor(labelTarget());
         label.setFont(UiTokens.fontSmall().deriveFont(Font.BOLD));
         label.setForeground(UiTokens.foreground());
     }
@@ -282,9 +286,11 @@ public class FormField extends PanelEventListener {
         Map<String, Object> props = Map.of(
                 "field", name,
                 "message", result.message() != null ? result.message() : "");
-        dispatchEvent(valid ? VALID : INVALID, this, getValue(), props);
+        dispatchEvent(valid ? VALID : INVALID, this, isSensitive() ? null : getValue(), props);
         dispatchEvent(EventType.VALIDATE, this, valid, props);
     }
+
+    boolean isSensitive() { return control instanceof PasswordField || control instanceof JPasswordField; }
 
     private void applyErrorHighlight() {
         if (control instanceof dtm.stools.component.inputfields.textarea.TextAreaField area) {
@@ -298,6 +304,28 @@ public class FormField extends PanelEventListener {
     private void refreshLabel() {
         label.setText(required && !labelText.isEmpty() ? labelText + " *" : labelText);
         label.setVisible(!labelText.isEmpty());
+        updateAccessibleName(control);
+        if (labelTarget() != control) updateAccessibleName(labelTarget());
+    }
+
+    private JComponent labelTarget() {
+        if (control instanceof PasswordField password) return password.getPasswordField();
+        if (control instanceof dtm.stools.component.inputfields.textarea.TextAreaField area) return area.getTextArea();
+        if (control instanceof dtm.stools.component.inputfields.stepperfield.StepperField stepper) return stepper.getNumberField();
+        if (control instanceof dtm.stools.component.inputfields.colorpicker.ColorPickerField color) return color.getTextField();
+        if (control instanceof dtm.stools.component.panels.datefield.DatePickerInputField) {
+            for (java.awt.Component child : control.getComponents()) if (child instanceof JTextComponent text) return text;
+        }
+        return control;
+    }
+    private void updateAccessibleName(JComponent target) {
+        javax.accessibility.AccessibleContext accessible = target.getAccessibleContext();
+        if (accessible == null) return;
+        String previous = (String) target.getClientProperty("SwingTools.form.name");
+        if (accessible.getAccessibleName() == null || java.util.Objects.equals(accessible.getAccessibleName(), previous)) {
+            accessible.setAccessibleName(labelText);
+            target.putClientProperty("SwingTools.form.name", labelText);
+        }
     }
 
     private void refreshMessage() {
@@ -309,6 +337,17 @@ public class FormField extends PanelEventListener {
         message.setText(hasError ? errorMessage : helperText);
         message.setForeground(hasError ? UiTokens.danger() : UiTokens.muted());
         message.setVisible(hasError || !helperText.isEmpty());
+        updateAccessibleDescription(control);
+        if (labelTarget() != control) updateAccessibleDescription(labelTarget());
+    }
+    private void updateAccessibleDescription(JComponent target) {
+        javax.accessibility.AccessibleContext accessible = target.getAccessibleContext();
+        if (accessible == null) return;
+        String previous = (String) target.getClientProperty("SwingTools.form.description");
+        if (accessible.getAccessibleDescription() == null || java.util.Objects.equals(accessible.getAccessibleDescription(), previous)) {
+            accessible.setAccessibleDescription(message.getText());
+            target.putClientProperty("SwingTools.form.description", message.getText());
+        }
     }
 
     @Override

@@ -116,7 +116,9 @@ public class CheckBoxField extends PanelEventListener {
 
         boolean oldValue = this.selected;
         this.selected = selected;
+        boolean oldMixed = this.indeterminate;
         this.indeterminate = false;
+        firePropertyChange("indeterminate", oldMixed, false);
         animateToSelection();
         firePropertyChange("selected", oldValue, selected);
 
@@ -139,10 +141,14 @@ public class CheckBoxField extends PanelEventListener {
      * Ativa ou desativa o estado indeterminado.
      */
     public CheckBoxField setIndeterminate(boolean indeterminate) {
+        boolean oldMixed = this.indeterminate;
+        boolean oldSelected = this.selected;
         this.indeterminate = indeterminate;
         if (indeterminate) {
             this.selected = false;
         }
+        firePropertyChange("indeterminate", oldMixed, indeterminate);
+        firePropertyChange("selected", oldSelected, selected);
         animateToSelection();
         return this;
     }
@@ -158,7 +164,9 @@ public class CheckBoxField extends PanelEventListener {
      * Define o rótulo exibido ao lado da caixa.
      */
     public CheckBoxField setText(String text) {
+        String oldText = this.text;
         this.text = text != null ? text : "";
+        firePropertyChange("text", oldText, this.text);
         updatePreferredSize();
         repaint();
         return this;

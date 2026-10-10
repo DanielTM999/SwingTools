@@ -1,10 +1,10 @@
 # Guia do Desenvolvedor
 
-Este guia mostra como montar uma aplicação com SwingTools 1.3.0. Swing continua sendo a base; a biblioteca acrescenta ciclo de vida para janelas e views, controllers, eventos e componentes prontos. Comece pela janela mínima, execute-a e avance para composição de telas e extensões. O [índice](README.md) leva à página de cada componente.
+Este guia mostra como montar uma aplicação com SwingTools 1.4.3. Swing continua sendo a base; a biblioteca acrescenta ciclo de vida para janelas e views, controllers, eventos e componentes prontos. Comece pela janela mínima, execute-a e avance para composição de telas e extensões. O [índice](README.md) leva à página de cada componente.
 
 ## Dependencia e ambiente
 
-Use JDK 25 ou superior e Maven. Para consumir a versão publicada no JitPack, acrescente ao `pom.xml` da aplicação:
+Use JDK 25 ou superior e Maven. Para consumir via JitPack, escolha uma tag publicada; o exemplo pressupõe que a tag `1.4.3` esteja disponível. Para usar este checkout antes da publicação da tag, siga a instalação local abaixo. Acrescente ao `pom.xml` da aplicação:
 
 ```xml
 <repositories>
@@ -18,7 +18,7 @@ Use JDK 25 ou superior e Maven. Para consumir a versão publicada no JitPack, ac
     <dependency>
         <groupId>com.github.DanielTM999</groupId>
         <artifactId>SwingTools</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.3</version>
     </dependency>
 </dependencies>
 ```
@@ -29,7 +29,15 @@ Para trabalhar com um checkout local da biblioteca, execute nele:
 mvn clean install -Dnative.build.skip=true
 ```
 
-Nesse caso, a aplicação deve usar `dtm.stools:SwingTools:1.3.0` em vez das coordenadas JitPack. Veja os detalhes de build e nativos no [README principal](../README.md#3-instalação-como-dependência).
+Nesse caso, a aplicação deve usar `dtm.stools:SwingTools:1.4.3` em vez das coordenadas JitPack. Veja os detalhes de build e nativos no [README principal](../README.md#3-instalação-como-dependência).
+
+### Novos campos e comandos
+
+[`PasswordField`](PasswordField.md) integra senha com mostrar/ocultar ao formulário. Seus valores são `char[]`, incluindo leitura de `JPasswordField` por `FormValues`; use validadores desse tipo e apague os arrays recebidos após a operação. Eventos de validação não carregam senhas; o envio explícito entrega os valores.
+
+[`PeriodField`](PeriodField.md) oferece os modos data, data/hora e somente hora, com valores imutáveis e configuração explícita para atravessar a meia-noite. Nos modos com data, `Presentation.CALENDAR` habilita o popup de dois meses. Entradas incompletas não substituem o valor confirmado e bloqueiam envio.
+
+[`CommandPalette`](CommandPalette.md) recebe o catálogo e callback de execução do aplicativo. Pode ser embutida ou aberta em janela modeless; atalhos são instalados por janela com registro removível. Word e Sheet a utilizam pelos providers padrão, preservando providers personalizados. Consulte também [Acessibilidade](Acessibilidade.md).
 
 ## Arquitetura em camadas
 

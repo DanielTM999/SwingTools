@@ -6,7 +6,7 @@ O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer
 
 **Stack principal:** Java 25, Maven, Swing, FlatLaf, Lombok e Jackson.
 
-> **Versão documentada:** 1.3.0. Este guia descreve a API atual da biblioteca. Para aprender por tarefa e encontrar a referência de cada componente, comece pelo [índice da documentação](docs/README.md) e pelo [Guia do Desenvolvedor](docs/Guia_do_Desenvolvedor.md).
+> **Versão documentada:** 1.4.3. Este guia descreve a API atual da biblioteca. Para aprender por tarefa e encontrar a referência de cada componente, comece pelo [índice da documentação](docs/README.md) e pelo [Guia do Desenvolvedor](docs/Guia_do_Desenvolvedor.md).
 
 ## Pontos fortes
 
@@ -22,7 +22,7 @@ O foco do projeto é reduzir código repetitivo em aplicações Swing e oferecer
 | Personalização | [Temas JSON](docs/JsonLookAndFeel.md), [tokens visuais](docs/UiTokens.md), eventos, renderers e providers permitem adaptar aparência e comportamento. |
 | Integração desktop | [Seletor de arquivos nativo](docs/OsFilePicker.md), system tray e [painel OpenGL](docs/GraphicsGlPanel.md) cobrem recursos além dos controles Swing tradicionais. |
 
-Os editores têm contratos e limites próprios. Em especial, o WordEditor lê e grava o [subconjunto DOCX documentado](docs/WordEditor.md#compatibilidade-docx-desta-entrega); confira esse contrato antes de escolher documentos de produção como entrada.
+Os editores têm contratos e limites próprios. Em especial, o WordEditor lê e grava o [subconjunto DOCX documentado](docs/WordEditor.md#compatibilidade-docx); confira esse contrato antes de escolher documentos de produção como entrada.
 
 ---
 
@@ -111,7 +111,7 @@ SwingTools cobre vários pontos comuns de uma aplicação desktop:
 
 ### JitPack (recomendado para aplicações consumidoras)
 
-O repositório GitHub é `DanielTM999/SwingTools` e a tag publicada da versão documentada é `1.3.0`. No `pom.xml` da aplicação, adicione o repositório JitPack e a dependência:
+O repositório GitHub é `DanielTM999/SwingTools` e a versão deste checkout é `1.4.3`. Para consumir via JitPack, use uma tag publicada no repositório; o exemplo abaixo pressupõe a publicação da tag `1.4.3`. Caso ela ainda não esteja disponível, use a instalação local descrita a seguir. No `pom.xml` da aplicação, adicione o repositório JitPack e a dependência:
 
 ```xml
 <repositories>
@@ -125,7 +125,7 @@ O repositório GitHub é `DanielTM999/SwingTools` e a tag publicada da versão d
     <dependency>
         <groupId>com.github.DanielTM999</groupId>
         <artifactId>SwingTools</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.3</version>
     </dependency>
 </dependencies>
 ```
@@ -146,7 +146,7 @@ Nesse caso, use as coordenadas declaradas no `pom.xml` da própria SwingTools:
 <dependency>
     <groupId>dtm.stools</groupId>
     <artifactId>SwingTools</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.3</version>
 </dependency>
 ```
 
@@ -845,6 +845,14 @@ String texto = data.getFormattedText();
 
 ---
 
+### Senha, períodos e comandos
+
+[`PasswordField`](docs/PasswordField.md) oferece entrada de senha com olho dentro do campo para mostrar/ocultar e valores públicos em `char[]`. [`PeriodField`](docs/PeriodField.md) escolhe duas datas, destacando somente início e fim no calendário, e oferece relógios de 24 horas para selecionar os horários. Suporta períodos atravessando a meia-noite quando habilitado. Ambos integram `FormPanel`.
+
+[`CommandPalette`](docs/CommandPalette.md) é um componente independente para busca e execução de comandos. Word e Sheet usam essa paleta pelos providers padrão; aplicativos podem continuar substituindo os providers. Confira também os contratos de [acessibilidade dos campos](docs/Acessibilidade.md).
+
+Exemplos executáveis: `PasswordFieldExample`, `PeriodFieldExample` e `CommandPaletteExample`, em `src/test/java/dtm/stools/examples`.
+
 ## 15. File pickers
 
 ### OsFilePicker
@@ -1121,7 +1129,7 @@ Listeners disponíveis:
 
 ## 19. WordEditor
 
-`WordEditor` é o editor de documentos da biblioteca. Ele combina superfície paginada em Java2D, ribbon, formatação de texto e parágrafos, navegação por títulos, busca, histórico de desfazer/refazer e uma API de documento extensível. Pode ler e gravar DOCX dentro do [subconjunto suportado](docs/WordEditor.md#compatibilidade-docx-desta-entrega), além de exportar HTML e texto.
+`WordEditor` é o editor de documentos da biblioteca. Ele combina superfície paginada em Java2D, ribbon, formatação de texto e parágrafos, navegação por títulos, busca, histórico de desfazer/refazer e uma API de documento extensível. Pode ler e gravar DOCX dentro do [subconjunto suportado](docs/WordEditor.md#compatibilidade-docx), além de exportar HTML e texto.
 
 | Necessidade | Ponto de entrada |
 |---|---|

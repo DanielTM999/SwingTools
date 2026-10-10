@@ -152,7 +152,9 @@ public class RadioField<T> extends PanelEventListener {
      * Define o rótulo exibido ao lado do círculo.
      */
     public RadioField<T> setText(String text) {
+        String oldText = this.text;
         this.text = text != null ? text : "";
+        firePropertyChange("text", oldText, this.text);
         updatePreferredSize();
         repaint();
         return this;
@@ -299,6 +301,16 @@ public class RadioField<T> extends PanelEventListener {
             public void keyPressed(KeyEvent e) {
                 if (!isEnabled()) {
                     return;
+                }
+                if (group != null && (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_DOWN)) {
+                    var options = group.getOptions();
+                    int delta = e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_UP ? -1 : 1;
+                    int currentIndex = options.indexOf(RadioField.this);
+                    for (int i = 1; i <= options.size(); i++) {
+                        var option = options.get(Math.floorMod(currentIndex + delta * i, options.size()));
+                        if (option.isEnabled()) { option.setSelected(true); option.requestFocusInWindow(); break; }
+                    }
+                    e.consume();
                 }
                 if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_ENTER) {
                     setSelected(true);

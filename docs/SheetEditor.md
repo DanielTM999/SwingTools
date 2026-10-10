@@ -169,6 +169,7 @@ r.close();
 - **Providers**: `addProvider` recusa IDs duplicados, ordena por `priority()` e desfaz tudo (funções, comandos, grupos de ribbon, barras) quando a registration é fechada.
 - **Popups**: os providers de popup substituem os diálogos padrão, e `resetPopupProviders()` volta aos padrões.
 - **Comandos**: `registerCommand(id, action)` e `execute(id)`. `getCommands()` expõe todos os IDs `sheet.*`, que o ribbon, os menus, os atalhos e a paleta usam.
+- **Paleta padrão**: usa a [`CommandPalette`](CommandPalette.md) independente por `SheetCommandPaletteProvider`; providers personalizados continuam substituindo essa interface.
 - **Ribbon**: `setRibbon(JComponent)` substitui a faixa inteira e `getDefaultRibbon().addGroup(tab, group)` acrescenta grupos.
 - **Listeners**: `addCellChangeListener`, `addSelectionListener`, `addSessionListener` e `addCalcListener`. A propriedade `error` é disparada em falhas, e `setErrorHandler` troca o tratamento padrão, que mostra um aviso.
 

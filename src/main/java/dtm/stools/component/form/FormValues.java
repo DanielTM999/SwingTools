@@ -11,6 +11,10 @@ import dtm.stools.component.inputfields.stepperfield.StepperField;
 import dtm.stools.component.inputfields.switchfield.SwitchField;
 import dtm.stools.component.inputfields.textarea.TextAreaField;
 
+import dtm.stools.component.inputfields.passwordfield.PasswordField;
+import dtm.stools.component.inputfields.periodfield.PeriodField;
+import dtm.stools.component.inputfields.periodfield.PeriodValue;
+import javax.swing.JPasswordField;
 import javax.swing.AbstractButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -35,6 +39,9 @@ public final class FormValues {
      */
     public static Object read(JComponent control) {
         return switch (control) {
+            case PasswordField password -> password.getPassword();
+            case JPasswordField password -> password.getPassword();
+            case PeriodField period -> period.getValue();
             case JTextComponent text -> text.getText();
             case TextAreaField area -> area.getText();
             case JComboBox<?> combo -> combo.getSelectedItem();
@@ -61,6 +68,9 @@ public final class FormValues {
     @SuppressWarnings("unchecked")
     public static void write(JComponent control, Object value) {
         switch (control) {
+            case PasswordField password -> password.setPassword(value == null ? null : (char[]) value, false);
+            case JPasswordField password -> password.setText(value == null ? "" : new String((char[]) value));
+            case PeriodField period -> period.setValue((PeriodValue) value, false);
             case JTextComponent text -> text.setText(value != null ? String.valueOf(value) : "");
             case TextAreaField area -> area.setText(value != null ? String.valueOf(value) : "", false);
             case JComboBox<?> combo -> ((JComboBox<Object>) combo).setSelectedItem(value);
@@ -86,6 +96,8 @@ public final class FormValues {
      */
     public static void clear(JComponent control) {
         switch (control) {
+            case PasswordField password -> password.clear(false);
+            case PeriodField period -> period.clear(false);
             case JTextComponent text -> text.setText("");
             case TextAreaField area -> area.setText("", false);
             case JComboBox<?> combo -> combo.setSelectedIndex(combo.getItemCount() > 0 ? 0 : -1);

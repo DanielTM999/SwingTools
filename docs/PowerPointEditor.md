@@ -59,4 +59,4 @@ Faltam seleção múltipla de objetos, edição de notas, mestres/layouts avanç
 
 A apresentação de referência `Tema2_Apresentacao_Revista.pptx` foi usada para verificar os 18 slides, incluindo 5 tabelas e 63 conectores. A validação inclui renderização local, tema claro/escuro, edição direta e cópias de salvamento consecutivo. Microsoft PowerPoint e LibreOffice não estão instalados neste ambiente; a comparação visual com esses aplicativos permanece pendente.
 
-O plano detalhado e o estado técnico estão em [`POWERPOINT_EDITOR_PLAN.md`](../POWERPOINT_EDITOR_PLAN.md). Exemplo executável: `dtm.stools.examples.PowerPointEditorExample`, em `src/test/java`.
+Exemplo executável: `dtm.stools.examples.PowerPointEditorExample`, em `src/test/java`. Os limites da implementação atual estão descritos nesta página.

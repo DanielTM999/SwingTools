@@ -107,3 +107,13 @@ As mensagens padrao passam por `I18n.getText(Validators.class, ...)`, com chaves
 `FormValues.read`, `write` e `clear` conhecem `JTextComponent`, `JComboBox`, `AbstractButton`, `JSpinner`, `JSlider`, `JList` e os componentes do SwingTools: `CheckBoxField`, `SwitchField`, `RadioGroupField`, `SegmentedField`, `SliderField`, `RatingField`, `PinField`, `StepperField`, `TextAreaField` e `DualListField`.
 
 Para um controle nao suportado, `read` devolve `null` e `write` nao faz nada; nesse caso, envolva o controle em uma subclasse de `FormField` que sobrescreva `getValue` e `setValue`.
+
+### Senha, período e acessibilidade
+
+`FormValues` também reconhece [`PasswordField`](PasswordField.md), `JPasswordField` e [`PeriodField`](PeriodField.md). Campos de senha retornam `char[]` e recebem `char[]` ou `null`; essa regra precede `JTextComponent`. Isso altera a leitura anterior de `JPasswordField`, que retornava `String`. Adapte os consumidores e apague as cópias após o uso. `Validators.required()` verifica arrays de senha vazios; outros validadores podem usar `Validator<char[]>`.
+
+Eventos de validação e limpeza omitem campos de senha. `getValues()` e o evento explícito `SUBMIT` continuam entregando seus valores. Arrays temporários de validação são apagados após o validador executar.
+
+`PeriodField` retorna um `PeriodValue` tipado. Entradas incompletas, invertidas ou fora dos limites bloqueiam o envio, mesmo se o campo não for obrigatório; `reset()` limpa também o erro de entrada.
+
+Os rótulos são associados aos controles e ajuda/erro compõem sua descrição acessível, preservando personalizações do aplicativo. Veja [Acessibilidade](Acessibilidade.md).

@@ -59,9 +59,11 @@ public class RadioGroupField<T> extends PanelEventListener {
         option.attachGroup(this);
         options.add(option);
         add(option);
+        option.setEnabled(isEnabled());
         if (option.isSelected()) {
-            current = option;
+            notifySelection(option, false);
         }
+        firePropertyChange("options", null, options.size());
         revalidate();
         repaint();
         return this;
@@ -102,8 +104,11 @@ public class RadioGroupField<T> extends PanelEventListener {
             option.attachGroup(null);
             remove(option);
         }
+        RadioField<T> previousOption = current;
         options.clear();
         current = null;
+        firePropertyChange("selection", previousOption, null);
+        firePropertyChange("options", null, 0);
         revalidate();
         repaint();
         return this;
@@ -157,13 +162,15 @@ public class RadioGroupField<T> extends PanelEventListener {
             adjusting = false;
         }
         T previous = current != null ? current.getValue() : null;
+        RadioField<T> previousOption = current;
         current = null;
+        firePropertyChange("selection", previousOption, null);
         if (fireEvent) {
             Map<String, Object> props = new HashMap<>();
             props.put("oldValue", previous);
             props.put("newValue", null);
-            dispatchEvent(EventType.CLEAR, this, null, props);
-            dispatchEvent(EventType.CHANGE, this, null, props);
+            dispatchEvent(EventType.CLEAR, this, (Object) null, props);
+            dispatchEvent(EventType.CHANGE, this, (Object) null, props);
         }
         return this;
     }
@@ -220,7 +227,9 @@ public class RadioGroupField<T> extends PanelEventListener {
         }
 
         T previous = current != null ? current.getValue() : null;
+        RadioField<T> previousOption = current;
         current = option;
+        firePropertyChange("selection", previousOption, current);
 
         if (fireEvent) {
             Map<String, Object> props = new HashMap<>();

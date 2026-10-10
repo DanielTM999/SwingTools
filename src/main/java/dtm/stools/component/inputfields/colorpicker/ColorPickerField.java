@@ -58,7 +58,9 @@ public class ColorPickerField extends JPanel {
         colorPreview = new JButton();
         colorPreview.setPreferredSize(new Dimension(30, 30));
         colorPreview.setBackground(initialColor);
-        colorPreview.setFocusable(false);
+        colorPreview.setFocusable(true);
+        colorPreview.getAccessibleContext().setAccessibleName(dtm.stools.i18n.I18n.getText(ColorPickerField.class, "choose", "Escolher cor"));
+        textField.getAccessibleContext().setAccessibleName(dtm.stools.i18n.I18n.getText(ColorPickerField.class, "value", "Valor da cor"));
         colorPreview.setCursor(new Cursor(Cursor.HAND_CURSOR));
         colorPreview.setToolTipText(colorPreviewTooltip);
 
@@ -94,6 +96,7 @@ public class ColorPickerField extends JPanel {
     }
 
     private void openColorChooser() {
+        if (!isEnabled() || !textField.isEditable()) return;
         Color selectedColor = JColorChooser.showDialog(
                 this,
                 colorChooserTitle,

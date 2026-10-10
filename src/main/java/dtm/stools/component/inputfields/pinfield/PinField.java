@@ -112,6 +112,7 @@ public class PinField extends PanelEventListener {
                 }
             }
         }
+        firePropertyChange("pinValue", previous, getValue());
         repaint();
         if (fireEvent) {
             fireValueChanged(previous);
@@ -133,8 +134,10 @@ public class PinField extends PanelEventListener {
         if (length <= 0) {
             throw new IllegalArgumentException("length must be greater than zero");
         }
+        String previous = getValue();
         this.digits = new char[length];
         this.caretIndex = 0;
+        firePropertyChange("pinValue", previous, "");
         updatePreferredSize();
         repaint();
         return this;
@@ -164,7 +167,9 @@ public class PinField extends PanelEventListener {
      * Exibe pontos no lugar dos caracteres digitados.
      */
     public PinField setMasked(boolean masked) {
+        boolean previous = this.masked;
         this.masked = masked;
+        firePropertyChange("masked", previous, masked);
         repaint();
         return this;
     }
@@ -401,6 +406,7 @@ public class PinField extends PanelEventListener {
 
     private void fireValueChanged(String previous) {
         String current = getValue();
+        firePropertyChange("pinValue", previous, current);
         if (previous.equals(current)) {
             return;
         }

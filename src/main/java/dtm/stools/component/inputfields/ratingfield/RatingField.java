@@ -125,8 +125,12 @@ public class RatingField extends PanelEventListener {
         if (count <= 0) {
             throw new IllegalArgumentException("count must be greater than zero");
         }
+        double previousValue = this.value;
+        int previousCount = this.count;
         this.count = count;
         this.value = clamp(value);
+        firePropertyChange("value", previousValue, this.value);
+        firePropertyChange("maximum", previousCount, count);
         updatePreferredSize();
         repaint();
         return this;
@@ -137,7 +141,9 @@ public class RatingField extends PanelEventListener {
      */
     public RatingField setAllowHalf(boolean allowHalf) {
         this.allowHalf = allowHalf;
+        double previousValue = this.value;
         this.value = snap(value);
+        firePropertyChange("value", previousValue, this.value);
         repaint();
         return this;
     }
@@ -153,7 +159,9 @@ public class RatingField extends PanelEventListener {
      * Impede a alteração da avaliação pelo usuário.
      */
     public RatingField setReadOnly(boolean readOnly) {
+        boolean previous = this.readOnly;
         this.readOnly = readOnly;
+        firePropertyChange("readOnly", previous, readOnly);
         setCursor(Cursor.getPredefinedCursor(readOnly ? Cursor.DEFAULT_CURSOR : Cursor.HAND_CURSOR));
         repaint();
         return this;

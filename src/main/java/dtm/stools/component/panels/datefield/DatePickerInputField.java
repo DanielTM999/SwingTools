@@ -112,7 +112,9 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
 
         calendarButton = new JButton("📅");
         calendarButton.setPreferredSize(Objects.requireNonNullElseGet(calendarButtonDimension, () -> new Dimension(fieldWidth, fieldHeight)));
-        calendarButton.setFocusPainted(false);
+        calendarButton.setFocusPainted(true);
+        calendarButton.getAccessibleContext().setAccessibleName(dtm.stools.i18n.I18n.getText(DatePickerInputField.class, "choose", "Escolher data"));
+        textField.getAccessibleContext().setAccessibleName(dtm.stools.i18n.I18n.getText(DatePickerInputField.class, "value", "Data e hora"));
         calendarButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         add(textField, BorderLayout.CENTER);
@@ -132,6 +134,7 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
     }
 
     private void showCalendarPopup() {
+        if (!isEnabled() || !textField.isEditable() || textField.isReadonly()) return;
         if (popupMenu == null) {
             createCalendarPopup();
         }
@@ -481,7 +484,8 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         for (int day = 1; day <= daysInMonth; day++) {
             LocalDate date = currentYearMonth.atDay(day);
             JButton dayButton = new JButton(String.valueOf(day));
-            dayButton.setFocusPainted(false);
+            dayButton.setFocusPainted(true);
+            dayButton.getAccessibleContext().setAccessibleName(date.format(DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.FULL)));
             dayButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
             dayButton.setFont(buttonFont);
             dayButton.setBackground(defaultBg);
@@ -694,6 +698,13 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         textField.setCleanText(formattedDate.replaceAll("[^0-9]", ""));
     }
 
+    @Override public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        if (textField != null) textField.setEnabled(enabled);
+        if (calendarButton != null) calendarButton.setEnabled(enabled && textField.isEditable() && !textField.isReadonly());
+        if (!enabled && popupMenu != null) popupMenu.setVisible(false);
+    }
+
     private void fireOnDataChange() {
         dispatchEvent(EventType.CHANGE, this::getSelectedDateTime);
     }
@@ -701,6 +712,8 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
     @Override
     public void setEditable(boolean editable) {
         textField.setEditable(editable);
+        calendarButton.setEnabled(isEnabled() && editable && !textField.isReadonly());
+        if (!editable && popupMenu != null) popupMenu.setVisible(false);
     }
 
     @Override
@@ -710,7 +723,10 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
 
     @Override
     public void setSelectedDateTime(LocalDateTime dateTime) {
+        LocalDateTime oldValue = this.selectedDateTime;
         this.selectedDateTime = dateTime;
+        firePropertyChange("dateTime", oldValue, dateTime);
+        getAccessibleContext().firePropertyChange(javax.accessibility.AccessibleContext.ACCESSIBLE_VALUE_PROPERTY, oldValue, dateTime);
         this.tempDateTime = dateTime;
 
         if (dateTime != null) {
@@ -743,8 +759,10 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
 
     @Override
     public void clear() {
+        LocalDateTime oldValue = this.selectedDateTime;
         this.selectedDateTime = null;
         this.tempDateTime = null;
+        getAccessibleContext().firePropertyChange(javax.accessibility.AccessibleContext.ACCESSIBLE_VALUE_PROPERTY, oldValue, null);
         this.currentYearMonth = YearMonth.now();
         textField.setText(textField.getText().replaceAll("[0-9]", "_"));
 
@@ -759,6 +777,8 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
     @Override
     public void setReadonlyField(boolean readOnly) {
         textField.setReadonly(readOnly);
+        calendarButton.setEnabled(isEnabled() && !readOnly && textField.isEditable());
+        if (readOnly && popupMenu != null) popupMenu.setVisible(false);
     }
 
     @Override

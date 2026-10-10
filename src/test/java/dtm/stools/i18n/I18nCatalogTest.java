@@ -38,6 +38,20 @@ class I18nCatalogTest {
     }
 
     @Test
+    void newControlsHaveTranslationsInEveryBundledLocale() {
+        for (String locale : List.of("pt-BR", "en-US", "es-ES")) {
+            assertTrue(I18n.setLocale(Locale.forLanguageTag(locale)));
+            for (String key : List.of("PasswordField.show", "PasswordField.hide", "PeriodField.invalid",
+                    "PeriodField.calendar", "PeriodField.clock", "PeriodField.hours", "PeriodField.minutes",
+                    "PeriodField.decreaseTime", "PeriodField.increaseTime", "PeriodField.dates", "PeriodField.times",
+                    "PeriodField.required", "PeriodField.requiredTime",
+                    "CommandPalette.empty", "CommandPalette.search", "AccessibleControls.increment")) {
+                assertTrue(!I18n.getText(key, "missing").equals("missing"), locale + ": " + key);
+            }
+        }
+    }
+
+    @Test
     void applicationCatalogsStillLoadFromLanguagesAndOverrideInternalTexts(@TempDir Path directory) throws Exception {
         Locale locale = Locale.forLanguageTag("en-US");
         assertTrue(I18n.setLocale(locale));
