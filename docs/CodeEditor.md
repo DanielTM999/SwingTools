@@ -73,6 +73,21 @@ editor.searchFindNext();
 
 APIs relacionadas: `hideSearchPanel`, `searchFindPrev`, `searchReplaceCurrent`, `searchReplaceAll`, `isSearchPanelVisible`.
 
+### Modo da busca
+
+`setSearchPanelMode(SearchPanelMode)` (`dtm.stools.models.SearchPanelMode`) escolhe como o `Ctrl+F` aparece:
+
+| Modo | Visual |
+|---|---|
+| `EMBEDDED` (padrão) | Barra encaixada no editor, na posição de `setSearchPanelPosition` (`TOP`, `BOTTOM`, `LEFT`, `RIGHT` ou `POPUP`) |
+| `FLOATING` | Card arredondado sobre o canto superior direito do texto, como no VS Code. Ignora `setSearchPanelPosition` e empurra o inspection widget para baixo do card |
+
+```java
+editor.setSearchPanelMode(SearchPanelMode.FLOATING);
+```
+
+Trocar o modo com a busca aberta remonta o painel na hora, mantendo o termo e a linha de substituição. O mesmo enum existe no [SmartTextArea](SmartTextArea.md) (`setSearchMode`).
+
 ## Visual e interacao
 
 | Recurso | Metodos |
@@ -85,6 +100,22 @@ APIs relacionadas: `hideSearchPanel`, `searchFindPrev`, `searchReplaceCurrent`, 
 | Marcadores de linha | `setLineChangeMarker`, `removeLineChangeMarker`, `clearLineChangeMarkers` |
 | Atalhos | `setFindKeyStroke`, `setFormatKeyStroke`, `setAutoCompleteKeyStroke`, varios outros |
 
+## Navegação por diagnósticos
+
+| Atalho | Ação |
+|---|---|
+| `F2` | Próximo diagnóstico |
+| `Shift+F2` | Diagnóstico anterior |
+
+Cada atalho seleciona o trecho do diagnóstico, centraliza a linha e abre o popup de hover com a severidade, a origem e a mensagem. A lista é percorrida em ordem de posição e dá a volta no fim; diagnósticos só de esmaecimento (`unnecessary` + `HINT`) são pulados. Cada salto entra no histórico de navegação (`Ctrl+Alt+←`).
+
+| Método | Uso |
+|---|---|
+| `jumpToNextDiagnostic()` / `jumpToPreviousDiagnostic()` | Mesma ação via código |
+| `setNextDiagnosticKeyStroke` / `setPreviousDiagnosticKeyStroke` | Troca os atalhos; `null` desativa |
+
+O `F8` continua com os bookmarks (`F8` alterna, `Shift+F8` próximo, `Ctrl+Shift+F8` anterior).
+
 ## Breakpoints, bookmarks e folding
 
 ```java
@@ -94,6 +125,8 @@ editor.addBreakpoint(10);
 
 editor.addBookmark(4);
 editor.jumpToNextBookmark();
+
+editor.jumpToNextDiagnostic();
 
 editor.setFoldingEnabled(true);
 ```

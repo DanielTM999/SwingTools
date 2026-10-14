@@ -698,6 +698,7 @@ Recursos:
 | `PinField` | Código de verificação com uma caixa por dígito e colagem distribuída |
 | `StepperField` | Numérico com botões de menos e mais, sobre o `NumberField` |
 | `TextAreaField` | Texto longo com placeholder, contador, limite e crescimento automático |
+| `SmartTextArea` | `JTextArea` com desfazer agrupado, menu de contexto, numeração de linhas, busca/substituição, atalhos de edição, redimensionamento pelo canto e diagnósticos (corretor ortográfico) |
 | `DualListField<T>` | Duas listas com botões de transferir, filtro e reordenação |
 
 ```java
@@ -708,7 +709,7 @@ perfis.addEventListener(EventType.CHANGE, e -> {
 });
 ```
 
-Cada campo tem doc própria em `docs/`: [CheckBoxField](docs/CheckBoxField.md), [RadioGroupField](docs/RadioGroupField.md), [SegmentedField](docs/SegmentedField.md), [SliderField](docs/SliderField.md), [RatingField](docs/RatingField.md), [PinField](docs/PinField.md), [StepperField](docs/StepperField.md), [TextAreaField](docs/TextAreaField.md) e [DualListField](docs/DualListField.md).
+Cada campo tem doc própria em `docs/`: [CheckBoxField](docs/CheckBoxField.md), [RadioGroupField](docs/RadioGroupField.md), [SegmentedField](docs/SegmentedField.md), [SliderField](docs/SliderField.md), [RatingField](docs/RatingField.md), [PinField](docs/PinField.md), [StepperField](docs/StepperField.md), [TextAreaField](docs/TextAreaField.md), [SmartTextArea](docs/SmartTextArea.md) e [DualListField](docs/DualListField.md).
 
 ### Formulários
 
@@ -1635,6 +1636,7 @@ Os exemplos ficam em `src/test/java/dtm/stools/examples`:
 | `GraphicsGlParallelRunOnUiExample` | Geração paralela com uso excepcional de `runOnUiThread` para atualizar recurso GL |
 | `MenuBarFlatLafThemeExample` | `MenuBar` com FlatLaf dark/light |
 | `ModernFieldsExample` | Campos modernos: check, radio, segmented, slider, rating, pin, stepper, textarea e dual list |
+| `SmartTextAreaExample` | `SmartTextArea` com numeração de linhas, busca/substituição, atalhos de edição, limite, redimensionamento e corretor ortográfico |
 | `ModernPanelsExample` | Cards, accordion, toolbar, breadcrumb, alertas, progresso, etapas, paginação e `FormPanel` |
 | `ModernComponentDialogExample` | Dialog moderno com componente customizado e retorno tipado |
 | `ModernInputDialogExample` | Input dialog moderno |

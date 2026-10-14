@@ -804,6 +804,16 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         rebindIdeActionKeys();
     }
 
+    public void setNextDiagnosticKeyStroke(KeyStroke ks) {
+        this.nextDiagnosticKeyStroke = ks;
+        rebindIdeActionKeys();
+    }
+
+    public void setPreviousDiagnosticKeyStroke(KeyStroke ks) {
+        this.previousDiagnosticKeyStroke = ks;
+        rebindIdeActionKeys();
+    }
+
     protected void installIdeActions() {
         getActionMap().put(ACTION_GO_TO_DEFINITION, new AbstractAction() {
             @Override
@@ -883,6 +893,18 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
                 jumpToPreviousBookmark();
             }
         });
+        getActionMap().put(ACTION_NEXT_DIAGNOSTIC, new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                jumpToNextDiagnostic();
+            }
+        });
+        getActionMap().put(ACTION_PREV_DIAGNOSTIC, new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                jumpToPreviousDiagnostic();
+            }
+        });
         rebindIdeActionKeys();
     }
 
@@ -898,7 +920,8 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
                         || ACTION_EXTEND_SELECTION.equals(action) || ACTION_SHRINK_SELECTION.equals(action)
                         || ACTION_NAV_BACK.equals(action) || ACTION_NAV_FORWARD.equals(action)
                         || ACTION_TOGGLE_BOOKMARK.equals(action) || ACTION_NEXT_BOOKMARK.equals(action)
-                        || ACTION_PREV_BOOKMARK.equals(action)) {
+                        || ACTION_PREV_BOOKMARK.equals(action) || ACTION_NEXT_DIAGNOSTIC.equals(action)
+                        || ACTION_PREV_DIAGNOSTIC.equals(action)) {
                     im.remove(k);
                 }
             }
@@ -916,6 +939,8 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         if (toggleBookmarkKeyStroke != null) im.put(toggleBookmarkKeyStroke, ACTION_TOGGLE_BOOKMARK);
         if (nextBookmarkKeyStroke != null) im.put(nextBookmarkKeyStroke, ACTION_NEXT_BOOKMARK);
         if (previousBookmarkKeyStroke != null) im.put(previousBookmarkKeyStroke, ACTION_PREV_BOOKMARK);
+        if (nextDiagnosticKeyStroke != null) im.put(nextDiagnosticKeyStroke, ACTION_NEXT_DIAGNOSTIC);
+        if (previousDiagnosticKeyStroke != null) im.put(previousDiagnosticKeyStroke, ACTION_PREV_DIAGNOSTIC);
     }
 
     public void triggerGoToDefinition() {
@@ -1385,6 +1410,69 @@ public abstract class CodeEditorTextAreaActions extends CodeEditorTextAreaHandle
         setCaretPosition(prev, 0);
         scrollToCaret();
         repaint();
+    }
+
+    public void jumpToNextDiagnostic() {
+        jumpToDiagnostic(true);
+    }
+
+    public void jumpToPreviousDiagnostic() {
+        jumpToDiagnostic(false);
+    }
+
+    protected void jumpToDiagnostic(boolean forward) {
+        List<Diagnostic> candidates = new ArrayList<>();
+        for (Diagnostic diagnostic : List.copyOf(getDiagnostics())) {
+            if (diagnostic != null && !diagnostic.isFadeOnly()) candidates.add(diagnostic);
+        }
+        if (candidates.isEmpty()) return;
+        candidates.sort(Comparator.comparingInt(Diagnostic::startLine).thenComparingInt(Diagnostic::startCol));
+        boolean selected = hasSelection();
+        int anchor = selected ? getSelectionStart() : caretOffset();
+        Diagnostic target = null;
+        if (forward) {
+            for (Diagnostic diagnostic : candidates) {
+                int start = diagnosticOffset(diagnostic.startLine(), diagnostic.startCol());
+                if (start > anchor || (start == anchor && !selected)) {
+                    target = diagnostic;
+                    break;
+                }
+            }
+            if (target == null) target = candidates.getFirst();
+        } else {
+            for (int i = candidates.size() - 1; i >= 0 && target == null; i--) {
+                Diagnostic diagnostic = candidates.get(i);
+                if (diagnosticOffset(diagnostic.startLine(), diagnostic.startCol()) < anchor) target = diagnostic;
+            }
+            if (target == null) target = candidates.getLast();
+        }
+        pushNavigationHistory();
+        int lastLine = buffer.lineCount() - 1;
+        int startLine = Math.max(0, Math.min(target.startLine(), lastLine));
+        int startCol = Math.max(0, Math.min(target.startCol(), buffer.lineAt(startLine).length()));
+        int endLine = Math.max(startLine, Math.min(target.endLine(), lastLine));
+        int endCol = Math.max(0, Math.min(target.endCol(), buffer.lineAt(endLine).length()));
+        if (endLine == startLine && endCol <= startCol) {
+            selectionStartLine = -1;
+            caretLine = startLine;
+            caretCol = startCol;
+        } else {
+            selectionStartLine = startLine;
+            selectionStartCol = startCol;
+            caretLine = endLine;
+            caretCol = endCol;
+        }
+        desiredCaretCol = -1;
+        scrollSearchMatchToCenter(startLine, endLine);
+        resetCaretBlink();
+        fireStateChangedIfNeeded();
+        repaint();
+        showDiagnosticHover(target);
+    }
+
+    private int diagnosticOffset(int line, int col) {
+        int safeLine = Math.max(0, Math.min(line, buffer.lineCount() - 1));
+        return buffer.offsetOfLine(safeLine) + Math.max(0, Math.min(col, buffer.lineAt(safeLine).length()));
     }
 
     public void addBookmarkListener(Runnable l) {

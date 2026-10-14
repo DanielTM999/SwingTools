@@ -73,6 +73,9 @@ public class SearchPanel extends JPanel {
     @Getter
     protected boolean replaceVisible = false;
 
+    @Getter
+    protected boolean floating = false;
+
     protected final JPanel replaceRow;
 
     @Getter
@@ -401,6 +404,43 @@ public class SearchPanel extends JPanel {
     public SearchOptions getOptions() {
         return new SearchOptions(caseToggle.isSelected(), wordToggle.isSelected(),
                 regexToggle.isSelected(), true);
+    }
+
+    public void setFloating(boolean floating) {
+        if (this.floating == floating) return;
+        this.floating = floating;
+        if (floating) {
+            setOpaque(false);
+            setBorder(new EmptyBorder(6, 8, 6, 8));
+        } else {
+            setOpaque(true);
+            setBackground(resolvePanelBackground());
+            setBorder(new CompoundBorder(
+                    new BottomLineBorder(resolveBorderColor(), 1),
+                    new EmptyBorder(6, 8, 6, 8)
+            ));
+        }
+        revalidate();
+        repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        if (!floating) {
+            super.paintComponent(g);
+            return;
+        }
+        Graphics2D g2 = (Graphics2D) g.create();
+        try {
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int arc = 10;
+            g2.setColor(resolvePanelBackground());
+            g2.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+            g2.setColor(resolveBorderColor());
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
+        } finally {
+            g2.dispose();
+        }
     }
 
     public void setReplaceVisible(boolean visible) {

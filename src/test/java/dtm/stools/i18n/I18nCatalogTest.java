@@ -45,7 +45,11 @@ class I18nCatalogTest {
                     "PeriodField.calendar", "PeriodField.clock", "PeriodField.hours", "PeriodField.minutes",
                     "PeriodField.decreaseTime", "PeriodField.increaseTime", "PeriodField.dates", "PeriodField.times",
                     "PeriodField.required", "PeriodField.requiredTime",
-                    "CommandPalette.empty", "CommandPalette.search", "AccessibleControls.increment")) {
+                    "CommandPalette.empty", "CommandPalette.search", "AccessibleControls.increment",
+                    "CodeEditorTextArea.severity.error", "CodeEditorTextArea.severity.warning",
+                    "CodeEditorTextArea.severity.info", "CodeEditorTextArea.severity.hint",
+                    "SmartTextArea.undo", "SmartTextArea.search.find", "SmartTextArea.severity.error",
+                    "DictionarySpellChecker.unknownWord", "DictionarySpellChecker.addToDictionary")) {
                 assertTrue(!I18n.getText(key, "missing").equals("missing"), locale + ": " + key);
             }
         }

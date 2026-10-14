@@ -12,6 +12,8 @@ import dtm.stools.component.panels.editor.code.utils.LoadingSpinnerFactory;
 import dtm.stools.component.panels.editor.code.autocomplete.AutoCompleteProvider;
 import dtm.stools.component.panels.editor.code.autocomplete.CompletionContext;
 import dtm.stools.component.panels.editor.code.autocomplete.SnippetExpansion;
+import dtm.stools.component.panels.editor.code.diagnostics.Diagnostic;
+import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticSeverity;
 import dtm.stools.component.panels.editor.code.ghost.GhostTextActivationMode;
 import dtm.stools.component.panels.editor.code.ghost.GhostTextContext;
 import dtm.stools.component.panels.editor.code.ghost.GhostTextProvider;
@@ -27,6 +29,7 @@ import dtm.stools.component.panels.editor.code.signature.SignatureHelpContext;
 import dtm.stools.component.panels.editor.code.signature.SignatureHelpPopup;
 import dtm.stools.component.panels.editor.code.signature.SignatureHelpProvider;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
+import dtm.stools.i18n.I18n;
 import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.*;
@@ -833,6 +836,47 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         HoverDocumentationPopup popup = getOrCreateHoverDocumentationPopup();
         popup.show(info, x, y);
         updateHoverDocumentationTransitionBounds(x, y - lineHeight, lineHeight, popup);
+    }
+
+    protected void showDiagnosticHover(Diagnostic diagnostic) {
+        if (diagnostic == null || !canShowPopups()) return;
+        hoverDocumentationVersion.incrementAndGet();
+        CompletableFuture<HoverInfo> task = currentHoverTask;
+        if (task != null && !task.isDone()) task.cancel(false);
+        FontMetrics fm = fontMetricsFor(getFont());
+        int lineHeight = fm.getHeight();
+        int line = Math.max(0, Math.min(diagnostic.startLine(), buffer.lineCount() - 1));
+        String lineText = buffer.lineAt(line);
+        int col = Math.max(0, Math.min(diagnostic.startCol(), lineText.length()));
+        int x = visualXForColumn(line, lineText, col, fm);
+        int y = yOfBufferLine(line) + lineHeight;
+        HoverDocumentationPopup popup = getOrCreateHoverDocumentationPopup();
+        popup.show(HoverInfo.html(diagnosticHoverHtml(diagnostic)), x, y);
+        updateHoverDocumentationTransitionBounds(x, y - lineHeight, lineHeight, popup);
+    }
+
+    protected String diagnosticHoverHtml(Diagnostic diagnostic) {
+        StringBuilder html = new StringBuilder("<b>").append(escapeHoverHtml(diagnosticSeverityLabel(diagnostic.severity()))).append("</b>");
+        if (diagnostic.source() != null && !diagnostic.source().isBlank()) {
+            html.append(" &middot; ").append(escapeHoverHtml(diagnostic.source()));
+        }
+        String message = diagnostic.message() == null ? "" : diagnostic.message();
+        html.append("<br>").append(escapeHoverHtml(message).replace("\n", "<br>"));
+        return html.toString();
+    }
+
+    protected static String diagnosticSeverityLabel(DiagnosticSeverity severity) {
+        if (severity == null) return "";
+        return switch (severity) {
+            case ERROR -> I18n.getText(CodeEditorTextArea.class, "severity.error", "Erro");
+            case WARNING -> I18n.getText(CodeEditorTextArea.class, "severity.warning", "Aviso");
+            case INFO -> I18n.getText(CodeEditorTextArea.class, "severity.info", "Informação");
+            case HINT -> I18n.getText(CodeEditorTextArea.class, "severity.hint", "Dica");
+        };
+    }
+
+    private static String escapeHoverHtml(String text) {
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     public void hideHoverDocumentation() {

@@ -4,6 +4,8 @@ import dtm.stools.component.panels.editor.code.rename.LinkedRenamePopupFactory;
 import dtm.stools.component.panels.editor.code.rename.RenamePresenter;
 import dtm.stools.component.panels.editor.code.rename.RenameStyle;
 import dtm.stools.component.panels.BlockingPanel;
+import dtm.stools.configs.UiTokens;
+import dtm.stools.models.SearchPanelMode;
 import dtm.stools.component.panels.editor.code.gutter.CodeEditorGutter;
 import dtm.stools.component.panels.editor.code.gutter.layer.BookmarkLayer;
 import dtm.stools.component.panels.editor.code.gutter.layer.BreakpointLayer;
@@ -57,6 +59,8 @@ import lombok.Getter;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.util.Collection;
 import java.util.List;
@@ -107,6 +111,11 @@ public class CodeEditor extends BlockingPanel {
 
     @Getter
     private SearchPanelPosition searchPanelPosition = SearchPanelPosition.TOP;
+
+    @Getter
+    private SearchPanelMode searchPanelMode = SearchPanelMode.EMBEDDED;
+
+    private boolean searchPanelOverlayListenerInstalled;
 
     private Object currentMountedConstraint;
 
@@ -191,10 +200,21 @@ public class CodeEditor extends BlockingPanel {
                 int w = getWidth();
                 int h = getHeight();
                 scrollPane.setBounds(0, 0, w, h);
+                int widgetTop = inspectionWidget != null ? inspectionWidget.getMarginTop() : 0;
+                SearchPanel floating = floatingSearchPanel();
+                if (floating != null) {
+                    Rectangle viewport = SwingUtilities.convertRectangle(scrollPane, scrollPane.getViewport().getBounds(), this);
+                    int margin = UiTokens.scale(6);
+                    Dimension preferred = floating.getPreferredSize();
+                    int width = Math.max(0, Math.min(preferred.width, viewport.width - margin * 2));
+                    int height = Math.min(preferred.height, Math.max(0, viewport.height - margin * 2));
+                    floating.setBounds(viewport.x + viewport.width - width - margin, viewport.y + margin, width, height);
+                    widgetTop = viewport.y + margin + height + margin;
+                }
                 if (inspectionWidget != null && inspectionWidget.isVisible()) {
                     Dimension d = inspectionWidget.getPreferredSize();
                     int x = Math.max(0, w - d.width - inspectionWidget.getMarginRight());
-                    inspectionWidget.setBounds(x, inspectionWidget.getMarginTop(), d.width, d.height);
+                    inspectionWidget.setBounds(x, widgetTop, d.width, d.height);
                 }
             }
         };
@@ -266,6 +286,17 @@ public class CodeEditor extends BlockingPanel {
         if (this.searchPanelPosition == position) return;
         this.searchPanelPosition = position;
         unmountSearchPanel();
+    }
+
+    public void setSearchPanelMode(SearchPanelMode mode) {
+        if (mode == null) mode = SearchPanelMode.EMBEDDED;
+        if (this.searchPanelMode == mode) return;
+        boolean wasVisible = textArea.isSearchPanelVisible();
+        SearchPanel panel = textArea.getSearchPanel();
+        boolean replaceVisible = panel != null && panel.isReplaceVisible();
+        this.searchPanelMode = mode;
+        unmountSearchPanel();
+        if (wasVisible && searchEnabled) showSearchPanel(null, replaceVisible);
     }
 
     public void hideSearchPanel() {
@@ -1908,6 +1939,14 @@ public class CodeEditor extends BlockingPanel {
         textArea.jumpToPreviousBookmark();
     }
 
+    public void jumpToNextDiagnostic() {
+        textArea.jumpToNextDiagnostic();
+    }
+
+    public void jumpToPreviousDiagnostic() {
+        textArea.jumpToPreviousDiagnostic();
+    }
+
     public boolean isBookmarked(int line) {
         return textArea.isBookmarked(line);
     }
@@ -2012,6 +2051,22 @@ public class CodeEditor extends BlockingPanel {
         textArea.setPreviousBookmarkKeyStroke(ks);
     }
 
+    public KeyStroke getNextDiagnosticKeyStroke() {
+        return textArea.getNextDiagnosticKeyStroke();
+    }
+
+    public void setNextDiagnosticKeyStroke(KeyStroke ks) {
+        textArea.setNextDiagnosticKeyStroke(ks);
+    }
+
+    public KeyStroke getPreviousDiagnosticKeyStroke() {
+        return textArea.getPreviousDiagnosticKeyStroke();
+    }
+
+    public void setPreviousDiagnosticKeyStroke(KeyStroke ks) {
+        textArea.setPreviousDiagnosticKeyStroke(ks);
+    }
+
     public void repaintBreakpointLines(){
         BreakpointLayer breakpointLayer = getGutter().getLayer(BreakpointLayer.class);
         if(breakpointLayer == null) return;
@@ -2028,9 +2083,13 @@ public class CodeEditor extends BlockingPanel {
         } else if (!wasVisible) {
             panel.setReplaceVisible(false);
         }
-        if (searchPanelPosition == SearchPanelPosition.POPUP) {
+        if (searchPanelMode == SearchPanelMode.FLOATING) {
+            mountFloating(panel);
+        } else if (searchPanelPosition == SearchPanelPosition.POPUP) {
+            panel.setFloating(false);
             mountPopup(panel);
         } else {
+            panel.setFloating(false);
             mountInBorder(panel);
         }
         if (selectedText != null && !selectedText.isEmpty()) {
@@ -2041,6 +2100,49 @@ public class CodeEditor extends BlockingPanel {
         textArea.searchUpdateQuery(panel.getFindField().getText(), panel.getOptions());
         revalidate();
         repaint();
+    }
+
+    private void mountFloating(SearchPanel panel) {
+        installSearchPanelOverlayListener(panel);
+        panel.setFloating(true);
+        if (panel.getParent() != editorOverlay) {
+            Container previous = panel.getParent();
+            if (previous != null) previous.remove(panel);
+            editorOverlay.add(panel, JLayeredPane.MODAL_LAYER);
+        }
+        currentMountedConstraint = null;
+        updateNavigationHeader();
+        if (searchPopup != null) searchPopup.setVisible(false);
+        editorOverlay.revalidate();
+        editorOverlay.repaint();
+    }
+
+    private void installSearchPanelOverlayListener(SearchPanel panel) {
+        if (searchPanelOverlayListenerInstalled) return;
+        searchPanelOverlayListenerInstalled = true;
+        panel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                refreshEditorOverlay();
+            }
+
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                refreshEditorOverlay();
+            }
+        });
+    }
+
+    private void refreshEditorOverlay() {
+        if (editorOverlay == null) return;
+        editorOverlay.revalidate();
+        editorOverlay.repaint();
+    }
+
+    private SearchPanel floatingSearchPanel() {
+        SearchPanel panel = textArea.getSearchPanel();
+        if (panel == null || panel.getParent() != editorOverlay || !panel.isVisible()) return null;
+        return panel;
     }
 
     private void mountInBorder(SearchPanel panel) {

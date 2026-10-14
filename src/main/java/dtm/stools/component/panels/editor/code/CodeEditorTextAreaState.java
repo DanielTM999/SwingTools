@@ -266,6 +266,8 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     protected static final String ACTION_TOGGLE_BOOKMARK = "codeEditor.toggleBookmark";
     protected static final String ACTION_NEXT_BOOKMARK = "codeEditor.nextBookmark";
     protected static final String ACTION_PREV_BOOKMARK = "codeEditor.previousBookmark";
+    protected static final String ACTION_NEXT_DIAGNOSTIC = "codeEditor.nextDiagnostic";
+    protected static final String ACTION_PREV_DIAGNOSTIC = "codeEditor.previousDiagnostic";
 
     @Getter
     @Setter
@@ -859,6 +861,12 @@ public abstract class CodeEditorTextAreaState extends JComponent {
 
     @Getter
     protected KeyStroke previousBookmarkKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F8, InputEvent.SHIFT_DOWN_MASK | InputEvent.CTRL_DOWN_MASK);
+
+    @Getter
+    protected KeyStroke nextDiagnosticKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0);
+
+    @Getter
+    protected KeyStroke previousDiagnosticKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_F2, InputEvent.SHIFT_DOWN_MASK);
 
     @Getter @Setter
     protected DefinitionLocationProvider definitionLocationProvider;

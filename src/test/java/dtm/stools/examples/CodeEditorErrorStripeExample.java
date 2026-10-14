@@ -8,6 +8,7 @@ import dtm.stools.component.panels.editor.code.diagnostics.Diagnostic;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticSeverity;
 import dtm.stools.component.panels.editor.code.diagnostics.DiagnosticsProvider;
 import dtm.stools.component.panels.editor.code.prototype.TextBuffer;
+import dtm.stools.models.SearchPanelMode;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -110,6 +111,13 @@ public class CodeEditorErrorStripeExample {
                         ? CodeEditorInspectionWidget.CleanMode.SHOW_OK
                         : CodeEditorInspectionWidget.CleanMode.HIDE));
         toolbar.add(showOk);
+
+        JCheckBox floatingSearch = new JCheckBox("busca flutuante",
+                editor.getSearchPanelMode() == SearchPanelMode.FLOATING);
+        floatingSearch.addActionListener(e -> editor.setSearchPanelMode(floatingSearch.isSelected()
+                ? SearchPanelMode.FLOATING
+                : SearchPanelMode.EMBEDDED));
+        toolbar.add(floatingSearch);
 
         toolbar.add(status);
         return toolbar;
