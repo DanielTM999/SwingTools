@@ -1,9 +1,9 @@
 package dtm.stools.examples;
 
 import dtm.stools.component.panels.charts.ChartsPanel;
-import dtm.stools.component.panels.charts.render.*;
-import dtm.stools.component.panels.charts.style.ChartColor;
-import dtm.stools.component.panels.charts.style.LegendPosition;
+import dtm.stools.component.charts.render.*;
+import dtm.stools.component.charts.style.ChartColor;
+import dtm.stools.component.charts.style.LegendPosition;
 
 import javax.swing.*;
 import java.awt.*;

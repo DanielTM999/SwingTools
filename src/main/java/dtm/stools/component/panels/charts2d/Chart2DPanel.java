@@ -1,7 +1,8 @@
 package dtm.stools.component.panels.charts2d;
 
-import dtm.stools.component.panels.charts.data.ChartDataSource;
-import dtm.stools.component.panels.charts.style.ChartTheme;
+import dtm.stools.component.charts.data.ChartDataSource;
+import dtm.stools.component.charts2d.render.Chart2DRender;
+import dtm.stools.component.charts.style.ChartTheme;
 
 import javax.swing.JPanel;
 import javax.swing.Timer;

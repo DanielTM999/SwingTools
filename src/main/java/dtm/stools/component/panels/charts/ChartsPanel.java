@@ -1,10 +1,10 @@
 package dtm.stools.component.panels.charts;
 
 import dtm.stools.component.panels.BlockingPanel;
-import dtm.stools.component.panels.charts.data.ChartDataSource;
-import dtm.stools.component.panels.charts.render.ChartBaseRender;
-import dtm.stools.component.panels.charts.style.ChartPalette;
-import dtm.stools.component.panels.charts.style.ChartTheme;
+import dtm.stools.component.charts.data.ChartDataSource;
+import dtm.stools.component.charts.render.ChartBaseRender;
+import dtm.stools.component.charts.style.ChartPalette;
+import dtm.stools.component.charts.style.ChartTheme;
 import dtm.stools.component.panels.graphics.RenderThreadingMode;
 import dtm.stools.component.panels.graphics.gl.GraphicsGlPanel;
 
