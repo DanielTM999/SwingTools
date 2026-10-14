@@ -7,4 +7,4 @@ before_install:
   - sdk use java 25-open
 
 install:
-  - for attempt in 1 2 3 4 5; do if mvn -B install -DskipTests -Dnative.build.skip=true; then break; fi; if [ "$attempt" -eq 5 ]; then exit 1; fi; sleep $((attempt * 30)); done
+  - for attempt in 1 2 3 4 5; do if sh ./mvnw -B install -DskipTests -Dnative.build.skip=true; then break; fi; if [ "$attempt" -eq 5 ]; then exit 1; fi; sleep $((attempt * 30)); done
