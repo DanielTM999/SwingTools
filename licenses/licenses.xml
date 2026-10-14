@@ -10,6 +10,7 @@
           <name>The Apache Software License, Version 2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -22,6 +23,7 @@
           <name>The Apache Software License, Version 2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -34,6 +36,7 @@
           <name>The Apache Software License, Version 2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -45,6 +48,7 @@
         <license>
           <name>The Apache License, Version 2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -56,6 +60,7 @@
         <license>
           <name>The Apache License, Version 2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -68,6 +73,7 @@
           <name>MIT</name>
           <url>https://github.com/weisj/jsvg/blob/master/LICENSE</url>
           <distribution>repo</distribution>
+          <file>mit - license.html</file>
         </license>
       </licenses>
     </dependency>
@@ -80,6 +86,7 @@
           <name>Apache-2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -92,6 +99,7 @@
           <name>Apache-2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -104,6 +112,7 @@
           <name>Apache-2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -116,6 +125,7 @@
           <name>Apache-2.0</name>
           <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
           <distribution>repo</distribution>
+          <file>the apache software license, version 2.0 - license-2.0.txt</file>
         </license>
       </licenses>
     </dependency>
@@ -128,6 +138,7 @@
           <name>Bouncy Castle Licence</name>
           <url>https://www.bouncycastle.org/licence.html</url>
           <distribution>repo</distribution>
+          <file>bouncy castle licence - licence.html</file>
         </license>
       </licenses>
     </dependency>
@@ -140,6 +151,7 @@
           <name>Bouncy Castle Licence</name>
           <url>https://www.bouncycastle.org/licence.html</url>
           <distribution>repo</distribution>
+          <file>bouncy castle licence - licence.html</file>
         </license>
       </licenses>
     </dependency>
@@ -152,6 +164,7 @@
           <name>Bouncy Castle Licence</name>
           <url>https://www.bouncycastle.org/licence.html</url>
           <distribution>repo</distribution>
+          <file>bouncy castle licence - licence.html</file>
         </license>
       </licenses>
     </dependency>
@@ -164,6 +177,7 @@
           <name>BSD-2-Clause</name>
           <url>https://opensource.org/licenses/BSD-2-Clause</url>
           <distribution>repo</distribution>
+          <file>bsd-2-clause - bsd-2-clause.html</file>
         </license>
       </licenses>
     </dependency>
@@ -176,6 +190,7 @@
           <name>The MIT License</name>
           <url>https://projectlombok.org/LICENSE</url>
           <distribution>repo</distribution>
+          <file>the mit license - license.txt</file>
         </license>
       </licenses>
     </dependency>
