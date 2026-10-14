@@ -468,11 +468,16 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
     }
 
     protected String getIndentString() {
-        return useSpacesForTab ? " ".repeat(tabSize) : "\t";
+        return configuredIndentSize > 0 ? indentationForColumns(getIndentSize()) : useSpacesForTab ? " ".repeat(tabSize) : "\t";
+    }
+
+    protected String indentationForColumns(int columns) {
+        return useSpacesForTab ? " ".repeat(Math.max(0, columns))
+                : "\t".repeat(Math.max(0, columns) / tabSize) + " ".repeat(Math.max(0, columns) % tabSize);
     }
 
     protected int getIndentAdvance() {
-        return useSpacesForTab ? tabSize : 1;
+        return getIndentString().length();
     }
 
     protected String getLeadingWhitespace(String line) {
@@ -811,6 +816,7 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
     }
 
     protected int indentUnit() {
+        if (configuredIndentSize > 0) return configuredIndentSize;
         if (cachedIndentUnit > 0) {
             return cachedIndentUnit;
         }

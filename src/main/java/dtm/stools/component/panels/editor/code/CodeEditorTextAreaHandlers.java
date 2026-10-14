@@ -397,7 +397,8 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                     String indent = getIndentString();
                     beginCompoundEdit();
                     try {
-                        insertAtAllCarets(indent, false, getIndentAdvance());
+                        if (configuredIndentSize > 0) insertIndentAtAllCarets();
+                        else insertAtAllCarets(indent, false, getIndentAdvance());
                     } finally {
                         endCompoundEdit();
                     }
@@ -469,7 +470,9 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                                 && "{[(".indexOf(beforeCaret.charAt(beforeCaret.length() - 1)) >= 0;
                         boolean closePair = increaseIndent && !afterCaret.isEmpty()
                                 && "}])".indexOf(afterCaret.charAt(0)) >= 0;
-                        String childIndent = increaseIndent ? indent + getIndentString() : indent;
+                        String childIndent = increaseIndent ? (configuredIndentSize > 0
+                                ? indentationForColumns(indentColumnsOf(indent) + getIndentSize())
+                                : indent + getIndentString()) : indent;
                         if (closePair) {
                             insertText(offset, "\n" + childIndent + "\n" + indent);
                             setCaretFromOffset(offset + 1 + childIndent.length());
@@ -520,12 +523,27 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                                 }
                             }
 
-                            if (useSpacesForTab && caretCol >= tabSize) {
+                            if (configuredIndentSize > 0 && caretCol > 0) {
+                                String prefix = buffer.lineAt(caretLine).substring(0, caretCol);
+                                if (prefix.isBlank()) {
+                                    String replacement = indentationForColumns(Math.max(0, indentColumnsOf(prefix) - getIndentSize()));
+                                    int start = offset - prefix.length();
+                                    beginCompoundEdit();
+                                    try {
+                                        deleteText(start, offset);
+                                        insertText(start, replacement);
+                                    } finally { endCompoundEdit(); }
+                                    setCaretFromOffset(start + replacement.length());
+                                    scrollToCaret(); resetCaretBlink(); revalidate(); repaint();
+                                    return;
+                                }
+                            }
+                            if (useSpacesForTab && caretCol >= getIndentSize()) {
                                 String lineText = buffer.lineAt(caretLine);
                                 String before = lineText.substring(0, caretCol);
-                                if (before.endsWith(" ".repeat(tabSize)) && before.trim().isEmpty()) {
-                                    deleteText(offset - tabSize, offset);
-                                    caretCol -= tabSize;
+                                if (before.endsWith(" ".repeat(getIndentSize())) && before.trim().isEmpty()) {
+                                    deleteText(offset - getIndentSize(), offset);
+                                    caretCol -= getIndentSize();
                                     scrollToCaret();
                                     resetCaretBlink();
                                     revalidate();

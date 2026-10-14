@@ -8,8 +8,14 @@ public record FormatContext(
         int endOffset,
         int tabSize,
         boolean useSpacesForTab,
-        Scope scope
+        Scope scope,
+        int indentSize
 ) {
+
+    public FormatContext(TextBuffer buffer, int startOffset, int endOffset, int tabSize, boolean useSpacesForTab, Scope scope) {
+        this(buffer, startOffset, endOffset, tabSize, useSpacesForTab, scope, tabSize);
+    }
+
     public enum Scope { DOCUMENT, SELECTION }
 
     public String text() {

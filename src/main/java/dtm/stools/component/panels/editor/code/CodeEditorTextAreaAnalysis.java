@@ -643,7 +643,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         String sourceText = buffer.getText();
         CodeFormatter formatter = codeFormatter;
         FormatContext ctx = new FormatContext(new TextBuffer(sourceText), 0, sourceText.length(),
-                tabSize, useSpacesForTab, FormatContext.Scope.DOCUMENT);
+                tabSize, useSpacesForTab, FormatContext.Scope.DOCUMENT, getIndentSize());
         CompletableFuture
                 .supplyAsync(() -> {
                     try {
@@ -685,7 +685,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         String sourceText = buffer.getText();
         CodeFormatter formatter = codeFormatter;
         FormatContext ctx = new FormatContext(new TextBuffer(sourceText), start, end,
-                tabSize, useSpacesForTab, FormatContext.Scope.SELECTION);
+                tabSize, useSpacesForTab, FormatContext.Scope.SELECTION, getIndentSize());
         CompletableFuture
                 .supplyAsync(() -> {
                     try {

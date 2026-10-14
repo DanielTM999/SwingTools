@@ -623,6 +623,10 @@ public class CodeEditor extends BlockingPanel {
         return textArea.getTabSize();
     }
 
+    public void setIndentSize(int size) { textArea.setIndentSize(size); }
+
+    public int getIndentSize() { return textArea.getIndentSize(); }
+
     public void setUseSpacesForTab(boolean useSpacesForTab) {
         textArea.setUseSpacesForTab(useSpacesForTab);
     }

@@ -134,6 +134,16 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         repaint();
     }
 
+    public int getConfiguredIndentSize() { return configuredIndentSize; }
+
+    /** Zero restores legacy indentation, including automatic indent-guide inference. */
+    public void setIndentSize(int size) {
+        configuredIndentSize = Math.max(0, size);
+        cachedIndentUnit = -1;
+        fireStateChangedIfNeeded();
+        repaint();
+    }
+
     public void setUseSpacesForTab(boolean useSpacesForTab) {
         this.useSpacesForTab = useSpacesForTab;
         fireStateChangedIfNeeded();
@@ -657,7 +667,12 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
                     outdentLine(i);
                 } else {
                     int off = buffer.offsetOfLine(i);
-                    insertText(off, getIndentString());
+                    if (configuredIndentSize > 0) {
+                        String leading = getLeadingWhitespace(buffer.lineAt(i));
+                        String replacement = indentationForColumns(indentColumnsOf(leading) + getIndentSize());
+                        deleteText(off, off + leading.length());
+                        insertText(off, replacement);
+                    } else insertText(off, getIndentString());
                 }
             }
         } finally {
@@ -673,6 +688,17 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     protected void outdentLine(int line) {
         String text = buffer.lineAt(line);
         int off = buffer.offsetOfLine(line);
+        if (configuredIndentSize > 0) {
+            String leading = getLeadingWhitespace(text);
+            if (leading.isEmpty()) return;
+            String replacement = indentationForColumns(Math.max(0, indentColumnsOf(leading) - getIndentSize()));
+            beginCompoundEdit();
+            try {
+                deleteText(off, off + leading.length());
+                insertText(off, replacement);
+            } finally { endCompoundEdit(); }
+            return;
+        }
         if (useSpacesForTab) {
             int remove = 0;
             while (remove < tabSize && remove < text.length() && text.charAt(remove) == ' ') remove++;
@@ -968,9 +994,28 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         insertAtAllCarets(text, false, text.length());
     }
 
+    protected void insertIndentAtAllCarets() {
+        insertAtAllCarets(offset -> {
+            int line = buffer.lineOfOffset(offset);
+            String prefix = buffer.lineAt(line).substring(0, offset - buffer.offsetOfLine(line));
+            int column = expandTabs(prefix, 0).length();
+            int remaining = getIndentSize();
+            StringBuilder indent = new StringBuilder();
+            while (!useSpacesForTab && remaining >= tabSize - column % tabSize) {
+                int advance = tabSize - column % tabSize;
+                indent.append('\t'); column += advance; remaining -= advance;
+            }
+            return indent.append(" ".repeat(remaining)).toString();
+        }, false, -1);
+    }
+
     protected void insertAtAllCarets(String text, boolean overwrite, int caretAdvance) {
-        if (isEditingBlocked()) return;
         if (text == null || text.isEmpty()) return;
+        insertAtAllCarets(offset -> text, overwrite, caretAdvance);
+    }
+
+    private void insertAtAllCarets(java.util.function.IntFunction<String> textForOffset, boolean overwrite, int caretAdvance) {
+        if (isEditingBlocked()) return;
         int originalLength = buffer.length();
         int primaryOffset = caretOffset();
         List<Integer> originalExtraOffsets = new ArrayList<>();
@@ -989,19 +1034,22 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         List<Integer> editOffsets = new ArrayList<>(originalOffsets);
         editOffsets.sort(Collections.reverseOrder());
         Map<Integer, Integer> deltaByOffset = new HashMap<>();
+        Map<Integer, Integer> advanceByOffset = new HashMap<>();
         for (int offset : editOffsets) {
             int line = buffer.lineOfOffset(Math.max(0, Math.min(offset, originalLength)));
             int col = offset - buffer.offsetOfLine(line);
+            String text = textForOffset.apply(offset);
+            advanceByOffset.put(offset, caretAdvance < 0 ? text.length() : caretAdvance);
             int deleteLen = overwrite && offset < originalLength && col < buffer.lineAt(line).length() ? 1 : 0;
             if (deleteLen > 0) deleteText(offset, offset + deleteLen);
             insertText(offset, text);
             deltaByOffset.put(offset, text.length() - deleteLen);
         }
 
-        setCaretFromOffset(caretTargetOffset(primaryOffset, editOffsets, deltaByOffset, caretAdvance));
+        setCaretFromOffset(caretTargetOffset(primaryOffset, editOffsets, deltaByOffset, advanceByOffset.get(primaryOffset)));
         extraCarets.clear();
         for (int originalOffset : originalExtraOffsets) {
-            int newOff = caretTargetOffset(originalOffset, editOffsets, deltaByOffset, caretAdvance);
+            int newOff = caretTargetOffset(originalOffset, editOffsets, deltaByOffset, advanceByOffset.get(originalOffset));
             int line = buffer.lineOfOffset(newOff);
             extraCarets.add(new Caret(line, newOff - buffer.offsetOfLine(line)));
         }

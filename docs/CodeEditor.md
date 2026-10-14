@@ -158,3 +158,13 @@ Use compound edit quando varias alteracoes devem virar uma unica acao de undo.
 - Ao manipular offsets, linhas e colunas, confira se a API espera base 0 ou base 1 no contrato usado.
 - Bloqueie o editor durante operacoes longas que nao devem receber input do usuario.
 - Para linguagem real, implemente tokenizer, classifier, colors, diagnostics e autocomplete como providers separados.
+
+
+### Independent indentation width
+
+`CodeEditor.setIndentSize(int)` configures indentation columns separately from `setTabSize(int)`,
+which remains the visual width of a tab character. With tabs enabled, indentation combines tabs and
+spaces to reach the requested column count. Tab, Shift+Tab, Enter, Backspace and indent guides use
+this independent width. `setIndentSize(0)` restores the previous behavior (follow tab size and infer guides).
+`getIndentSize()` returns the effective width. `FormatContext.indentSize()` exposes it to formatters;
+the existing six-argument constructor remains available and defaults indent size to tab size.

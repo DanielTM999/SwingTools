@@ -143,6 +143,9 @@ public abstract class CodeEditorTextAreaState extends JComponent {
 
     @Getter
     protected int tabSize = 4;
+    public int getIndentSize() { return configuredIndentSize > 0 ? configuredIndentSize : tabSize; }
+
+    protected int configuredIndentSize = 0; // zero follows the legacy tab size and inference
 
     @Getter
     protected boolean useSpacesForTab = true;

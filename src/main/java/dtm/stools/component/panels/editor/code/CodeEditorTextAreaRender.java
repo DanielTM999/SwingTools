@@ -603,7 +603,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         firstLine = Math.max(0, firstLine);
         lastLine  = Math.min(buffer.lineCount() - 1, lastLine);
 
-        int unit = Math.max(1, tabSize);
+        int unit = Math.max(1, getIndentSize());
 
         for (int i = firstLine; i <= lastLine; i++) {
             if (isLineHidden(i)) continue;
