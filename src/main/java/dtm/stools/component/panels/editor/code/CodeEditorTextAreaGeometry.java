@@ -23,23 +23,61 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
 
     protected CodeEditorTextAreaGeometry(TextBuffer buffer) {
         super(buffer);
+        buffer.addLineListener(this::onBufferLinesChanged);
+    }
+
+    private void onBufferLinesChanged(int startLine, int removedLineBreaks, int insertedLineBreaks) {
+        approxLineWidths.replaceRange(startLine, removedLineBreaks, insertedLineBreaks);
+        preciseLineWidths.replaceRange(startLine, removedLineBreaks, insertedLineBreaks);
+        lineIndents.replaceRange(startLine, removedLineBreaks, insertedLineBreaks);
+        lineWraps.replaceRange(startLine, removedLineBreaks, insertedLineBreaks);
+        cachedMaxLineWidth = -1;
+        cachedIndentUnit = -1;
+        if (lineWrapEnabled || removedLineBreaks != insertedLineBreaks) {
+            invalidateLayout();
+        }
+    }
+
+    public boolean isLineWrapEnabled() {
+        return lineWrapEnabled;
+    }
+
+    public void setLineWrapEnabled(boolean enabled) {
+        if (lineWrapEnabled == enabled) return;
+        lineWrapEnabled = enabled;
+        lineWraps.invalidateAll();
+        cachedWrapWidth = -1;
+        desiredCaretX = -1;
+        invalidateLayout();
+        JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
+        if (enabled && viewport != null) {
+            Point position = viewport.getViewPosition();
+            if (position.x != 0) {
+                viewport.setViewPosition(new Point(0, position.y));
+            }
+        }
+        revalidate();
+        repaint();
     }
 
     public void addStyledRange(StyledRange range) {
         styledRanges.add(range);
         invalidateStyledRangesIndex();
+        invalidatePreciseLineWidths();
         repaint();
     }
 
     public void removeStyledRange(StyledRange range) {
         styledRanges.remove(range);
         invalidateStyledRangesIndex();
+        invalidatePreciseLineWidths();
         repaint();
     }
 
     public void clearStyledRanges() {
         styledRanges.clear();
         invalidateStyledRangesIndex();
+        invalidatePreciseLineWidths();
         repaint();
     }
 
@@ -47,7 +85,17 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         styledRanges.clear();
         if (ranges != null) styledRanges.addAll(ranges);
         invalidateStyledRangesIndex();
+        invalidatePreciseLineWidths();
         repaint();
+    }
+
+    private void invalidatePreciseLineWidths() {
+        preciseLineWidths.invalidateAll();
+        if (lineWrapEnabled) {
+            lineWraps.invalidateAll();
+            invalidateLayout();
+        }
+        cachedMaxLineWidth = -1;
     }
 
     protected void shiftStyledRangesForEdit(int offset, int removedLength, int insertedLength) {
@@ -256,7 +304,7 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         Point target = calculateCaretScrollPosition(current, extent, caretBoundsForScroll());
         int lineHeight = fontMetricsFor(getFont()).getHeight();
         int matchTop = yOfBufferLine(startLine);
-        int matchBottom = yOfBufferLine(endLine) + lineHeight;
+        int matchBottom = yOfBufferLine(endLine) + lineVisualHeight(endLine);
         int matchCenter = matchBottom - matchTop > extent.height
                 ? matchTop + lineHeight / 2
                 : matchTop + (matchBottom - matchTop) / 2;
@@ -280,8 +328,8 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
                 fm
         );
 
-        int cy = yOfBufferLine(caretLine);
-        int extra = hasCodeLens(caretLine) ? lineHeight : 0;
+        int cy = yOfColumn(caretLine, caretCol);
+        int extra = hasCodeLens(caretLine) && cy == yOfBufferLine(caretLine) ? lineHeight : 0;
         return new Rectangle(cx, cy - extra, CARET_WIDTH, lineHeight + extra);
     }
 
@@ -386,12 +434,21 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         FontMetrics fm = fontMetricsFor(getFont());
         int line = bufferLineAtY(my);
         String lineText = buffer.lineAt(line);
-        InlayHint transparentHint = mouseTransparentInlayHintAt(line, mx, fm);
+        int row = wrapRowAtY(line, my);
+        InlayHint transparentHint = mouseTransparentInlayHintAt(line, row, mx, fm);
         if (transparentHint != null) {
             return new int[]{line, inlayHintColumn(transparentHint, lineText)};
         }
+        return new int[]{line, columnAtRowX(line, lineText, row, mx, fm)};
+    }
 
-        int[] best = {0, Math.abs(mx - (visualXForColumn(line, lineText, 0, fm)))};
+    protected int columnAtRowX(int line, String lineText, int row, int mx, FontMetrics fm) {
+        int[] breaks = wrapBreaks(line);
+        int safeRow = Math.max(0, Math.min(row, breaks.length));
+        int rowStart = safeRow == 0 ? 0 : breaks[safeRow - 1];
+        boolean lastRow = safeRow == breaks.length;
+        int rowEnd = lastRow ? lineText.length() : breaks[safeRow] - 1;
+        int[] best = {rowStart, Math.abs(mx - (visualXForColumn(line, lineText, rowStart, fm)))};
         int endX = forEachLineRun(
                 line,
                 lineText,
@@ -400,8 +457,10 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
                 fm,
                 true,
                 false,
-                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth) -> {
-                    for (int c = startCol; c <= endCol; c++) {
+                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth, runRow) -> {
+                    if (runRow < safeRow) return true;
+                    if (runRow > safeRow) return false;
+                    for (int c = Math.max(startCol, rowStart); c <= Math.min(endCol, rowEnd); c++) {
                         int cx = (c == startCol)
                                 ? x
                                 : x + runFm.stringWidth(expandTabs(lineText.substring(startCol, c), visualCol));
@@ -413,12 +472,239 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
                     }
                     return true;
                 });
-        int endDist = Math.abs(mx - (endX + ghostPushWidthBeforeColumn(line, lineText.length(), fm)));
-        if (endDist < best[1]) {
-            best[1] = endDist;
-            best[0] = lineText.length();
+        if (lastRow) {
+            int endDist = Math.abs(mx - (endX + ghostPushWidthBeforeColumn(line, lineText.length(), fm)));
+            if (endDist < best[1]) {
+                best[0] = lineText.length();
+            }
         }
-        return new int[]{line, best[0]};
+        return best[0];
+    }
+
+    protected int wrapRowAtY(int line, int y) {
+        int rows = wrapRowCount(line);
+        if (rows <= 1) return 0;
+        ensureGeometry();
+        int row = (y - yOfBufferLine(line)) / Math.max(1, cachedLineHeight);
+        return Math.max(0, Math.min(rows - 1, row));
+    }
+
+    protected int[] wrapBreaks(int line) {
+        if (!lineWrapEnabled || line < 0 || line >= buffer.lineCount()) return LineWrapCache.NO_BREAKS;
+        ensureWrapCache();
+        return cachedWrapBreaks(line);
+    }
+
+    private int[] cachedWrapBreaks(int line) {
+        int[] breaks = lineWraps.get(line);
+        if (breaks == null) {
+            breaks = computeWrapBreaks(line);
+            lineWraps.set(line, breaks);
+        }
+        return breaks;
+    }
+
+    public int wrapRowCount(int line) {
+        return wrapBreaks(line).length + 1;
+    }
+
+    public int wrapRowOfColumn(int line, int col) {
+        int[] breaks = wrapBreaks(line);
+        int lo = 0, hi = breaks.length;
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (breaks[mid] <= col) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return lo;
+    }
+
+    public int wrapRowStartColumn(int line, int row) {
+        int[] breaks = wrapBreaks(line);
+        if (row <= 0 || breaks.length == 0) return 0;
+        return breaks[Math.min(row, breaks.length) - 1];
+    }
+
+    public int yOfColumn(int line, int col) {
+        int y = yOfBufferLine(line);
+        if (!lineWrapEnabled) return y;
+        return y + wrapRowOfColumn(line, col) * cachedLineHeight;
+    }
+
+    public int lineVisualHeight(int line) {
+        ensureGeometry();
+        int[] rows = cachedLineRows;
+        if (rows == null || line < 0 || line >= rows.length) return cachedLineHeight;
+        return Math.max(1, rows[line]) * cachedLineHeight;
+    }
+
+    protected int wrapIndentX(String lineText, FontMetrics fm) {
+        int indent = textWidth(fm, getLeadingWhitespace(lineText), 0);
+        return Math.max(0, Math.min(indent, cachedWrapWidth / 2));
+    }
+
+    protected int availableWrapWidth() {
+        Container parent = getParent();
+        int width = parent instanceof JViewport viewport ? viewport.getExtentSize().width : getWidth();
+        FontMetrics fm = fontMetricsFor(getFont());
+        int charWidth = Math.max(1, fm.charWidth('m'));
+        return Math.max(charWidth * 10, width - TEXT_LEFT_MARGIN - CARET_WIDTH - charWidth);
+    }
+
+    private void ensureWrapCache() {
+        int width = availableWrapWidth();
+        if (width != cachedWrapWidth) {
+            cachedWrapWidth = width;
+            lineWraps.invalidateAll();
+            geometryCacheDirty = true;
+        }
+        int n = buffer.lineCount();
+        if (!lineWraps.isValidFor(n)) lineWraps.reset(n);
+    }
+
+    private int[] computeWrapBreaks(int line) {
+        String text = buffer.lineAt(line);
+        int len = text.length();
+        if (len < 2) return LineWrapCache.NO_BREAKS;
+        FontMetrics fm = fontMetricsFor(getFont());
+        int width = cachedWrapWidth;
+        int n = buffer.lineCount();
+        if (!approxLineWidths.isValidFor(n)) approxLineWidths.reset(n);
+        int approx = approxLineWidths.get(line);
+        if (approx == LineMetricsCache.UNKNOWN) {
+            approx = textWidth(fm, text, 0) + pushedInlayWidthForLine(line, fm);
+            approxLineWidths.set(line, approx);
+        }
+        if (approx + approx / 8 <= width) return LineWrapCache.NO_BREAKS;
+
+        int[] xs = new int[len + 1];
+        xs[len] = forEachLineRun(line, text, len, getFont(), fm, true, false, LineWrapCache.NO_BREAKS,
+                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth, row) -> {
+                    int cx = x;
+                    int vcol = visualCol;
+                    for (int c = startCol; c < endCol; c++) {
+                        xs[c] = cx;
+                        char ch = text.charAt(c);
+                        if (ch == '\t') {
+                            int spaces = tabSize - (vcol % tabSize);
+                            cx += runFm.charWidth(' ') * spaces;
+                            vcol += spaces;
+                        } else {
+                            cx += runFm.charWidth(ch);
+                            vcol++;
+                        }
+                    }
+                    return true;
+                });
+
+        int indent = wrapIndentX(text, fm);
+        int leading = getLeadingWhitespace(text).length();
+        int[] breaks = new int[8];
+        int count = 0;
+        int rowStart = 0;
+        int lastSpace = -1;
+        for (int c = 0; c < len; c++) {
+            while (c > rowStart && xs[c + 1] - xs[rowStart] > width - (count > 0 ? indent : 0)) {
+                int brk = lastSpace > rowStart && lastSpace <= c ? lastSpace : c;
+                if (count == breaks.length) breaks = Arrays.copyOf(breaks, count * 2);
+                breaks[count++] = brk;
+                rowStart = brk;
+                lastSpace = -1;
+            }
+            char ch = text.charAt(c);
+            if (c >= leading && (ch == ' ' || ch == '\t')) {
+                lastSpace = c + 1;
+            }
+        }
+        return count == 0 ? LineWrapCache.NO_BREAKS : Arrays.copyOf(breaks, count);
+    }
+
+    protected int wrappedRowEndX(int line, String lineText, int row, FontMetrics fm) {
+        int[] breaks = wrapBreaks(line);
+        if (row >= breaks.length) {
+            return baseVisualXForColumn(line, lineText, lineText.length(), fm);
+        }
+        int rowEnd = breaks[row];
+        int[] end = {-1};
+        forEachLineRun(line, lineText, lineText.length(), getFont(), fm, true, false,
+                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth, runRow) -> {
+                    if (runRow > row || startCol >= rowEnd) return false;
+                    if (runRow == row) end[0] = x + runWidth;
+                    return true;
+                });
+        return end[0] >= 0 ? end[0] : TEXT_LEFT_MARGIN;
+    }
+
+    protected void forEachWrappedSpan(int line, String lineText, int colStart, int colEnd,
+                                      FontMetrics fm, WrappedSpanVisitor visitor) {
+        int[] breaks = wrapBreaks(line);
+        int y = yOfBufferLine(line);
+        if (breaks.length == 0) {
+            visitor.visit(baseVisualXForColumn(line, lineText, colStart, fm),
+                    baseVisualXForColumn(line, lineText, colEnd, fm), y, true);
+            return;
+        }
+        int lh = cachedLineHeight;
+        int firstRow = wrapRowOfColumn(line, colStart);
+        int lastRow = wrapRowOfColumn(line, colEnd);
+        if (lastRow > firstRow && colEnd == breaks[lastRow - 1]) {
+            lastRow--;
+        }
+        for (int row = firstRow; row <= lastRow; row++) {
+            int rowStart = row == 0 ? 0 : breaks[row - 1];
+            boolean last = row == breaks.length;
+            int x1 = baseVisualXForColumn(line, lineText, Math.max(colStart, rowStart), fm);
+            int x2 = (!last && colEnd >= breaks[row])
+                    ? wrappedRowEndX(line, lineText, row, fm)
+                    : baseVisualXForColumn(line, lineText, colEnd, fm);
+            visitor.visit(x1, x2, y + row * lh, last);
+        }
+    }
+
+    protected int[] visualRowTarget(int line, int col, int direction, int desiredX) {
+        int n = buffer.lineCount();
+        int row = wrapRowOfColumn(line, col);
+        int targetLine = line;
+        int targetRow;
+        if (direction < 0) {
+            if (row > 0) {
+                targetRow = row - 1;
+            } else {
+                int nl = line - 1;
+                while (nl >= 0 && isLineHidden(nl)) nl--;
+                if (nl < 0) return null;
+                targetLine = nl;
+                targetRow = wrapRowCount(nl) - 1;
+            }
+        } else {
+            if (row < wrapRowCount(line) - 1) {
+                targetRow = row + 1;
+            } else {
+                int nl = line + 1;
+                while (nl < n && isLineHidden(nl)) nl++;
+                if (nl >= n) return null;
+                targetLine = nl;
+                targetRow = 0;
+            }
+        }
+        FontMetrics fm = fontMetricsFor(getFont());
+        return new int[]{targetLine, columnAtRowX(targetLine, buffer.lineAt(targetLine), targetRow, desiredX, fm)};
+    }
+
+    protected void moveCaretVisualRow(int direction) {
+        if (desiredCaretX < 0 || desiredCaretXLine != caretLine || desiredCaretXCol != caretCol) {
+            desiredCaretX = visualXForColumn(caretLine, caretCol);
+        }
+        int[] target = visualRowTarget(caretLine, caretCol, direction, desiredCaretX);
+        if (target != null) {
+            caretLine = target[0];
+            caretCol = target[1];
+        }
+        desiredCaretXLine = caretLine;
+        desiredCaretXCol = caretCol;
     }
 
     protected String expandTabs(String text, int startColumn) {
@@ -577,13 +863,24 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
     }
 
     public void invalidateGeometry() {
+        invalidateLayout();
+        approxLineWidths.invalidateAll();
+        preciseLineWidths.invalidateAll();
+        lineIndents.invalidateAll();
+        cachedMaxLineWidth = -1;
+        cachedIndentUnit = -1;
+    }
+
+    @Override
+    protected void invalidateLayout() {
         geometryCacheDirty = true;
     }
 
     protected void ensureGeometry() {
         if (!geometryCacheDirty) {
             int currentLh = fontMetricsFor(getFont()).getHeight();
-            if (currentLh == cachedLineHeight && cachedLineCount == buffer.lineCount()) {
+            if (currentLh == cachedLineHeight && cachedLineCount == buffer.lineCount()
+                    && (!lineWrapEnabled || availableWrapWidth() == cachedWrapWidth)) {
                 return;
             }
         }
@@ -595,6 +892,11 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         int n = buffer.lineCount();
 
         BitSet hidden = computeHiddenLines(n);
+        int[] rows = null;
+        if (lineWrapEnabled) {
+            ensureWrapCache();
+            rows = new int[n];
+        }
         Map<Integer, CodeLens> aboveMap = new LinkedHashMap<>();
         Map<Integer, CodeLens> inlineMap = new LinkedHashMap<>();
         if (codeLensesEnabled && !codeLenses.isEmpty()) {
@@ -627,7 +929,12 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
             }
             lineY[i] = y;
             visible[visibleCount++] = i;
-            y += lh;
+            if (rows != null) {
+                rows[i] = cachedWrapBreaks(i).length + 1;
+                y += lh * rows[i];
+            } else {
+                y += lh;
+            }
             if (hasGhostText() && i == ghostAnchorLine) {
                 y += ghostReservedRows() * lh;
             }
@@ -637,13 +944,12 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         System.arraycopy(visible, 0, visibleTrimmed, 0, visibleCount);
 
         cachedLineY = lineY;
+        cachedLineRows = rows;
         cachedVisibleLines = visibleTrimmed;
         cachedTotalHeight = y;
         cachedLineHeight = lh;
         cachedLensRowCountValue = lensRows;
         cachedLineCount = n;
-        cachedMaxLineWidth = -1;
-        cachedIndentUnit = -1;
         cachedHiddenLines = hidden;
         cachedAboveLensByLine = aboveMap;
         cachedInlineLensByLine = inlineMap;
@@ -655,11 +961,16 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         if (cachedMaxLineWidth >= 0) return cachedMaxLineWidth;
         FontMetrics fm = fontMetricsFor(getFont());
         int n = buffer.lineCount();
-        int[] approximate = new int[n];
+        LineMetricsCache approximate = approxLineWidths;
+        if (!approximate.isValidFor(n)) approximate.reset(n);
         int maxApproximate = 0;
         for (int i = 0; i < n; i++) {
-            approximate[i] = textWidth(fm, buffer.lineAt(i), 0) + pushedInlayWidthForLine(i, fm);
-            if (approximate[i] > maxApproximate) maxApproximate = approximate[i];
+            int width = approximate.get(i);
+            if (width == LineMetricsCache.UNKNOWN) {
+                width = textWidth(fm, buffer.lineAt(i), 0) + pushedInlayWidthForLine(i, fm);
+                approximate.set(i, width);
+            }
+            if (width > maxApproximate) maxApproximate = width;
         }
 
         if (styledRanges.isEmpty() && (!inlayHintsEnabled || inlayHints.isEmpty()) && !hasGhostText()) {
@@ -671,17 +982,18 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         int[] candidates = new int[Math.min(n, MAX_REMEASURED_LINES)];
         int candidateCount = 0;
         for (int i = 0; i < n; i++) {
-            if (approximate[i] < candidateThreshold) continue;
+            int width = approximate.get(i);
+            if (width < candidateThreshold) continue;
             if (candidateCount < candidates.length) {
                 int at = candidateCount++;
-                while (at > 0 && approximate[candidates[at - 1]] < approximate[i]) {
+                while (at > 0 && approximate.get(candidates[at - 1]) < width) {
                     candidates[at] = candidates[at - 1];
                     at--;
                 }
                 candidates[at] = i;
-            } else if (approximate[i] > approximate[candidates[candidateCount - 1]]) {
+            } else if (width > approximate.get(candidates[candidateCount - 1])) {
                 int at = candidateCount - 1;
-                while (at > 0 && approximate[candidates[at - 1]] < approximate[i]) {
+                while (at > 0 && approximate.get(candidates[at - 1]) < width) {
                     candidates[at] = candidates[at - 1];
                     at--;
                 }
@@ -689,11 +1001,17 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
             }
         }
 
+        LineMetricsCache precise = preciseLineWidths;
+        if (!precise.isValidFor(n)) precise.reset(n);
         int max = maxApproximate + TEXT_LEFT_MARGIN;
         for (int c = 0; c < candidateCount; c++) {
             int i = candidates[c];
-            String lineText = buffer.lineAt(i);
-            int w = baseVisualXForColumn(i, lineText, lineText.length(), fm);
+            int w = precise.get(i);
+            if (w == LineMetricsCache.UNKNOWN) {
+                String lineText = buffer.lineAt(i);
+                w = baseVisualXForColumn(i, lineText, lineText.length(), fm);
+                precise.set(i, w);
+            }
             if (w > max) max = w;
         }
 
@@ -771,14 +1089,15 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         if (n == 0) return 0;
         if (yMouse <= 0) return cachedVisibleLines[0];
         int lh = cachedLineHeight;
+        int[] rows = cachedLineRows;
         int last = cachedVisibleLines[n - 1];
-        if (yMouse >= cachedLineY[last] + lh) return last;
+        if (yMouse >= cachedLineY[last] + (rows != null ? rows[last] * lh : lh)) return last;
 
         int lo = 0, hi = n - 1;
         while (lo < hi) {
             int mid = (lo + hi) >>> 1;
             int line = cachedVisibleLines[mid];
-            int end = cachedLineY[line] + lh;
+            int end = cachedLineY[line] + (rows != null ? rows[line] * lh : lh);
             if (end <= yMouse) {
                 lo = mid + 1;
             } else {
@@ -806,8 +1125,14 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         FontMetrics fm = fontMetricsFor(getFont());
         int lineHeight = fm.getHeight();
 
-        int width = getMaxLineWidth();
         int bottomPadding = lineHeight * 5;
+        if (lineWrapEnabled) {
+            Container parent = getParent();
+            int width = parent instanceof JViewport viewport ? viewport.getExtentSize().width : getWidth();
+            return new Dimension(Math.max(0, width), totalContentHeight() + bottomPadding);
+        }
+
+        int width = getMaxLineWidth();
 
         return new Dimension(
                 width + CARET_WIDTH + caretScrollRightMargin,
@@ -823,12 +1148,16 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
 
         int unit = 0;
         int n = buffer.lineCount();
+        LineMetricsCache indents = lineIndents;
+        if (!indents.isValidFor(n)) indents.reset(n);
 
         for (int i = 0; i < n; i++) {
-            String text = buffer.lineAt(i);
-            if (text.isBlank()) continue;
-
-            int indent = indentColumnsOf(text);
+            int indent = indents.get(i);
+            if (indent == LineMetricsCache.UNKNOWN) {
+                String text = buffer.lineAt(i);
+                indent = text.isBlank() ? 0 : indentColumnsOf(text);
+                indents.set(i, indent);
+            }
             if (indent > 0 && (unit == 0 || indent < unit)) {
                 unit = indent;
             }
@@ -867,6 +1196,16 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
                        boolean includeGhostPush,
                        LineRunVisitor visitor);
 
+    abstract int forEachLineRun(int line,
+                       String lineText,
+                       int renderLength,
+                       Font baseFont,
+                       FontMetrics defaultFm,
+                       boolean includeInlayPush,
+                       boolean includeGhostPush,
+                       int[] breaks,
+                       LineRunVisitor visitor);
+
     public abstract boolean isLineHidden(int bufferLine);
 
     protected abstract void suppressHoverWhileEditing();
@@ -883,7 +1222,7 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
 
     protected abstract int ghostPushWidthBeforeColumn(int line, int col, FontMetrics fm);
 
-    protected abstract InlayHint mouseTransparentInlayHintAt(int line, int mouseX, FontMetrics fm);
+    protected abstract InlayHint mouseTransparentInlayHintAt(int line, int row, int mouseX, FontMetrics fm);
 
     protected abstract int clampOffset(int offset);
 

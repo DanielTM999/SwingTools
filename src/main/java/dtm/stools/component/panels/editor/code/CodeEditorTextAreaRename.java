@@ -461,7 +461,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
             int x1 = baseVisualXForColumn(line, lineText, start - lineOffset, fm);
             int x2 = baseVisualXForColumn(line, lineText, endCol, fm);
             int width = Math.max(2, x2 - x1);
-            int y = yOfBufferLine(line);
+            int y = yOfColumn(line, start - lineOffset);
             g2.setColor(fill);
             g2.fillRect(x1 - 1, y, width + 2, lineHeight);
             g2.setColor(outline);
@@ -948,7 +948,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
             int x1 = baseVisualXForColumn(line, lineText, start - lineOffset, fm);
             int x2 = baseVisualXForColumn(line, lineText, endCol, fm);
             int width = Math.max(2, x2 - x1);
-            int y = yOfBufferLine(line);
+            int y = yOfColumn(line, start - lineOffset);
             if (i == linkedPrimary) {
                 g2.setColor(fill);
                 g2.fillRect(x1 - 1, y, width + 2, lineHeight);
@@ -1099,7 +1099,7 @@ public abstract class CodeEditorTextAreaRename extends CodeEditorTextAreaActions
         int endX = buffer.lineOfOffset(endOffset) == line
                 ? baseVisualXForColumn(line, lineText, endOffset - buffer.offsetOfLine(line), fm)
                 : x;
-        int y = yOfBufferLine(line);
+        int y = yOfColumn(line, offset - buffer.offsetOfLine(line));
         int height = fm.getHeight();
         Rectangle visible = getVisibleRect();
         if (y + height <= visible.y || y >= visible.y + visible.height

@@ -27,6 +27,7 @@ class PdfCanvasInteractionTest {
         SwingUtilities.invokeAndWait(() -> {
             PdfEditor created = new PdfEditor();
             created.setErrorHandler(error -> { throw new AssertionError("Erro do editor", error); });
+            created.selectTool(PdfEditor.TOOL_SELECT);
             JFrame window = new JFrame();
             window.add(created);
             window.setSize(1200, 900);

@@ -26,6 +26,7 @@ public class BracketHighlighter {
     private IntUnaryOperator lineToYMapper;
     private IntPredicate lineHiddenPredicate = i -> false;
     private IntBinaryOperator columnToXMapper;
+    private IntBinaryOperator positionToYMapper;
 
     public BracketHighlighter(TextBuffer buffer) {
         this.buffer = buffer;
@@ -41,6 +42,10 @@ public class BracketHighlighter {
 
     public void setColumnToXMapper(IntBinaryOperator mapper) {
         this.columnToXMapper = mapper;
+    }
+
+    public void setPositionToYMapper(IntBinaryOperator mapper) {
+        this.positionToYMapper = mapper;
     }
 
     public void setLineHiddenPredicate(IntPredicate predicate) {
@@ -103,12 +108,8 @@ public class BracketHighlighter {
 
         Color color = resolveColor();
 
-        int yStart = lineToYMapper != null
-                ? lineToYMapper.applyAsInt(startLine)
-                : lineToVisualMapper.applyAsInt(startLine) * lineHeight;
-        int yEnd = lineToYMapper != null
-                ? lineToYMapper.applyAsInt(endLine)
-                : lineToVisualMapper.applyAsInt(endLine) * lineHeight;
+        int yStart = yOfOffset(Math.min(pos, matchPos), startLine, lineHeight);
+        int yEnd = yOfOffset(Math.max(pos, matchPos), endLine, lineHeight);
         g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 60));
         g2.fillRect(2, yStart, 2, (yEnd - yStart) + lineHeight);
 
@@ -134,12 +135,19 @@ public class BracketHighlighter {
             width = fm.charWidth('(');
         }
 
-        int y = lineToYMapper != null
-                ? lineToYMapper.applyAsInt(line)
-                : lineToVisualMapper.applyAsInt(line) * lineHeight;
+        int y = yOfOffset(offset, line, lineHeight);
 
         g2.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 120));
         g2.fillRect(x, y, width, lineHeight);
+    }
+
+    private int yOfOffset(int offset, int line, int lineHeight) {
+        if (positionToYMapper != null) {
+            return positionToYMapper.applyAsInt(line, offset - buffer.offsetOfLine(line));
+        }
+        return lineToYMapper != null
+                ? lineToYMapper.applyAsInt(line)
+                : lineToVisualMapper.applyAsInt(line) * lineHeight;
     }
 
     private int findRelevantChar(int caret) {

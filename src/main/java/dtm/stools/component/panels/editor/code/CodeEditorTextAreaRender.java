@@ -35,10 +35,26 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                        boolean includeInlayPush,
                        boolean includeGhostPush,
                        LineRunVisitor visitor) {
+        return forEachLineRun(line, lineText, renderLength, baseFont, defaultFm,
+                includeInlayPush, includeGhostPush, wrapBreaks(line), visitor);
+    }
+
+    int forEachLineRun(int line,
+                       String lineText,
+                       int renderLength,
+                       Font baseFont,
+                       FontMetrics defaultFm,
+                       boolean includeInlayPush,
+                       boolean includeGhostPush,
+                       int[] breaks,
+                       LineRunVisitor visitor) {
         int lineOffset = buffer.offsetOfLine(line);
         int x = TEXT_LEFT_MARGIN;
         int col = 0;
         int visualCol = 0;
+        int breakIndex = 0;
+        int row = 0;
+        int wrapIndent = breaks.length > 0 ? wrapIndentX(lineText, defaultFm) : 0;
 
         List<InlayHint> pushHints = pushInlayHintsForLine(line, defaultFm);
         int pushHintIndex = 0;
@@ -47,6 +63,11 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         boolean ghostPushApplied = false;
 
         while (col < renderLength) {
+            while (breakIndex < breaks.length && breaks[breakIndex] <= col) {
+                breakIndex++;
+                row++;
+                x = TEXT_LEFT_MARGIN + wrapIndent;
+            }
             while (pushHintIndex < pushHints.size()
                     && inlayHintColumn(pushHints.get(pushHintIndex), lineText) <= col) {
                 if (includeInlayPush) x += inlayHintWidth(defaultFm, pushHints.get(pushHintIndex));
@@ -71,13 +92,16 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             if (ghostPushCol > col && ghostPushCol < runEnd) {
                 runEnd = ghostPushCol;
             }
+            if (breakIndex < breaks.length && breaks[breakIndex] < runEnd) {
+                runEnd = breaks[breakIndex];
+            }
 
             String run = expandTabs(lineText.substring(col, runEnd), visualCol);
             Font font = deriveFont(baseFont, style);
             FontMetrics fm = fontMetricsFor(font);
             int runWidth = fm.stringWidth(run);
 
-            if (!visitor.visit(col, runEnd, visualCol, run, style, font, fm, x, runWidth)) {
+            if (!visitor.visit(col, runEnd, visualCol, run, style, font, fm, x, runWidth, row)) {
                 return x;
             }
 
@@ -142,7 +166,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 if (lineColor.background() != null) {
                     g2.setColor(lineColor.background());
                 }
-                g2.fillRect(0, ly, getWidth(), lineHeight);
+                g2.fillRect(0, ly, getWidth(), lineVisualHeight(i));
             }
         }
 
@@ -159,7 +183,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                         clamp(base.getBlue() + shift)
                 ));
             }
-            g2.fillRect(0, ly, getWidth(), lineHeight);
+            g2.fillRect(0, ly, getWidth(), lineVisualHeight(caretLine));
         }
 
         paintDocumentHighlights(g2, defaultFm, lineHeight);
@@ -177,7 +201,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 continue;
             }
             g2.setColor(lineColor.background());
-            g2.fillRect(0, yOfBufferLine(i), getWidth(), lineHeight);
+            g2.fillRect(0, yOfBufferLine(i), getWidth(), lineVisualHeight(i));
         }
 
         paintSearchMatches(g2, defaultFm);
@@ -211,12 +235,13 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                     defaultFm,
                     true,
                     true,
-                    (startCol, endCol, visualCol, run, style, font, fm, runX, runWidth) -> {
+                    (startCol, endCol, visualCol, run, style, font, fm, runX, runWidth, row) -> {
                         g2.setFont(font);
+                        int ry = ly + row * lineHeight;
 
                         if (style.getBackground() != null && style.getBackground() != defaultStyle.getBackground()) {
                             g2.setColor(style.getBackground());
-                            g2.fillRect(runX, ly, runWidth, lineHeight);
+                            g2.fillRect(runX, ry, runWidth, lineHeight);
                         }
 
                         LineColorInfoInternal lineInfo = lineColors.get(lineIndex);
@@ -226,20 +251,21 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                         }
                         if (lineFadedSpans == null) {
                             g2.setColor(fg);
-                            g2.drawString(run, runX, ly + fm.getAscent());
+                            g2.drawString(run, runX, ry + fm.getAscent());
                         } else {
                             drawRunWithFading(g2, lineText, startCol, endCol, visualCol, fm, runX,
-                                    ly + fm.getAscent(), fg, lineFadedSpans);
+                                    ry + fm.getAscent(), fg, lineFadedSpans);
                             g2.setColor(fg);
                         }
 
                         if (style.isUnderline()) {
-                            int uy = ly + fm.getAscent() + 1;
+                            int uy = ry + fm.getAscent() + 1;
                             g2.drawLine(runX, uy, runX + runWidth, uy);
                         }
                         return true;
                     });
 
+            int lastRowY = yOfColumn(i, renderLength);
             if (isFoldAnchor(i)) {
                 g2.setFont(baseFont);
                 FontMetrics fm = g2.getFontMetrics(baseFont);
@@ -253,7 +279,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 int textW = fm.stringWidth(pillText);
                 int pillX = x + 6;
                 int pillH = lineHeight - 4;
-                int pillY = ly + 2;
+                int pillY = lastRowY + 2;
                 int pillW = textW + hPad * 2;
 
                 Color baseFg = defaultStyle.getForeground();
@@ -272,9 +298,9 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                         ? foldPlaceholderColor
                         : new Color(baseFg.getRed(), baseFg.getGreen(), baseFg.getBlue(), 200);
                 g2.setColor(placeholder);
-                g2.drawString(pillText, pillX + hPad, ly + fm.getAscent());
+                g2.drawString(pillText, pillX + hPad, lastRowY + fm.getAscent());
             }
-            paintInlineCodeLens(g2, defaultFm, baseFont, i, ly, lineHeight);
+            paintInlineCodeLens(g2, defaultFm, baseFont, i, lastRowY, lineHeight);
         }
 
         paintWordHover(g2, defaultFm, lineHeight);
@@ -423,14 +449,23 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             int colStart = (i == startLine) ? startOff - lineOffset : 0;
             int colEnd = (i == endLine) ? endOff - lineOffset : lineText.length();
 
-            int x1 = baseVisualXForColumn(i, lineText, colStart, fm);
-            int x2 = baseVisualXForColumn(i, lineText, colEnd, fm);
+            if (!lineWrapEnabled) {
+                int x1 = baseVisualXForColumn(i, lineText, colStart, fm);
+                int x2 = baseVisualXForColumn(i, lineText, colEnd, fm);
 
-            if (i != endLine && colEnd == lineText.length()) {
-                x2 += fm.charWidth(' ');
+                if (i != endLine && colEnd == lineText.length()) {
+                    x2 += fm.charWidth(' ');
+                }
+
+                g2.fillRect(x1, ly, x2 - x1, lineHeight);
+                continue;
             }
 
-            g2.fillRect(x1, ly, x2 - x1, lineHeight);
+            boolean extendPastEnd = i != endLine && colEnd == lineText.length();
+            forEachWrappedSpan(i, lineText, colStart, colEnd, fm, (x1, x2, y, lastRow) -> {
+                int right = lastRow && extendPastEnd ? x2 + fm.charWidth(' ') : x2;
+                g2.fillRect(x1, y, right - x1, lineHeight);
+            });
         }
     }
 
@@ -452,7 +487,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         String lineText = buffer.lineAt(caretLine);
 
         int startX = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
-        int y = yOfBufferLine(caretLine);
+        int y = yOfColumn(caretLine, caretCol);
         int ascent = fm.getAscent();
 
         String[] segments = ghostText.split("\n", -1);
@@ -471,7 +506,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         String lineText = buffer.lineAt(caretLine);
 
         int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
-        int cy = yOfBufferLine(caretLine);
+        int cy = yOfColumn(caretLine, caretCol);
 
         g2.setColor(defaultStyle.getForeground());
         if (overwriteMode) {
@@ -507,7 +542,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             return;
         }
 
-        int yTop = yOfBufferLine(wordHoverLine);
+        int yTop = yOfColumn(wordHoverLine, wordHoverStartCol);
         int xStart = visualXForColumn(wordHoverLine, lineText, wordHoverStartCol, fm);
         int xEnd = visualXForColumn(wordHoverLine, lineText, wordHoverEndCol, fm);
 
@@ -613,10 +648,11 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
 
             int levels = indentColumns / unit;
             int yTop = yOfBufferLine(i);
+            int guideHeight = lineVisualHeight(i);
 
             for (int level = 0; level < levels; level++) {
                 int guideX = TEXT_LEFT_MARGIN + level * unit * charWidth;
-                drawGuide(g2, guideX, yTop, lineHeight, guideColor);
+                drawGuide(g2, guideX, yTop, guideHeight, guideColor);
             }
         }
     }
@@ -657,7 +693,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             if (isLineHidden(c.line)) continue;
             String lineText = buffer.lineAt(c.line);
             int cx = baseVisualXForColumn(c.line, lineText, c.col, fm);
-            int cy = yOfBufferLine(c.line);
+            int cy = yOfColumn(c.line, c.col);
             g2.fillRect(cx, cy, CARET_WIDTH, lineHeight);
         }
     }
@@ -733,12 +769,11 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 int colStart = (line == startLine) ? Math.max(0, d.startCol()) : 0;
                 int colEnd = (line == endLine) ? Math.max(colStart, Math.min(d.endCol(), lineText.length())) : lineText.length();
                 if (colEnd <= colStart) colEnd = Math.min(colStart + 1, lineText.length());
-                int x1 = baseVisualXForColumn(line, lineText, colStart, fm);
-                int x2 = baseVisualXForColumn(line, lineText, colEnd, fm);
-                if (x2 <= x1) x2 = x1 + fm.charWidth(' ');
-                int ly = yOfBufferLine(line) + fm.getAscent() + 1;
                 g2.setColor(d.effectiveColor());
-                drawSquiggly(g2, x1, x2, ly);
+                forEachWrappedSpan(line, lineText, colStart, colEnd, fm, (x1, x2, y, lastRow) -> {
+                    int right = x2 <= x1 ? x1 + fm.charWidth(' ') : x2;
+                    drawSquiggly(g2, x1, right, y + fm.getAscent() + 1);
+                });
             }
         }
     }
@@ -777,6 +812,17 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         if (lens == null) return;
         paintCodeLensItems(g2, baseFont, lens,
                 inlineCodeLensXStart(lens, bufferLine, defaultFm), yTop, lineHeight);
+    }
+
+    protected int inlineCodeLensY(int bufferLine) {
+        String lineText = buffer.lineAt(bufferLine);
+        int renderLength = lineText.length();
+        if (shouldHideTrailingOpenForFold(bufferLine)) {
+            int idx = lineText.length() - 1;
+            while (idx >= 0 && Character.isWhitespace(lineText.charAt(idx))) idx--;
+            if (idx >= 0) renderLength = idx;
+        }
+        return yOfColumn(bufferLine, renderLength);
     }
 
     protected int inlineCodeLensXStart(CodeLens lens, int bufferLine, FontMetrics defaultFm) {
@@ -849,7 +895,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         if (inline != null) {
             bounds.addAll(layoutCodeLensItems(inline, baseFont,
                     inlineCodeLensXStart(inline, line, defaultFm),
-                    yOfBufferLine(line), lineHeight));
+                    inlineCodeLensY(line), lineHeight));
         }
         return bounds;
     }
@@ -870,7 +916,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             int col = inlayHintColumn(hint, lineText);
             int baseX = glyphVisualXForColumn(line, lineText, col, fm)
                     + pushedWidthByLine.getOrDefault(line, 0);
-            int ly = yOfBufferLine(line);
+            int ly = yOfColumn(line, col);
             int padL = inlayHintPaddingLeft(hint);
             int w = inlayHintWidth(fm, hint);
             int h = lineHeight - 2;
@@ -998,7 +1044,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 fm,
                 includeInlayPush,
                 false,
-                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth) -> {
+                (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth, row) -> {
                     if (safeCol >= endCol) return true;
                     if (safeCol <= startCol) {
                         resolved[0] = x;
@@ -1036,7 +1082,7 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
         return fm.stringWidth(firstSegment);
     }
 
-    protected InlayHint mouseTransparentInlayHintAt(int line, int mouseX, FontMetrics fm) {
+    protected InlayHint mouseTransparentInlayHintAt(int line, int row, int mouseX, FontMetrics fm) {
         if (!inlayHintsEnabled || inlayHints.isEmpty()) return null;
         if (line < 0 || line >= buffer.lineCount()) return null;
         String lineText = buffer.lineAt(line);
@@ -1046,7 +1092,8 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
             int col = inlayHintColumn(hint, lineText);
             int x = glyphVisualXForColumn(line, lineText, col, fm) + pushedWidth;
             int w = inlayHintWidth(fm, hint);
-            if (hint.mouseTransparent() && mouseX >= x && mouseX <= x + w) {
+            if (hint.mouseTransparent() && mouseX >= x && mouseX <= x + w
+                    && wrapRowOfColumn(line, col) == row) {
                 return hint;
             }
             if (hint.pushText()) {
@@ -1075,10 +1122,8 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 String lineText = buffer.lineAt(line);
                 int colStart = (line == startLine) ? match.startOffset() - lineOff : 0;
                 int colEnd = (line == endLine) ? match.endOffset() - lineOff : lineText.length();
-                int x1 = baseVisualXForColumn(line, lineText, colStart, fm);
-                int x2 = baseVisualXForColumn(line, lineText, colEnd, fm);
-                int ly = yOfBufferLine(line);
-                g2.fillRect(x1, ly, Math.max(1, x2 - x1), lineHeight);
+                forEachWrappedSpan(line, lineText, colStart, colEnd, fm, (x1, x2, y, lastRow) ->
+                        g2.fillRect(x1, y, Math.max(1, x2 - x1), lineHeight));
             }
         }
     }

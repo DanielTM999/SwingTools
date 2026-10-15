@@ -128,7 +128,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
 
     public void setTabSize(int tabSize) {
         this.tabSize = Math.max(1, tabSize);
-        cachedIndentUnit = -1;
+        invalidateGeometry();
         fireStateChangedIfNeeded();
         revalidate();
         repaint();
@@ -233,6 +233,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
             shifted.add(new FoldRegion(start, end, region.folded()));
         }
         foldRegions = shifted;
+        invalidateLayout();
     }
 
     private void shiftFoldRegionsOnDelete(int firstRemovedLine, int count) {
@@ -255,6 +256,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
             if (end > start) shifted.add(new FoldRegion(start, end, region.folded()));
         }
         foldRegions = shifted;
+        invalidateLayout();
     }
 
     private void shiftFoldRegionsForHistory(String before, List<TextBuffer.AppliedChange> changes) {
@@ -808,6 +810,10 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void moveCaretUp(Caret c) {
+        if (lineWrapEnabled) {
+            moveCaretVisualRow(c, -1);
+            return;
+        }
         if (c.desiredCol < 0) c.desiredCol = c.col;
         int nl = c.line - 1;
         while (nl >= 0 && isLineHidden(nl)) nl--;
@@ -818,12 +824,24 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
     }
 
     protected void moveCaretDown(Caret c) {
+        if (lineWrapEnabled) {
+            moveCaretVisualRow(c, 1);
+            return;
+        }
         if (c.desiredCol < 0) c.desiredCol = c.col;
         int nl = c.line + 1;
         while (nl < buffer.lineCount() && isLineHidden(nl)) nl++;
         if (nl < buffer.lineCount()) {
             c.line = nl;
             c.col = Math.min(c.desiredCol, buffer.lineAt(c.line).length());
+        }
+    }
+
+    protected void moveCaretVisualRow(Caret c, int direction) {
+        int[] target = visualRowTarget(c.line, c.col, direction, visualXForColumn(c.line, c.col));
+        if (target != null) {
+            c.line = target[0];
+            c.col = target[1];
         }
     }
 
@@ -1384,7 +1402,7 @@ public abstract class CodeEditorTextAreaDocument extends CodeEditorTextAreaRende
         }
         if (applied > 0) {
             if (foldingEnabled) recomputeFoldRegions();
-            invalidateGeometry();
+            invalidateLayout();
             revalidate();
             repaint();
         }

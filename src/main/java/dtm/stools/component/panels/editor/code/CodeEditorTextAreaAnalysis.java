@@ -211,7 +211,10 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
             for (int i = 0; i < foldRegions.size(); i++) {
                 FoldRegion r = foldRegions.get(i);
                 if (r.startLine() == newLine && r.endLine() - r.startLine() == span) {
-                    if (!r.folded()) foldRegions.set(i, r.withFolded(true));
+                    if (!r.folded()) {
+                        foldRegions.set(i, r.withFolded(true));
+                        invalidateLayout();
+                    }
                     break;
                 }
             }
@@ -264,7 +267,10 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         for (int i = 0; i < foldRegions.size(); i++) {
             FoldRegion r = foldRegions.get(i);
             if (r.startLine() == startLine && r.endLine() == endLine) {
-                if (!r.folded()) foldRegions.set(i, r.withFolded(true));
+                if (!r.folded()) {
+                    foldRegions.set(i, r.withFolded(true));
+                    invalidateLayout();
+                }
                 return;
             }
         }
@@ -277,7 +283,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         } else {
             recomputeFoldRegions();
         }
-        invalidateGeometry();
+        invalidateLayout();
         fireFoldStateChanged();
         revalidate();
         repaint();
@@ -292,7 +298,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     }
 
     protected void fireFoldStateChanged() {
-        invalidateGeometry();
+        invalidateLayout();
         for (Runnable r : foldStateListeners) {
             try {
                 r.run();
@@ -335,7 +341,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         foldRules.clear();
         explicitFoldRanges = null;
         foldRegions = new ArrayList<>();
-        invalidateGeometry();
+        invalidateLayout();
         revalidate();
         repaint();
     }
@@ -350,7 +356,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
 
     protected void refreshFoldRegionsAfterRuleChange() {
         recomputeFoldRegions();
-        invalidateGeometry();
+        invalidateLayout();
         revalidate();
         repaint();
     }
@@ -472,6 +478,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
     protected void recomputeFoldRegions(boolean preserveFoldedByLine) {
         if (!foldingEnabled || (explicitFoldRanges == null && foldRules.isEmpty())) {
             foldRegions = new ArrayList<>();
+            invalidateLayout();
             return;
         }
         List<FoldRegion> newRegions = new ArrayList<>();
@@ -504,6 +511,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
             }
         }
         foldRegions = newRegions;
+        invalidateLayout();
     }
 
     protected void scheduleFoldRefresh() {
@@ -511,7 +519,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
         if (explicitFoldRanges != null) return;
         foldingDebounceTimer = restartDebounce(foldingDebounceTimer, foldingDebounceMs, () -> {
             recomputeFoldRegions(!suppressFoldRestore);
-            invalidateGeometry();
+            invalidateLayout();
             revalidate();
             repaint();
         });
@@ -904,7 +912,7 @@ public abstract class CodeEditorTextAreaAnalysis extends CodeEditorTextAreaCompl
 
                     codeLenses.clear();
                     if (list != null) codeLenses.addAll(list);
-                    invalidateGeometry();
+                    invalidateLayout();
                     revalidate();
                     repaint();
                 });

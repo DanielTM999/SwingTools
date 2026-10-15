@@ -46,6 +46,7 @@ public class CodeEditorTextArea extends CodeEditorTextAreaRename {
         bracketHighlighter.setLineToYMapper(this::yOfBufferLine);
         bracketHighlighter.setLineHiddenPredicate(this::isLineHidden);
         bracketHighlighter.setColumnToXMapper(this::visualXForColumn);
+        bracketHighlighter.setPositionToYMapper(this::yOfColumn);
         setupMoveLineActions();
         installIdeActions();
         documentEditListeners.add(new DocumentEditListener() {
@@ -76,7 +77,6 @@ public class CodeEditorTextArea extends CodeEditorTextAreaRename {
                 selectionChainCache = Collections.emptyList();
                 selectionChainIndex = -1;
                 scheduleSyntaxHighlight();
-                invalidateGeometry();
                 if (diagnosticsAutoRunEnabled) {
                     scheduleDiagnosticsRefresh();
                 }

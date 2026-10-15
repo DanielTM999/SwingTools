@@ -354,6 +354,7 @@ public abstract class CodeEditorTextAreaInput extends CodeEditorTextAreaAnalysis
             while (idx >= 0 && Character.isWhitespace(lineText.charAt(idx))) idx--;
             if (idx >= 0) renderedLineText = lineText.substring(0, idx);
         }
+        if (wrapRowAtY(line, mouseY) != wrapRowOfColumn(line, renderedLineText.length())) return false;
         int hPad = 6;
         int lineEndX = baseVisualXForColumn(line, renderedLineText, renderedLineText.length(), fm);
         int pillStart = lineEndX + 6;

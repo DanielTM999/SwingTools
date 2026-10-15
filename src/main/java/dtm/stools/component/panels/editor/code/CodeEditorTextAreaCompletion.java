@@ -256,7 +256,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         int lineHeight = fm.getHeight();
         String lineText = buffer.lineAt(caretLine);
         int cx = baseVisualXForColumn(caretLine, lineText, caretCol, fm);
-        int cy = yOfBufferLine(caretLine) + lineHeight;
+        int cy = yOfColumn(caretLine, caretCol) + lineHeight;
         return new Point(cx, cy);
     }
 
@@ -324,7 +324,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         }
         if (hasAdditionalEdits) {
             if (foldingEnabled) recomputeFoldRegions();
-            invalidateGeometry();
+            invalidateLayout();
             revalidate();
             finishPreservingView();
         }
@@ -468,7 +468,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         ghostAnchorCol = -1;
         ghostAnchorOffset = -1;
         if (multiline) {
-            invalidateGeometry();
+            invalidateLayout();
             revalidate();
         }
         repaint();
@@ -487,7 +487,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         ghostAnchorCol = col;
         ghostAnchorOffset = offset;
         if (ghostReservedRows() > 0) {
-            invalidateGeometry();
+            invalidateLayout();
             revalidate();
         }
         repaint();
@@ -557,7 +557,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         }
         if (hasAdditionalEdits) {
             if (foldingEnabled) recomputeFoldRegions();
-            invalidateGeometry();
+            invalidateLayout();
             revalidate();
             finishPreservingView();
         }
@@ -832,7 +832,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         String lineText = buffer.lineAt(line);
         int safeCol = Math.min(col, lineText.length());
         int x = visualXForColumn(line, lineText, safeCol, fm);
-        int y = yOfBufferLine(line) + lineHeight;
+        int y = yOfColumn(line, safeCol) + lineHeight;
         HoverDocumentationPopup popup = getOrCreateHoverDocumentationPopup();
         popup.show(info, x, y);
         updateHoverDocumentationTransitionBounds(x, y - lineHeight, lineHeight, popup);
@@ -849,7 +849,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         String lineText = buffer.lineAt(line);
         int col = Math.max(0, Math.min(diagnostic.startCol(), lineText.length()));
         int x = visualXForColumn(line, lineText, col, fm);
-        int y = yOfBufferLine(line) + lineHeight;
+        int y = yOfColumn(line, col) + lineHeight;
         HoverDocumentationPopup popup = getOrCreateHoverDocumentationPopup();
         popup.show(HoverInfo.html(diagnosticHoverHtml(diagnostic)), x, y);
         updateHoverDocumentationTransitionBounds(x, y - lineHeight, lineHeight, popup);
@@ -1047,7 +1047,7 @@ public abstract class CodeEditorTextAreaCompletion extends CodeEditorTextAreaDoc
         String lineText = buffer.lineAt(safeLine);
         int safeCol = Math.min(caretCol, lineText.length());
         int x = baseVisualXForColumn(safeLine, lineText, safeCol, fm);
-        int yTop = yOfBufferLine(safeLine);
+        int yTop = yOfColumn(safeLine, safeCol);
         int yBottom = yTop + lineHeight;
         SignatureHelpPopup popup = getOrCreateSignatureHelpPopup();
         popup.show(help, x, yTop, yBottom);

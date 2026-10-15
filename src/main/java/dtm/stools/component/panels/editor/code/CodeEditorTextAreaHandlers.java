@@ -620,6 +620,10 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 }
                 case KeyEvent.VK_UP -> {
                     moveExtraCarets(e.getKeyCode(), ctrl);
+                    if (lineWrapEnabled) {
+                        moveCaretVisualRow(-1);
+                        break;
+                    }
                     if (desiredCaretCol < 0) desiredCaretCol = caretCol;
                     int nl = caretLine - 1;
                     while (nl >= 0 && isLineHidden(nl)) {
@@ -632,6 +636,10 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
                 }
                 case KeyEvent.VK_DOWN -> {
                     moveExtraCarets(e.getKeyCode(), ctrl);
+                    if (lineWrapEnabled) {
+                        moveCaretVisualRow(1);
+                        break;
+                    }
                     if (desiredCaretCol < 0) desiredCaretCol = caretCol;
                     int nl = caretLine + 1;
                     while (nl < buffer.lineCount() && isLineHidden(nl)) {

@@ -835,6 +835,19 @@ public class CodeEditor extends BlockingPanel {
         textArea.setFoldingEnabled(enabled);
     }
 
+    public boolean isLineWrapEnabled() {
+        return textArea.isLineWrapEnabled();
+    }
+
+    public void setLineWrapEnabled(boolean enabled) {
+        scrollPane.setHorizontalScrollBarPolicy(enabled
+                ? JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+                : JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        textArea.setLineWrapEnabled(enabled);
+        scrollPane.revalidate();
+        scrollPane.repaint();
+    }
+
     public void setFoldChevronVisibleOnHoverOnly(boolean enabled) {
         getGutter().setFoldChevronVisibleOnHoverOnly(enabled);
     }

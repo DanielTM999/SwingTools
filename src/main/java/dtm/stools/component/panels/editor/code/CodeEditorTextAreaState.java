@@ -525,7 +525,7 @@ public abstract class CodeEditorTextAreaState extends JComponent {
 
     public void setCodeLensesEnabled(boolean codeLensesEnabled) {
         this.codeLensesEnabled = codeLensesEnabled;
-        invalidateGeometry();
+        invalidateLayout();
         revalidate();
         repaint();
     }
@@ -606,6 +606,16 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     protected int cachedLineCount;
     protected int cachedMaxLineWidth = -1;
     protected int cachedIndentUnit = -1;
+    final LineMetricsCache approxLineWidths = new LineMetricsCache();
+    final LineMetricsCache preciseLineWidths = new LineMetricsCache();
+    final LineMetricsCache lineIndents = new LineMetricsCache();
+    final LineWrapCache lineWraps = new LineWrapCache();
+    protected boolean lineWrapEnabled = false;
+    protected int cachedWrapWidth = -1;
+    protected int[] cachedLineRows;
+    protected int desiredCaretX = -1;
+    protected int desiredCaretXLine = -1;
+    protected int desiredCaretXCol = -1;
     protected BitSet cachedHiddenLines;
     protected Map<Integer, CodeLens> cachedAboveLensByLine;
     protected Map<Integer, CodeLens> cachedInlineLensByLine;
@@ -935,6 +945,8 @@ public abstract class CodeEditorTextAreaState extends JComponent {
     protected abstract BracketHighlighter createBracketHighlighter(TextBuffer buffer);
 
     public abstract void invalidateGeometry();
+
+    protected abstract void invalidateLayout();
 
     protected void ensureExecutorsStarted() {
         getHighlightExecutor();
