@@ -152,6 +152,10 @@ public class TreeView<T> extends TreeViewListener {
     @Getter @Setter
     protected Function<TreeExternalDropContext<T>, Boolean> externalDropHandler;
 
+    @Getter
+    @Setter
+    protected Function<List<TreeNode<T>>, Transferable> dragExportProvider;
+
     @Getter @Setter
     protected Consumer<List<TreeNode<T>>> clipboardCopyHandler;
 
@@ -1517,7 +1521,7 @@ public class TreeView<T> extends TreeViewListener {
     protected class TreeViewTransferHandler extends TransferHandler {
         @Override
         public int getSourceActions(JComponent c) {
-            return MOVE;
+            return dragExportProvider != null ? COPY_OR_MOVE : MOVE;
         }
 
         @Override
@@ -1537,7 +1541,16 @@ public class TreeView<T> extends TreeViewListener {
                 setDragImage(null);
             }
             dispatchTree(EventTreeView.NODE_DRAG_START, nodes.get(0), null, List.copyOf(nodes), null);
-            return new TreeNodeTransferable(nodes.toArray(new TreeNode[0]));
+            return new TreeNodeTransferable(nodes.toArray(new TreeNode[0]), createExportTransferable(nodes));
+        }
+
+        protected Transferable createExportTransferable(List<TreeNode<T>> nodes) {
+            if (dragExportProvider == null) return null;
+            try {
+                return dragExportProvider.apply(List.copyOf(nodes));
+            } catch (RuntimeException ignored) {
+                return null;
+            }
         }
 
         @Override
@@ -1681,25 +1694,43 @@ public class TreeView<T> extends TreeViewListener {
 
     protected static class TreeNodeTransferable implements Transferable {
         private final TreeNode<?>[] nodes;
+        private final Transferable external;
 
         protected TreeNodeTransferable(TreeNode<?>[] nodes) {
+            this(nodes, null);
+        }
+
+        protected TreeNodeTransferable(TreeNode<?>[] nodes, Transferable external) {
             this.nodes = nodes;
+            this.external = external;
         }
 
         @Override
         public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{TREE_NODE_ARRAY_FLAVOR};
+            List<DataFlavor> flavors = new ArrayList<>();
+            flavors.add(TREE_NODE_ARRAY_FLAVOR);
+            if (external != null) {
+                DataFlavor[] externalFlavors = external.getTransferDataFlavors();
+                if (externalFlavors != null) {
+                    for (DataFlavor flavor : externalFlavors) {
+                        if (flavor != null && !TREE_NODE_ARRAY_FLAVOR.equals(flavor)) flavors.add(flavor);
+                    }
+                }
+            }
+            return flavors.toArray(new DataFlavor[0]);
         }
 
         @Override
         public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return TREE_NODE_ARRAY_FLAVOR.equals(flavor);
+            if (TREE_NODE_ARRAY_FLAVOR.equals(flavor)) return true;
+            return external != null && external.isDataFlavorSupported(flavor);
         }
 
         @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-            if (!isDataFlavorSupported(flavor)) throw new UnsupportedFlavorException(flavor);
-            return nodes;
+        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
+            if (TREE_NODE_ARRAY_FLAVOR.equals(flavor)) return nodes;
+            if (external != null && external.isDataFlavorSupported(flavor)) return external.getTransferData(flavor);
+            throw new UnsupportedFlavorException(flavor);
         }
     }
 
