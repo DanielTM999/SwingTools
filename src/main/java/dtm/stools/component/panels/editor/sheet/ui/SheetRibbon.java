@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.sheet.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.sheet.SheetEditor;
 import dtm.stools.component.panels.editor.sheet.format.BuiltinFormats;
 import dtm.stools.configs.UiTokens;
@@ -230,7 +231,8 @@ public class SheetRibbon extends JPanel {
             for (java.awt.event.ActionListener l : b.getActionListeners()) b.removeActionListener(l);
             b.setAction(null);
             b.setIcon(icon);
-            b.setText(text == null || text.isEmpty() ? null : text.endsWith("</html>") ? text.replace("</html>", " ▾</html>") : text + " ▾");
+            b.setText(text == null || text.isEmpty() ? null : text);
+            b.setIcon(VectorIcon.withDropdown(b.getIcon()));
             b.setEnabled(a.isEnabled());
             a.addPropertyChangeListener(e -> { if ("enabled".equals(e.getPropertyName())) b.setEnabled(a.isEnabled()); });
             b.addActionListener(e -> {

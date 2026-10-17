@@ -1,5 +1,6 @@
 package dtm.stools.component.inputfields.tagfield;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.panels.base.PanelEventListener;
 import dtm.stools.i18n.I18n;
@@ -99,7 +100,7 @@ public class TagInputField extends PanelEventListener {
     }
 
     protected JButton createAddButton() {
-        JButton button = new JButton("+");
+        JButton button = VectorIcon.button(VectorIcon.Kind.PLUS, text("tooltip.addTag", "Adicionar tag"));
         button.setFocusable(true);
         button.setMargin(new Insets(2, 8, 2, 8));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -119,7 +120,7 @@ public class TagInputField extends PanelEventListener {
         chip.add(label, BorderLayout.CENTER);
 
         if (removable) {
-            JButton remove = new JButton("x");
+            JButton remove = VectorIcon.button(VectorIcon.Kind.CLOSE, text("tooltip.removeTag", "Remover tag"));
             remove.setFocusable(true);
             remove.getAccessibleContext().setAccessibleName(text("tooltip.removeTag", "Remover tag") + " " + tag);
             remove.setBorderPainted(false);

@@ -1,5 +1,6 @@
 package dtm.stools.component.popup;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.i18n.I18n;
 
 import javax.swing.*;
@@ -1099,7 +1100,7 @@ public final class ModernComponentDialog<T> {
     }
 
     private static JButton buildCloseBtn(JDialog dialog, Color fg, boolean darkTheme) {
-        JButton btn = new JButton("x") {
+        JButton btn = new JButton(new VectorIcon(VectorIcon.Kind.CLOSE, dtm.stools.configs.UiTokens.scale(16))) {
             private boolean hover = false;
 
             {
@@ -1131,7 +1132,7 @@ public final class ModernComponentDialog<T> {
         };
 
         btn.setForeground(fg);
-        btn.setFont(font(16, Font.PLAIN));
+        btn.getAccessibleContext().setAccessibleName(text("button.close", "Fechar"));
         btn.setContentAreaFilled(false);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);

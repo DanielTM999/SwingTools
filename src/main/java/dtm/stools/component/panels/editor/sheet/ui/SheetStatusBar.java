@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.sheet.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.sheet.SheetEditor;
 import dtm.stools.component.panels.editor.sheet.model.SheetViewMode;
 import dtm.stools.configs.UiTokens;
@@ -55,8 +56,8 @@ public class SheetStatusBar extends JPanel {
         breaks = view("page-break", "Visualização da Quebra de Página", SheetViewMode.PAGE_BREAK_PREVIEW);
         right.add(normal); right.add(layout); right.add(breaks);
         right.add(Box.createHorizontalStrut(10));
-        JButton minus = small("−", () -> editor.setZoom(Math.max(0.1, editor.effectiveZoom() - 0.1)));
-        JButton plus = small("+", () -> editor.setZoom(Math.min(4, editor.effectiveZoom() + 0.1)));
+        JButton minus = small(VectorIcon.Kind.MINUS, "Reduzir zoom", () -> editor.setZoom(Math.max(0.1, editor.effectiveZoom() - 0.1)));
+        JButton plus = small(VectorIcon.Kind.PLUS, "Ampliar zoom", () -> editor.setZoom(Math.min(4, editor.effectiveZoom() + 0.1)));
         zoom.setPreferredSize(new Dimension(110, 20));
         zoom.setMaximumSize(new Dimension(110, 22));
         zoom.setOpaque(false);
@@ -95,8 +96,8 @@ public class SheetStatusBar extends JPanel {
         return b;
     }
 
-    private static JButton small(String text, Runnable r) {
-        JButton b = new JButton(text);
+    private static JButton small(VectorIcon.Kind kind, String description, Runnable r) {
+        JButton b = VectorIcon.button(kind, description);
         b.setFocusable(false);
         b.putClientProperty("JButton.buttonType", "toolBarButton");
         b.setMargin(new java.awt.Insets(0, 4, 0, 4));

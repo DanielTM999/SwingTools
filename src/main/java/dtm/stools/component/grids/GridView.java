@@ -1,5 +1,6 @@
 package dtm.stools.component.grids;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.events.EventGridView;
 import dtm.stools.component.feedback.pagination.PaginationPanel;
 import dtm.stools.component.grids.annotations.GridColumn;
@@ -1181,8 +1182,11 @@ public class GridView<T> extends DataTableListener {
                 String field = column >= 0 && column < getColumnCount() && !isActionColumn(column)
                         ? currentModel.getKeyForColumn(convertColumnIndexToModel(column)) : "";
                 String title = String.valueOf(value);
-                if (field.equals(sortField)) title += sortOrder == SortOrder.ASCENDING ? "  ▲" : "  ▼";
                 JLabel label = new JLabel(title);
+                if (field.equals(sortField)) {
+                    label.setIcon(new VectorIcon(sortOrder == SortOrder.ASCENDING ? VectorIcon.Kind.UP : VectorIcon.Kind.DOWN, UiTokens.scale(12)));
+                    label.setHorizontalTextPosition(SwingConstants.LEADING);
+                }
                 label.setOpaque(true);
                 label.setBackground(style.headerBackground() != null ? style.headerBackground() : UiTokens.surfaceAlt());
                 label.setForeground(style.headerForeground() != null ? style.headerForeground() : UiTokens.foreground());
@@ -1205,8 +1209,12 @@ public class GridView<T> extends DataTableListener {
         if (isActionColumn(column)) {
             String label = rowFormMode != GridRowFormMode.OFF && rowActions.isEmpty() ? "Editar"
                     : rowFormMode == GridRowFormMode.OFF && rowActions.size() == 1 ? rowActions.getFirst().label()
-                    : "Ações ▾";
+                    : "Ações";
             JButton action = new JButton(label);
+            if (label.equals("Ações")) {
+                action.setIcon(VectorIcon.withDropdown(null));
+                action.setHorizontalTextPosition(SwingConstants.LEADING);
+            }
             action.setFocusable(false);
             action.setMargin(new Insets(2, 8, 2, 8));
             boolean enabled = rowFormMode != GridRowFormMode.OFF && rowActions.isEmpty() ? allowEdit

@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.pdf.ui;
 
+import dtm.stools.component.icon.IconPaths;
 import dtm.stools.configs.UiTokens;
 
 import javax.swing.Icon;
@@ -7,7 +8,6 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -301,8 +301,6 @@ public final class PdfIcon implements Icon {
         g.draw(p);
     }
     private static void text(Graphics2D g, String value, int style, double size, double cx, double baseline) {
-        g.setFont(new Font(Font.SANS_SERIF, style, 1).deriveFont((float) size));
-        FontMetrics metrics = g.getFontMetrics();
-        g.drawString(value, (float) (cx - metrics.stringWidth(value) / 2.0), (float) baseline);
+        IconPaths.draw(g, value, cx - IconPaths.width(value, size) / 2, baseline, size, style);
     }
 }

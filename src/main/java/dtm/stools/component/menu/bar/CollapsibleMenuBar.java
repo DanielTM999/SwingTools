@@ -1,5 +1,6 @@
 package dtm.stools.component.menu.bar;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.menu.bar.tree.MenuNode;
 import dtm.stools.i18n.I18n;
 import dtm.stools.utils.ResourceUtils;
@@ -38,7 +39,7 @@ public class CollapsibleMenuBar extends MenuBar {
         return I18n.getText(CollapsibleMenuBar.class, key, defaultValue);
     }
 
-    public static final String DEFAULT_COLLAPSE_BUTTON_TEXT = "\u2630";
+    public static final String DEFAULT_COLLAPSE_BUTTON_TEXT = "Menu";
     public static final String DEFAULT_COLLAPSE_BUTTON_RESOURCE = "/drawables/hamburger.png";
     public static final int DEFAULT_COLLAPSE_BUTTON_ICON_SIZE = 22;
     public static final int DEFAULT_COLLAPSE_BUTTON_SIZE = 40;
@@ -506,8 +507,8 @@ public class CollapsibleMenuBar extends MenuBar {
             collapseButton.setText(null);
             collapseButton.setIcon(icon);
         } else {
-            collapseButton.setIcon(null);
-            collapseButton.setText(DEFAULT_COLLAPSE_BUTTON_TEXT);
+            collapseButton.setIcon(new VectorIcon(VectorIcon.Kind.MENU, collapseButtonIconSize, resolveCollapseButtonColor()));
+            collapseButton.setText(null);
         }
         revalidate();
         repaintAfterLayoutChange();

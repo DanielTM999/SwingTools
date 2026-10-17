@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.word.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.word.WordEditor;
 import dtm.stools.component.panels.editor.word.api.WordCellSelection;
 import dtm.stools.component.panels.editor.word.api.WordSession;
@@ -144,8 +145,8 @@ public final class WordRibbon extends JPanel {
         return new WordRibbonPage.Group(name,content);
     }
     private JButton menu(String text, JPopupMenu menu) {
-        JButton b = new JButton(text + " ▾"); b.setMargin(new Insets(5,6,5,6));
-        b.setIcon(new WordIcon("word."+switch(text){case "Espaçamento"->"spacing";case "Gráfico"->"chart";case "Formas"->"shape";case "Diagrama"->"diagram";case "Gerenciar"->"styles";case "Disposição"->"arrange";case "Inserir bloco"->"block.insert";case "Tamanho"->"page.size";case "Margens"->"margins";default->"page";},16));
+        JButton b = new JButton(text); b.setMargin(new Insets(5,6,5,6));
+        b.setIcon(VectorIcon.withDropdown(new WordIcon("word."+switch(text){case "Espaçamento"->"spacing";case "Gráfico"->"chart";case "Formas"->"shape";case "Diagrama"->"diagram";case "Gerenciar"->"styles";case "Disposição"->"arrange";case "Inserir bloco"->"block.insert";case "Tamanho"->"page.size";case "Margens"->"margins";default->"page";},16)));
         b.setToolTipText(text);b.getAccessibleContext().setAccessibleName(text);
         b.putClientProperty("word.fullText",b.getText());
         editingMenus.add(b);
@@ -182,7 +183,7 @@ public final class WordRibbon extends JPanel {
         return m;
     }
     private JComponent insertTableGroup() {
-        JButton table = new JButton("Tabela ▾"); table.setMargin(new Insets(5,6,5,6)); table.setIcon(new WordIcon("table",24)); editingMenus.add(table);
+        JButton table = new JButton("Tabela"); table.setMargin(new Insets(5,6,5,6)); table.setIcon(VectorIcon.withDropdown(new WordIcon("table",24))); editingMenus.add(table);
         table.addActionListener(e -> { if (!editor.isReadOnly()) WordTableGridChooser.popup((r,c) -> editor.run(() -> editor.getObjects().insertTable(r,c))).show(table,0,table.getHeight()); });
         return group("Tabelas",table,"word.insert.table");
     }

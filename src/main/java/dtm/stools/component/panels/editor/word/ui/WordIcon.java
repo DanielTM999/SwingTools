@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.word.ui;
 
+import dtm.stools.component.icon.IconPaths;
 import dtm.stools.configs.UiTokens;
 import com.formdev.flatlaf.util.UIScale;
 import javax.swing.*;
@@ -18,17 +19,16 @@ public record WordIcon(String command, int size) implements Icon {
         try {
             g.translate(x, y); g.scale(getIconWidth()/24.0, getIconHeight()/24.0);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(c.isEnabled() ? UiTokens.foreground() : UiTokens.muted());
+            g.setColor(c == null || c.isEnabled() ? UiTokens.foreground() : UiTokens.muted());
             g.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             String id = command.replace("word.", "");
             if (paintSpecific(g,id)) return;
             if (id.equals("close")) { line(g,7,7,17,17); line(g,7,17,17,7); }
             else if (id.equals("bold") || id.equals("italic") || id.equals("underline") || id.equals("strike") || id.equals("superscript") || id.equals("subscript")) {
-                g.setFont(new Font(Font.SANS_SERIF, id.equals("bold") ? Font.BOLD : id.equals("italic") ? Font.ITALIC : Font.PLAIN, 18));
-                g.drawString(switch(id) { case "bold" -> "N"; case "italic" -> "I"; case "underline" -> "S"; case "strike" -> "a"; default -> "x"; }, 5, 18);
+                IconPaths.draw(g, switch(id) { case "bold" -> "N"; case "italic" -> "I"; case "underline" -> "S"; case "strike" -> "a"; default -> "x"; }, 5, 18, 18, id.equals("bold") ? 1 : id.equals("italic") ? 2 : 0);
                 if(id.equals("underline")) line(g,4,21,19,21);
                 if(id.equals("strike")) line(g,3,12,21,12);
-                if(id.endsWith("script")) { g.setFont(new Font(Font.SANS_SERIF,Font.PLAIN,10)); g.drawString("2",15,id.equals("superscript") ? 9 : 23); }
+                if(id.endsWith("script")) { IconPaths.draw(g,"2",15,id.equals("superscript") ? 9 : 23,10,0); }
             } else if (id.contains("indent")) {
                 for(int i=0;i<4;i++)line(g,11,5+i*5,21,5+i*5);
                 if(id.endsWith("less")){line(g,8,9,3,12);line(g,3,12,8,15);}else{line(g,3,9,8,12);line(g,8,12,3,15);}
@@ -40,13 +40,13 @@ public record WordIcon(String command, int size) implements Icon {
                     int left = id.endsWith("RIGHT") ? 21-w : id.endsWith("CENTER") ? (24-w)/2 : 3;
                     if(id.equals("bullets") || id.equals("numbering")) {
                         if(id.equals("bullets"))g.fillOval(2,4+i*5,2,2);
-                        else{g.setFont(new Font(Font.SANS_SERIF,Font.PLAIN,6));g.drawString(Integer.toString(i+1),1,7+i*5);}
+                        else{IconPaths.draw(g,Integer.toString(i+1),1,7+i*5,6,0);}
                         left=7; w=14;
                     }
                     line(g,left,5+i*5,left+w,5+i*5);
                 }
             } else if (id.equals("color") || id.equals("highlight") || id.equals("shading") || id.contains("fill")) {
-                if(id.equals("color")){g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,17));g.drawString("A",5,16);}
+                if(id.equals("color")){IconPaths.draw(g,"A",5,16,17,1);}
                 else {g.draw(new Path2D.Double(){{moveTo(6,14);lineTo(13,3);lineTo(20,7);lineTo(13,18);closePath();}});line(g,6,14,13,18);}
                 g.setColor(id.equals("highlight") ? new Color(0xE4B52A) : UiTokens.accent());g.fillRoundRect(3,19,18,4,2,2);
             } else if(id.equals("palette")) {
@@ -57,7 +57,7 @@ public record WordIcon(String command, int size) implements Icon {
             } else if(id.equals("copy")) {
                 g.drawRoundRect(7,6,14,16,2,2);line(g,3,18,3,2);line(g,3,2,16,2);line(g,10,11,18,11);line(g,10,15,18,15);
             } else if(id.equals("clearFormat")) {
-                g.setFont(new Font(Font.SANS_SERIF,Font.PLAIN,16));g.drawString("A",2,15);
+                IconPaths.draw(g,"A",2,15,16,0);
                 g.setColor(UiTokens.accent());g.draw(new Path2D.Double(){{moveTo(10,18);lineTo(17,10);lineTo(22,14);lineTo(16,21);lineTo(13,21);closePath();}});
             } else if(id.contains("link")) {
                 g.rotate(-Math.PI/4,12,12);g.drawRoundRect(2,8,12,8,6,6);g.drawRoundRect(10,8,12,8,6,6);
@@ -65,7 +65,7 @@ public record WordIcon(String command, int size) implements Icon {
                 g.draw(new Path2D.Double(){{moveTo(3,3);lineTo(21,3);lineTo(21,16);lineTo(10,16);lineTo(5,21);lineTo(5,16);lineTo(3,16);closePath();}});
                 line(g,7,7,17,7);line(g,7,11,15,11);
             } else if(id.contains("equation")) {
-                g.setFont(new Font(Font.SERIF,Font.ITALIC,21));g.drawString("π",3,18);
+                IconPaths.draw(g,"π",3,18,21,2);
             } else if(id.equals("shape") || id.contains("textbox")) {
                 g.drawRect(2,3,13,12);g.setColor(UiTokens.accent());g.drawOval(9,10,13,12);
             } else if(id.equals("diagram") || id.equals("insert.diagram") || id.equals("arrange")) {
@@ -73,7 +73,7 @@ public record WordIcon(String command, int size) implements Icon {
                 g.setColor(UiTokens.accent());g.drawRect(1,16,8,6);g.drawRect(15,16,8,6);
             } else if(id.equals("list.restart")) {
                 g.draw(new Arc2D.Double(3,3,18,18,-80,280,Arc2D.OPEN));line(g,2,3,2,9);line(g,2,9,8,9);
-                g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,12));g.drawString("1",9,17);
+                IconPaths.draw(g,"1",9,17,12,1);
             } else if(id.equals("undo") || id.equals("redo")) {
                 if(id.equals("redo")) { g.translate(24,0);g.scale(-1,1); }
                 g.draw(new Arc2D.Double(5,6,15,14,-80,230,Arc2D.OPEN));line(g,4,4,4,11);line(g,4,11,11,11);
@@ -201,7 +201,7 @@ public record WordIcon(String command, int size) implements Icon {
     }
     private static void page(Graphics2D g){g.drawRoundRect(5,2,14,20,2,2);}
     private static void calendar(Graphics2D g){g.drawRoundRect(2,4,20,18,2,2);line(g,2,9,22,9);line(g,7,2,7,6);line(g,17,2,17,6);}
-    private static void text(Graphics2D g,String text,int x,int y,int size){g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,size));g.drawString(text,x,y);}
+    private static void text(Graphics2D g,String text,int x,int y,int size){IconPaths.draw(g,text,x,y,size,1);}
     private static void check(Graphics2D g,int x,int y){line(g,x,y,x+4,y+4);line(g,x+4,y+4,x+11,y-5);}
     private static void pencil(Graphics2D g){g.draw(new Path2D.Double(){{moveTo(9,21);lineTo(11,15);lineTo(19,3);lineTo(23,6);lineTo(15,18);closePath();}});}
     private static void arrow(Graphics2D g,int x1,int y1,int x2,int y2){

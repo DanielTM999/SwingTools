@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.sheet.ui.popup;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.sheet.provider.SheetConfirmationProvider;
 import dtm.stools.component.panels.editor.sheet.provider.SheetConfirmationRequest;
 import dtm.stools.configs.UiTokens;
@@ -19,9 +20,9 @@ public final class DefaultConfirmationProvider implements SheetConfirmationProvi
         SheetDialogActivity<Integer> d = new SheetDialogActivity<>(request.owner(), request.title(), Dialog.ModalityType.DOCUMENT_MODAL);
         int[] choice = {-1};
         JPanel content = new JPanel(new BorderLayout(10, 0));
-        JLabel icon = new JLabel(request.warning() ? "⚠" : "ℹ");
-        icon.setFont(icon.getFont().deriveFont(26f));
+        JLabel icon = new JLabel(new VectorIcon(request.warning() ? VectorIcon.Kind.WARNING : VectorIcon.Kind.INFO, UiTokens.scale(26)));
         icon.setForeground(request.warning() ? UiTokens.warning() : UiTokens.info());
+        icon.getAccessibleContext().setAccessibleName(request.warning() ? "Aviso" : "Informação");
         content.add(icon, BorderLayout.WEST);
         JLabel text = new JLabel("<html><div style='width:360px'>" + request.message().replace("&", "&amp;").replace("<", "&lt;").replace("\n", "<br>") + "</div></html>");
         content.add(text, BorderLayout.CENTER);

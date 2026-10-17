@@ -1,5 +1,6 @@
 package dtm.stools.component.inputfields.textfield;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.events.EventType;
 import lombok.Getter;
 import lombok.Setter;
@@ -190,7 +191,10 @@ public class PathTextField extends MaskedTextField {
             breadcrumbPanel.add(buildSegmentLabel(segLabel, fullPath));
 
             if (i < parts.length - 1) {
-                breadcrumbPanel.add(buildSeparatorLabel(" › "));
+                JLabel separatorLabel = new JLabel(new VectorIcon(VectorIcon.Kind.RIGHT, dtm.stools.configs.UiTokens.scale(12)));
+                separatorLabel.setForeground(getDisabledTextColor());
+                separatorLabel.setBorder(new EmptyBorder(2, 4, 2, 4));
+                breadcrumbPanel.add(separatorLabel);
             }
         }
 

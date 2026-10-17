@@ -446,7 +446,6 @@ public class WordEditor extends BlockingPanel implements AutoCloseable {
         if(commands.containsKey("word.redo"))commands.get("word.redo").setEnabled(session.canRedo());
         if(commands.containsKey("word.export.pdf"))commands.get("word.export.pdf").setEnabled(pdfExporter().isPresent());
         if(commands.containsKey("word.recover"))commands.get("word.recover").setEnabled(files.isRecoveryEnabled());
-        Action track=commands.get("word.track");if(track!=null)track.putValue(Action.NAME,session.isTrackChanges()?"Controlar alterações ✓":"Controlar alterações");
         Action focus=commands.get("word.focus");if(focus!=null)focus.putValue(Action.NAME,config.ribbonVisible()?"Ocultar ferramentas":"Mostrar ferramentas");
         boolean table=session.getContentSelection() instanceof WordCellSelection||getDocument().tableAt(session.getSelection().caret()).isPresent();
         boolean object=session.getSelectedObject().isPresent();

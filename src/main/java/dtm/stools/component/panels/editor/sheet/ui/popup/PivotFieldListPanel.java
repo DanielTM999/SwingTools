@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.sheet.ui.popup;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.sheet.model.PivotAggregation;
 import dtm.stools.component.panels.editor.sheet.model.PivotField;
 import dtm.stools.component.panels.editor.sheet.model.PivotShowAs;
@@ -40,10 +41,10 @@ public class PivotFieldListPanel extends JPanel {
         fs.setPreferredSize(new Dimension(200, 300));
         left.add(fs, BorderLayout.CENTER);
         JPanel add = new JPanel(new GridLayout(4, 1, 2, 2));
-        add.add(button("→ Filtros", filters));
-        add.add(button("→ Colunas", columns));
-        add.add(button("→ Linhas", rows));
-        add.add(button("→ Valores", values));
+        add.add(button("Filtros", filters));
+        add.add(button("Colunas", columns));
+        add.add(button("Linhas", rows));
+        add.add(button("Valores", values));
         left.add(add, BorderLayout.SOUTH);
         add(left, BorderLayout.WEST);
         JPanel areas = new JPanel(new GridLayout(2, 2, 6, 6));
@@ -68,7 +69,7 @@ public class PivotFieldListPanel extends JPanel {
     }
 
     private JButton button(String label, DefaultListModel<String> target) {
-        JButton b = new JButton(label);
+        JButton b = new JButton(label, new VectorIcon(VectorIcon.Kind.RIGHT, dtm.stools.configs.UiTokens.scale(14)));
         b.addActionListener(e -> {
             for (String f : fields.getSelectedValuesList()) {
                 if (target == values) { target.addElement(f); aggregations.add(PivotAggregation.SUM); showAs.add(PivotShowAs.NORMAL); }
@@ -86,7 +87,7 @@ public class PivotFieldListPanel extends JPanel {
         JList<String> list = new JList<>(model);
         p.add(new JScrollPane(list), BorderLayout.CENTER);
         JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
-        JButton up = new JButton("▲"), down = new JButton("▼"), remove = new JButton("Remover");
+        JButton up = VectorIcon.button(VectorIcon.Kind.UP, "Mover para cima"), down = VectorIcon.button(VectorIcon.Kind.DOWN, "Mover para baixo"), remove = new JButton("Remover");
         up.addActionListener(e -> move(list, model, -1));
         down.addActionListener(e -> move(list, model, 1));
         remove.addActionListener(e -> { int i = list.getSelectedIndex(); if (i >= 0) { model.remove(i); if (model == values) { aggregations.remove(i); showAs.remove(i); } } });

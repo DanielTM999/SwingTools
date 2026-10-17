@@ -1,5 +1,7 @@
 package dtm.stools.component.panels.editor.powerpoint.ui;
 
+import dtm.stools.component.icon.IconPaths;
+import dtm.stools.component.icon.VectorIcon;
 import com.formdev.flatlaf.util.UIScale;
 import dtm.stools.component.panels.editor.powerpoint.PowerPointEditor;
 import dtm.stools.component.panels.editor.powerpoint.model.PptAnimation;
@@ -127,7 +129,7 @@ public final class PowerPointRibbon extends JPanel {
         JButton button=new JButton(label);button.setName("powerpoint.ribbon."+label.toLowerCase().replace(' ','_'));
         button.putClientProperty("JButton.buttonType","toolBarButton");button.setFocusable(false);
         button.setMargin(large?new Insets(8,10,8,10):new Insets(3,7,3,7));
-        if(large){button.setIcon(new GlyphIcon(label));button.setHorizontalTextPosition(SwingConstants.CENTER);
+        if(large){button.setIcon(new CommandIcon(label));button.setHorizontalTextPosition(SwingConstants.CENTER);
             button.setVerticalTextPosition(SwingConstants.BOTTOM);button.setIconTextGap(UIScale.scale(4));
             button.setPreferredSize(new Dimension(Math.max(UIScale.scale(82),button.getPreferredSize().width+UIScale.scale(8)),UIScale.scale(68)));}
         button.addActionListener(e->action.run());if(editing)editingButtons.add(button);return button;
@@ -151,7 +153,7 @@ public final class PowerPointRibbon extends JPanel {
         return scroll;
     }
 
-    private record GlyphIcon(String label) implements Icon {
+    private record CommandIcon(String label) implements Icon {
         @Override
         public int getIconWidth(){return UIScale.scale(25);}
         @Override
@@ -163,9 +165,9 @@ public final class PowerPointRibbon extends JPanel {
                 double scale=getIconWidth()/25.0;g.translate(x,y);g.scale(scale,scale);
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setColor(component.isEnabled()?accent():UiTokens.muted());g.setStroke(new BasicStroke(1.8f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));
-                if(label.contains("Texto")||label.contains("texto")){g.drawString("T",8,18);return;}
+                if(label.contains("Texto")||label.contains("texto")){IconPaths.draw(g,"T",8,18,20,1);return;}
                 if(label.contains("Elipse")||label.contains("Claro")||label.contains("Escuro")||label.contains("Azul")){g.drawOval(4,3,17,17);return;}
-                if(label.contains("Áudio")){g.drawString("♫",4,19);return;}
+                if(label.contains("Áudio")){new VectorIcon(VectorIcon.Kind.AUDIO,20,g.getColor()).paintIcon(component,g,3,2);return;}
                 if(label.contains("Vídeo")||label.contains("Apresentar")){g.drawRect(3,4,19,15);g.drawLine(10,8,10,15);g.drawLine(10,8,16,11);g.drawLine(10,15,16,11);return;}
                 if(label.contains("Imagem")){g.drawRect(3,4,19,15);g.drawOval(16,7,2,2);g.drawLine(5,16,10,10);g.drawLine(10,10,14,14);g.drawLine(14,14,17,11);g.drawLine(17,11,21,16);return;}
                 g.drawRoundRect(3,3,19,16,2,2);

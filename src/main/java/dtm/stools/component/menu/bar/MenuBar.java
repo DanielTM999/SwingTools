@@ -1,5 +1,6 @@
 package dtm.stools.component.menu.bar;
 
+import dtm.stools.component.icon.IconPaths;
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventListenerComponent;
 import dtm.stools.component.events.EventSubscription;
@@ -717,17 +718,11 @@ public class MenuBar extends JMenuBar implements EventListenerComponent {
         Graphics2D g = img.createGraphics();
         try {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             g.setColor(resolveAccent());
             g.fill(new Ellipse2D.Double(2, 2, size - 4, size - 4));
             g.setColor(luminance(resolveAccent()) < 0.55 ? Color.WHITE : new Color(0x111827));
-            Font font = resolveMenuFont().deriveFont(Font.BOLD, size * 0.55f);
-            g.setFont(font);
-            String letter = "S";
-            FontMetrics fm = g.getFontMetrics();
-            int x = (size - fm.stringWidth(letter)) / 2;
-            int y = (size - fm.getHeight()) / 2 + fm.getAscent();
-            g.drawString(letter, x, y);
+            double symbolSize = size * 0.65;
+            IconPaths.draw(g, "S", (size - IconPaths.width("S", symbolSize)) / 2, size / 2.0 + symbolSize * 0.3, symbolSize, 1);
         } finally {
             g.dispose();
         }

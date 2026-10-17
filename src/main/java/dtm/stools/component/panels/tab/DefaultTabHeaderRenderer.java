@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.tab;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.icon.TintedIconLoader;
 
 import javax.swing.*;
@@ -266,8 +267,7 @@ public class DefaultTabHeaderRenderer implements TabHeaderFactory {
         if (icon != null) {
             close.setIcon(icon);
         } else {
-            close.setText(style.getCloseButtonText());
-            close.setFont(close.getFont().deriveFont(Font.PLAIN, 10f));
+            close.setIcon(new VectorIcon(VectorIcon.Kind.CLOSE, Math.max(1, style.getCloseButtonIconSize())));
         }
 
         close.setPreferredSize(new Dimension(14, 14));
@@ -282,6 +282,7 @@ public class DefaultTabHeaderRenderer implements TabHeaderFactory {
         close.setOpaque(false);
         close.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         close.setToolTipText(style.getCloseButtonTooltip());
+        close.getAccessibleContext().setAccessibleName(style.getCloseButtonTooltip());
 
         close.addActionListener(e -> {
             if (close.isVisuallyVisible()) {

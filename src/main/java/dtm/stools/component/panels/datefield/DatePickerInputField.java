@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.datefield;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.inputfields.textfield.MaskedTextField;
 import dtm.stools.component.events.EventComponent;
 import dtm.stools.component.events.EventSubscription;
@@ -110,7 +111,7 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         int fieldHeight = textField.getPreferredSize().height;
         int fieldWidth = 50;
 
-        calendarButton = new JButton("📅");
+        calendarButton = new JButton(new VectorIcon(VectorIcon.Kind.CALENDAR, dtm.stools.configs.UiTokens.scale(18)));
         calendarButton.setPreferredSize(Objects.requireNonNullElseGet(calendarButtonDimension, () -> new Dimension(fieldWidth, fieldHeight)));
         calendarButton.setFocusPainted(true);
         calendarButton.getAccessibleContext().setAccessibleName(dtm.stools.i18n.I18n.getText(DatePickerInputField.class, "choose", "Escolher data"));
@@ -195,8 +196,8 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         headerPanel.setBackground(UIManager.getColor("Panel.background"));
         headerPanel.setBorder(new EmptyBorder(5, 5, 10, 5));
 
-        prevButton = createNavButton("◀");
-        nextButton = createNavButton("▶");
+        prevButton = createNavButton(VectorIcon.Kind.LEFT);
+        nextButton = createNavButton(VectorIcon.Kind.RIGHT);
 
         JPanel monthYearButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         monthYearButtonPanel.setBackground(UIManager.getColor("Panel.background"));
@@ -289,13 +290,13 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         JPanel decadeHeader = new JPanel(new BorderLayout(10, 0));
         decadeHeader.setBackground(UIManager.getColor("Panel.background"));
 
-        JButton prevDecadeButton = createNavButton("◀");
+        JButton prevDecadeButton = createNavButton(VectorIcon.Kind.LEFT);
         prevDecadeButton.addActionListener(e -> {
             currentDecadeStart -= 12;
             updateYearView();
         });
 
-        JButton nextDecadeButton = createNavButton("▶");
+        JButton nextDecadeButton = createNavButton(VectorIcon.Kind.RIGHT);
         nextDecadeButton.addActionListener(e -> {
             currentDecadeStart += 12;
             updateYearView();
@@ -611,8 +612,8 @@ public class DatePickerInputField extends PanelEventListener implements DatePick
         });
     }
 
-    private JButton createNavButton(String text) {
-        JButton button = new JButton(text);
+    private JButton createNavButton(VectorIcon.Kind direction) {
+        JButton button = VectorIcon.button(direction, direction == VectorIcon.Kind.LEFT ? "Anterior" : "Próximo");
         button.setFocusPainted(false);
         button.setBackground(UIManager.getColor("Button.background"));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));

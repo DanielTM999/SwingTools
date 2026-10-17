@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.pdf.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.pdf.PdfEditor;
 import dtm.stools.configs.UiTokens;
 
@@ -118,7 +119,8 @@ public class PdfStatusBar extends JPanel {
             page.setText(count == 0 ? "" : "Página " + (current + 1) + " de " + count);
             tool.setText(toolName == null ? "" : toolName);
             info.setText(selection == null ? "" : selection);
-            dirty.setText(changed ? "● Alterado" : "");
+            dirty.setText(changed ? "Alterado" : "");
+            dirty.setIcon(changed ? new VectorIcon(VectorIcon.Kind.DOT, UiTokens.scale(10)) : null);
             int percent = (int) Math.round(zoomValue * 100);
             if (zoom.getValue() != percent) zoom.setValue(Math.max(zoom.getMinimum(), Math.min(zoom.getMaximum(), percent)));
             zoomLabel.setText(percent + "%");

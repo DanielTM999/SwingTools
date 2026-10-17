@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.powerpoint.render;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.powerpoint.model.*;
 import javax.imageio.ImageIO;
 import java.util.LinkedHashMap;
@@ -128,7 +129,7 @@ public class PowerPointRenderer {
                     else paintMediaPlaceholder(g,object,"Imagem indisponível");
                 } catch(Exception error){paintMediaPlaceholder(g,object,"Imagem indisponível");}
             }
-            case AUDIO, VIDEO -> {if(frame!=null&&object.kind()==PptObject.Kind.VIDEO)g.drawImage(frame,(int)x,(int)y,(int)w,(int)h,null);else paintMediaPlaceholder(g,object,object.kind()==PptObject.Kind.AUDIO?"♪ Áudio":"▶ Vídeo");}
+            case AUDIO, VIDEO -> {if(frame!=null&&object.kind()==PptObject.Kind.VIDEO)g.drawImage(frame,(int)x,(int)y,(int)w,(int)h,null);else paintMediaPlaceholder(g,object,object.kind()==PptObject.Kind.AUDIO?"Áudio":"Vídeo");}
         }
     }
     private void paintStroke(Graphics2D g,Shape shape,PptStroke stroke){
@@ -146,6 +147,8 @@ public class PowerPointRenderer {
     private void paintMediaPlaceholder(Graphics2D g,PptObject object,String label){
         g.setColor(new Color(40,45,54));g.fill(new RoundRectangle2D.Double(object.x(),object.y(),object.width(),object.height(),12,12));
         g.setColor(Color.WHITE);g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,Math.max(18,object.fontSize())));
-        g.drawString(label,(float)(object.x()+12),(float)(object.y()+Math.min(object.height()-8,38)));
+        int iconSize = Math.max(18, object.fontSize());
+        new VectorIcon(object.kind()==PptObject.Kind.AUDIO?VectorIcon.Kind.AUDIO:VectorIcon.Kind.PLAY,iconSize,Color.WHITE).paintIcon(null,g,(int)object.x()+12,(int)(object.y()+Math.min(object.height()-8,38))-iconSize);
+        g.drawString(label,(float)(object.x()+18+iconSize),(float)(object.y()+Math.min(object.height()-8,38)));
     }
 }

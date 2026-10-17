@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.code.search;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.icon.TintedIconLoader;
 import dtm.stools.component.inputfields.textfield.MaskedTextField;
 import dtm.stools.component.panels.editor.code.CodeEditorTextArea;
@@ -461,8 +462,8 @@ public class SearchPanel extends JPanel {
             expandToggle.setIcon(icon);
             expandToggle.setText(null);
         } else {
-            expandToggle.setIcon(null);
-            expandToggle.setText(replaceVisible ? "\u25BC" : "\u25B6");
+            expandToggle.setIcon(new VectorIcon(replaceVisible ? VectorIcon.Kind.DOWN : VectorIcon.Kind.RIGHT, iconSize, tint));
+            expandToggle.setText(null);
         }
     }
 
@@ -479,11 +480,11 @@ public class SearchPanel extends JPanel {
         Icon next = TintedIconLoader.load(nextIconResource, iconSize, tint);
         Icon close = TintedIconLoader.load(closeIconResource, iconSize, tint);
         if (prev != null) { prevButton.setIcon(prev); prevButton.setText(null); }
-        else { prevButton.setIcon(null); prevButton.setText("\u25B2"); }
+        else { prevButton.setIcon(new VectorIcon(VectorIcon.Kind.UP, iconSize, tint)); prevButton.setText(null); }
         if (next != null) { nextButton.setIcon(next); nextButton.setText(null); }
-        else { nextButton.setIcon(null); nextButton.setText("\u25BC"); }
+        else { nextButton.setIcon(new VectorIcon(VectorIcon.Kind.DOWN, iconSize, tint)); nextButton.setText(null); }
         if (close != null) { closeButton.setIcon(close); closeButton.setText(null); }
-        else { closeButton.setIcon(null); closeButton.setText("\u2715"); }
+        else { closeButton.setIcon(new VectorIcon(VectorIcon.Kind.CLOSE, iconSize, tint)); closeButton.setText(null); }
         updateExpandIcon();
     }
 

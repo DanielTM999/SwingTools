@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.powerpoint.io;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.powerpoint.model.*;
 import dtm.stools.component.panels.editor.word.io.ooxml.OoxmlXml;
 import dtm.stools.component.panels.editor.word.io.ooxml.OpcPackage;
@@ -326,8 +327,8 @@ public class PptxCodec {
             ByteArrayOutputStream preview=new ByteArrayOutputStream();ImageIO.write(first,"png",preview);return preview.toByteArray();
         }catch(IOException ignored){}
         BufferedImage image=new BufferedImage(320,180,BufferedImage.TYPE_INT_RGB);Graphics2D g=image.createGraphics();
-        try{g.setColor(new Color(33,39,52));g.fillRect(0,0,320,180);g.setColor(Color.WHITE);g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,64));
-            g.drawString(kind==PptObject.Kind.AUDIO?"♪":"▶",125,112);}finally{g.dispose();}
+        try{g.setColor(new Color(33,39,52));g.fillRect(0,0,320,180);g.setColor(Color.WHITE);
+            new VectorIcon(kind==PptObject.Kind.AUDIO?VectorIcon.Kind.AUDIO:VectorIcon.Kind.PLAY,64,Color.WHITE).paintIcon(null,g,128,58);}finally{g.dispose();}
         try{ByteArrayOutputStream out=new ByteArrayOutputStream();ImageIO.write(image,"png",out);return out.toByteArray();}
         catch(IOException error){throw new UncheckedIOException(error);}
     }

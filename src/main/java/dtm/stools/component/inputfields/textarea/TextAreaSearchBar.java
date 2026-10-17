@@ -1,5 +1,6 @@
 package dtm.stools.component.inputfields.textarea;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.icon.TintedIconLoader;
 import dtm.stools.component.inputfields.textfield.MaskedTextField;
 import dtm.stools.configs.UiTokens;
@@ -499,12 +500,12 @@ final class TextAreaSearchBar extends JPanel {
 
     private void reloadIcons() {
         Color tint = UiTokens.foreground();
-        icon(previousButton, "/drawables/arrowUpNoTail.png", "▲", tint);
-        icon(nextButton, "/drawables/arrowDownNoTail.png", "▼", tint);
-        icon(closeButton, "/drawables/close.png", "✕", tint);
+        icon(previousButton, "/drawables/arrowUpNoTail.png", VectorIcon.Kind.UP, tint);
+        icon(nextButton, "/drawables/arrowDownNoTail.png", VectorIcon.Kind.DOWN, tint);
+        icon(closeButton, "/drawables/close.png", VectorIcon.Kind.CLOSE, tint);
         boolean expanded = replaceRow.isVisible();
         icon(expandToggle, expanded ? "/drawables/arrowDownNoTail.png" : "/drawables/arrowRightNoTail.png",
-                expanded ? "▼" : "▶", tint);
+                expanded ? VectorIcon.Kind.DOWN : VectorIcon.Kind.RIGHT, tint);
         expandToggle.setEnabled(area.isEditable());
     }
 
@@ -516,10 +517,10 @@ final class TextAreaSearchBar extends JPanel {
         return row;
     }
 
-    private static void icon(AbstractButton button, String resource, String fallback, Color tint) {
+    private static void icon(AbstractButton button, String resource, VectorIcon.Kind fallback, Color tint) {
         Icon icon = TintedIconLoader.load(resource, UiTokens.scale(ICON_SIZE), tint);
-        button.setIcon(icon);
-        button.setText(icon == null ? fallback : null);
+        button.setIcon(icon != null ? icon : new VectorIcon(fallback, UiTokens.scale(ICON_SIZE), tint));
+        button.setText(null);
     }
 
     private static void styleTool(AbstractButton button, String tooltip) {

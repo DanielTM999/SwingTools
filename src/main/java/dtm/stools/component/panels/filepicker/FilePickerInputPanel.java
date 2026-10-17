@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.filepicker;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.events.EventType;
 import dtm.stools.component.inputfields.textfield.PathSearchTextField;
 import dtm.stools.component.inputfields.textfield.SearchTextField;
@@ -318,7 +319,7 @@ public class FilePickerInputPanel extends PanelEventListener {
             navigateTo(Paths.get(pathStr), null);
         });
 
-        btnUp = new JButton("↑");
+        btnUp = VectorIcon.button(VectorIcon.Kind.UP, "Pasta superior");
         btnUp.setToolTipText(text("tooltip.up", "Subir um nível"));
         btnUp.setMargin(new Insets(2, 5, 2, 5));
 

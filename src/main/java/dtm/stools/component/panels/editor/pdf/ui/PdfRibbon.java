@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.pdf.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.pdf.PdfEditor;
 import dtm.stools.component.panels.editor.pdf.api.PdfShapeStyle;
 import dtm.stools.component.panels.editor.pdf.api.PdfTextStyle;
@@ -296,7 +297,8 @@ public class PdfRibbon extends JPanel {
             for (var listener : button.getActionListeners()) button.removeActionListener(listener);
             button.setAction(null);
             button.setIcon(icon);
-            button.setText(text == null || text.isEmpty() ? null : text.endsWith("</html>") ? text.replace("</html>", " ▾</html>") : text + " ▾");
+            button.setText(text == null || text.isEmpty() ? null : text);
+            button.setIcon(VectorIcon.withDropdown(button.getIcon()));
             button.setEnabled(action.isEnabled());
             action.addPropertyChangeListener(event -> { if ("enabled".equals(event.getPropertyName())) button.setEnabled(action.isEnabled()); });
             button.addActionListener(event -> {

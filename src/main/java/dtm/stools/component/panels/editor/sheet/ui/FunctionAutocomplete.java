@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.sheet.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.editor.sheet.formula.FormulaLocale;
 import dtm.stools.component.panels.editor.sheet.function.FunctionRegistry;
 import dtm.stools.component.panels.editor.sheet.function.SheetFunction;
@@ -54,7 +55,8 @@ public final class FunctionAutocomplete {
             public Component getListCellRendererComponent(JList<?> l, Object v, int i, boolean s, boolean f) {
                 JLabel c = (JLabel) super.getListCellRendererComponent(l, v, i, s, f);
                 Item it = (Item) v;
-                c.setText((it.function() ? "ƒx  " : "▭  ") + it.name());
+                c.setText(it.name());
+                c.setIcon(new VectorIcon(it.function() ? VectorIcon.Kind.FUNCTION : VectorIcon.Kind.RANGE, UiTokens.scale(16)));
                 c.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
                 return c;
             }

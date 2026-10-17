@@ -63,10 +63,10 @@ public final class WordChartEditorPanel extends WordPropertiesPanel<WordChart> {
         grid.putClientProperty("terminateEditOnFocusLost",true);
         JScrollPane scroll = new JScrollPane(grid); scroll.setPreferredSize(new Dimension(420,170));
         JPanel tools = new JPanel(new FlowLayout(FlowLayout.LEADING,4,0)); tools.setOpaque(false);
-        tools.add(button("+ Categoria",() -> { Object[] r = new Object[data.getColumnCount()]; r[0] = "Categoria " + data.getRowCount(); for (int i = 1; i < r.length; i++) r[i] = ""; data.addRow(r); }));
-        tools.add(button("− Categoria",() -> { int r = grid.getSelectedRow(); if (data.getRowCount() > 2) data.removeRow(r > 0 ? r : data.getRowCount()-1); }));
-        tools.add(button("+ Série",() -> { String n = "Série " + data.getColumnCount(); Object[] column = new Object[data.getRowCount()]; column[0] = n; for (int i = 1; i < column.length; i++) column[i] = ""; data.addColumn(n,column); colors.add(null); }));
-        tools.add(button("− Série",() -> removeSeries()));
+        tools.add(button("Adicionar categoria",() -> { Object[] r = new Object[data.getColumnCount()]; r[0] = "Categoria " + data.getRowCount(); for (int i = 1; i < r.length; i++) r[i] = ""; data.addRow(r); }));
+        tools.add(button("Remover categoria",() -> { int r = grid.getSelectedRow(); if (data.getRowCount() > 2) data.removeRow(r > 0 ? r : data.getRowCount()-1); }));
+        tools.add(button("Adicionar série",() -> { String n = "Série " + data.getColumnCount(); Object[] column = new Object[data.getRowCount()]; column[0] = n; for (int i = 1; i < column.length; i++) column[i] = ""; data.addColumn(n,column); colors.add(null); }));
+        tools.add(button("Remover série",() -> removeSeries()));
         tools.add(button("Cor da série",() -> {
             int s = Math.max(1,grid.getSelectedColumn()) - 1;
             if (s < 0 || s >= colors.size()) return;

@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.powerpoint;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.component.panels.BlockingPanel;
 import dtm.stools.component.panels.editor.powerpoint.api.*;
 import dtm.stools.component.panels.editor.powerpoint.config.*;
@@ -120,8 +121,8 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         slideScroll.getVerticalScrollBar().setUnitIncrement(UIScale.scale(20));west.add(slideScroll,BorderLayout.CENTER);
         JPanel slideActions=new JPanel(new BorderLayout(6,0));slideActions.setOpaque(false);
         slideActions.setBorder(BorderFactory.createEmptyBorder(10,12,12,12));
-        slideActions.add(sidebarButton("+ Novo slide",this::addSlide),BorderLayout.CENTER);
-        JButton moreSlides=sidebarButton("⋯",()->slideMenu().show(slideActions,Math.max(0,slideActions.getWidth()-UIScale.scale(155)),0));
+        slideActions.add(sidebarButton("Novo slide",this::addSlide),BorderLayout.CENTER);
+        JButton moreSlides=sidebarButton(VectorIcon.Kind.MORE,"Mais opções de slides",()->slideMenu().show(slideActions,Math.max(0,slideActions.getWidth()-UIScale.scale(155)),0));
         moreSlides.setPreferredSize(UIScale.scale(new Dimension(38,30)));slideActions.add(moreSlides,BorderLayout.EAST);
         west.add(slideActions,BorderLayout.SOUTH);west.setPreferredSize(UIScale.scale(new Dimension(220,100)));add(west,BorderLayout.WEST);
         east.setName("powerpoint.properties.sidebar");east.setBackground(UiTokens.background());
@@ -170,7 +171,7 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         JPanel header=new JPanel(new BorderLayout());header.setOpaque(false);
         header.setBorder(BorderFactory.createEmptyBorder(12,14,8,10));
         header.add(sidebarTitle("Propriedades"),BorderLayout.WEST);
-        JButton hide=sidebarButton("×",()->setPropertiesVisible(false));hide.setToolTipText("Ocultar propriedades");
+        JButton hide=sidebarButton(VectorIcon.Kind.CLOSE,"Ocultar propriedades",()->setPropertiesVisible(false));hide.setToolTipText("Ocultar propriedades");
         header.add(hide,BorderLayout.EAST);panel.add(header,BorderLayout.NORTH);
 
         JPanel slide=inspectorPage();
@@ -205,8 +206,8 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         JScrollPane timelineScroll=new JScrollPane(animationList);timelineScroll.setPreferredSize(new Dimension(210,145));
         timelineScroll.setBorder(BorderFactory.createLineBorder(UiTokens.border()));timeline.add(timelineScroll);
         JPanel order=new JPanel(new GridLayout(1,3,5,0));order.setOpaque(false);
-        order.add(editButton("↑",()->moveAnimation(-1)));
-        order.add(editButton("↓",()->moveAnimation(1)));
+        order.add(editButton(VectorIcon.Kind.UP,"Mover animação para cima",()->moveAnimation(-1)));
+        order.add(editButton(VectorIcon.Kind.DOWN,"Mover animação para baixo",()->moveAnimation(1)));
         order.add(editButton("Excluir",this::removeAnimation));timeline.add(order);animations.add(timeline);
         animations.add(Box.createVerticalStrut(10));
         JPanel timing=section("TEMPORIZAÇÃO");
@@ -240,6 +241,8 @@ public class PowerPointEditor extends BlockingPanel implements AutoCloseable {
         JLabel caption=new JLabel(label);caption.setForeground(UiTokens.muted());row.add(caption,BorderLayout.NORTH);
         row.add(input,BorderLayout.CENTER);row.setMaximumSize(new Dimension(Integer.MAX_VALUE,UIScale.scale(64)));return row;}
     private JButton editButton(String label,Runnable action){JButton button=sidebarButton(label,action);inspectorEditButtons.add(button);return button;}
+    private JButton editButton(VectorIcon.Kind kind,String description,Runnable action){JButton button=sidebarButton(kind,description,action);inspectorEditButtons.add(button);return button;}
+    private static JButton sidebarButton(VectorIcon.Kind kind,String description,Runnable action){JButton button=sidebarButton("",action);button.setIcon(new VectorIcon(kind,UIScale.scale(16)));button.setToolTipText(description);button.getAccessibleContext().setAccessibleName(description);return button;}
     private static JLabel sidebarTitle(String text){JLabel title=new JLabel(text);title.setFont(UiTokens.fontBold().deriveFont(UIScale.scale(15f)));return title;}
     private static JButton sidebarButton(String label,Runnable action){JButton button=new JButton(label);button.putClientProperty("JButton.buttonType","roundRect");
         button.setFocusable(false);button.addActionListener(e->action.run());button.setAlignmentX(Component.LEFT_ALIGNMENT);return button;}

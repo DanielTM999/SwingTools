@@ -1,5 +1,6 @@
 package dtm.stools.component.inputfields.periodfield;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.configs.UiTokens;
 import dtm.stools.i18n.I18n;
 import javax.swing.*;
@@ -11,7 +12,6 @@ import java.time.format.TextStyle;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 
-/** Two consecutive months. Selection is a draft until the owning field applies it. */
 public class RangeCalendarPanel extends JPanel {
     private YearMonth month = YearMonth.now();
     private LocalDate start, end, minimum, maximum;
@@ -20,7 +20,7 @@ public class RangeCalendarPanel extends JPanel {
     public RangeCalendarPanel(Locale locale) {
         super(new BorderLayout(0, UiTokens.space(2)));
         setLocale(locale);
-        JButton previous = new JButton("‹"), next = new JButton("›");
+        JButton previous = VectorIcon.button(VectorIcon.Kind.LEFT, text("previous", "Mês anterior")), next = VectorIcon.button(VectorIcon.Kind.RIGHT, text("next", "Próximo mês"));
         previous.getAccessibleContext().setAccessibleName(text("previous", "Mês anterior"));
         next.getAccessibleContext().setAccessibleName(text("next", "Próximo mês"));
         previous.addActionListener(e -> showMonth(month.minusMonths(1)));

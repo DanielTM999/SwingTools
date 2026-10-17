@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.word.ui;
 
+import dtm.stools.component.icon.VectorIcon;
 import com.formdev.flatlaf.util.UIScale;
 import dtm.stools.configs.UiTokens;
 import javax.swing.*;
@@ -9,7 +10,7 @@ import java.util.*;
 
 final class WordRibbonPage extends JPanel {
     private final List<Group> groups = new ArrayList<>();
-    private final JButton more = new JButton("Mais ▾");
+    private final JButton more = new JButton("Mais", VectorIcon.withDropdown(null));
     WordRibbonPage(JComponent... items) {
         setOpaque(false); setLayout(null);
         for (JComponent item : items) { Group group = (Group)item; groups.add(group); add(group); }
@@ -72,7 +73,7 @@ final class WordRibbonPage extends JPanel {
             setOpaque(false);setBorder(BorderFactory.createEmptyBorder(8,8,4,10));
             caption=new JLabel(name,SwingConstants.CENTER);caption.setFont(UiTokens.fontSmall());caption.setForeground(UiTokens.muted());
             String shortName=switch(name){case "Área de transferência"->"Colar";case "Parágrafo"->"Parágrafo";case "Ilustrações"->"Ilustrar";case "Cabeçalho e rodapé"->"Cabeçalhos";case "Linhas e colunas"->"Estrutura";default->name;};
-            collapsed=new JButton(shortName+" ▾",new WordIcon(switch(name){case "Fonte"->"word.bold";case "Parágrafo"->"word.align.LEFT";case "Tabelas"->"word.table";case "Área de transferência"->"word.paste";case "Estilos"->"word.styles";case "Zoom"->"word.zoom.in";default->Objects.requireNonNullElse(representativeCommand(content),"word.palette");},24));
+            collapsed=new JButton(shortName,VectorIcon.withDropdown(new WordIcon(switch(name){case "Fonte"->"word.bold";case "Parágrafo"->"word.align.LEFT";case "Tabelas"->"word.table";case "Área de transferência"->"word.paste";case "Estilos"->"word.styles";case "Zoom"->"word.zoom.in";default->Objects.requireNonNullElse(representativeCommand(content),"word.palette");},24)));
             collapsed.setFont(UiTokens.fontSmall());collapsed.setMargin(new Insets(4,2,4,2));
             collapsed.setVerticalTextPosition(SwingConstants.BOTTOM);collapsed.setHorizontalTextPosition(SwingConstants.CENTER);
             collapsed.setToolTipText(name); collapsed.addActionListener(e -> showPopup(collapsed));

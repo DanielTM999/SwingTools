@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.editor.sheet.ui;
 
+import dtm.stools.component.icon.IconPaths;
 import dtm.stools.configs.UiTokens;
 
 import javax.swing.Icon;
@@ -7,7 +8,6 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -57,10 +57,8 @@ public final class SheetIcon implements Icon {
     }
 
     private void text(Graphics2D g, String t, int style, double size, Color color, double cx, double baseline) {
-        g.setFont(new Font(Font.SANS_SERIF, style, 1).deriveFont((float) size));
-        FontMetrics fm = g.getFontMetrics();
         g.setColor(color);
-        g.drawString(t, (float) (cx - fm.stringWidth(t) / 2.0), (float) baseline);
+        IconPaths.draw(g, t, cx - IconPaths.width(t, size) / 2, baseline, size, style);
     }
 
     private void grid(Graphics2D g, Color fg, double x, double y, double w, double h, int rows, int cols) {
@@ -205,9 +203,8 @@ public final class SheetIcon implements Icon {
             case "data" -> { g.draw(new Ellipse2D.Double(2.5, 1.5, 11, 4)); g.draw(new Line2D.Double(2.5, 3.5, 2.5, 12.5)); g.draw(new Line2D.Double(13.5, 3.5, 13.5, 12.5)); g.draw(new java.awt.geom.Arc2D.Double(2.5, 10.5, 11, 4, 180, 180, java.awt.geom.Arc2D.OPEN)); }
             case "refresh" -> { g.setColor(acc); g.setStroke(new BasicStroke(1.6f)); g.draw(new java.awt.geom.Arc2D.Double(2, 2, 12, 12, 60, 270, java.awt.geom.Arc2D.OPEN)); g.fill(new java.awt.Polygon(new int[]{11, 15, 14}, new int[]{1, 3, 7}, 3)); }
             default -> {
-                String t = name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase();
                 g.draw(new RoundRectangle2D.Double(1.5, 1.5, 13, 13, 3, 3));
-                text(g, t, Font.BOLD, 9, acc, 8, 11.5);
+                text(g, "?", Font.BOLD, 9, acc, 8, 11.5);
             }
         }
     }

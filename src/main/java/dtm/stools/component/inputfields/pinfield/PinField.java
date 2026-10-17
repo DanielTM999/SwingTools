@@ -473,7 +473,13 @@ public class PinField extends PanelEventListener {
 
         char digit = digits[index];
         if (digit != 0) {
-            PaintUtils.drawCenteredText(g2, masked ? "•" : String.valueOf(digit), bounds, color);
+            if (masked) {
+                int size = Math.max(2, Math.min(bounds.width, bounds.height) / 5);
+                g2.setColor(color);
+                g2.fillOval(bounds.x + (bounds.width - size) / 2, bounds.y + (bounds.height - size) / 2, size, size);
+            } else {
+                PaintUtils.drawCenteredText(g2, String.valueOf(digit), bounds, color);
+            }
             return;
         }
 

@@ -1,5 +1,6 @@
 package dtm.stools.component.inputfields.periodfield;
 
+import dtm.stools.component.icon.VectorIcon;
 import dtm.stools.configs.UiTokens;
 import dtm.stools.i18n.I18n;
 import javax.swing.*;
@@ -12,7 +13,6 @@ import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Objects;
 
-/** A 24-hour clock with native, keyboard-accessible hour and minute controls. */
 public class ClockPickerPanel extends JPanel {
     private LocalTime time = LocalTime.MIDNIGHT;
     private LocalTime publishedTime;
@@ -34,7 +34,7 @@ public class ClockPickerPanel extends JPanel {
         minutes.addActionListener(e -> setSelectingHours(false));
         header.add(hours); header.add(new JLabel(":")); header.add(minutes); add(header, BorderLayout.NORTH);
         add(dial, BorderLayout.CENTER);
-        JButton previous = new JButton("−"), next = new JButton("+");
+        JButton previous = VectorIcon.button(VectorIcon.Kind.MINUS, "Diminuir horário"), next = VectorIcon.button(VectorIcon.Kind.PLUS, "Aumentar horário");
         previous.getAccessibleContext().setAccessibleName(text("decreaseTime", "Diminuir horário"));
         next.getAccessibleContext().setAccessibleName(text("increaseTime", "Aumentar horário"));
         previous.addActionListener(e -> step(-1)); next.addActionListener(e -> step(1));

@@ -1,5 +1,6 @@
 package dtm.stools.component.panels.tab;
 
+import dtm.stools.component.icon.VectorIcon;
 import com.formdev.flatlaf.FlatClientProperties;
 import dtm.stools.component.annimation.ComponentAnimator;
 import dtm.stools.component.events.EventComponent;
@@ -46,7 +47,7 @@ public class TabbedPanel extends PanelEventListener {
     private final DefaultTabMenuFactory defaultTabMenuFactory = new DefaultTabMenuFactory();
     private final TabDragController dragController = new TabDragController(this);
     private final JPanel tabControlBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
-    private final JButton newTabButton = new JButton("+");
+    private final JButton newTabButton = VectorIcon.button(VectorIcon.Kind.PLUS, "Nova aba");
     private final JButton tabListButton = new JButton("Tabs");
     private final List<String> mruKeys = new ArrayList<>();
 
@@ -1901,14 +1902,19 @@ public class TabbedPanel extends PanelEventListener {
             row.setOpaque(false);
             row.setBorder(BorderFactory.createEmptyBorder(0, 9, 0, 6));
 
-            String title = entry.isDirty() ? "• " + entry.getTitle() : entry.getTitle();
+            String title = entry.getTitle();
             JLabel label = new JLabel(title, entry.getIcon(), SwingConstants.LEADING);
             label.setForeground(foreground);
+            if (entry.isDirty()) {
+                JLabel dirty = new JLabel(new VectorIcon(VectorIcon.Kind.DOT, dtm.stools.configs.UiTokens.scale(10), foreground));
+                dirty.getAccessibleContext().setAccessibleName("Alterações não salvas");
+                row.add(dirty, BorderLayout.WEST);
+            }
             row.add(label, BorderLayout.CENTER);
 
-            JLabel close = new JLabel(entry.isClosable() ? "×" : "");
+            JLabel close = new JLabel(entry.isClosable() ? new VectorIcon(VectorIcon.Kind.CLOSE, dtm.stools.configs.UiTokens.scale(14), foreground) : null);
             close.setForeground(foreground);
-            close.setFont(close.getFont().deriveFont(Font.PLAIN, 16f));
+            close.getAccessibleContext().setAccessibleName("Fechar aba");
             close.setHorizontalAlignment(SwingConstants.CENTER);
             close.setPreferredSize(new Dimension(24, 24));
             row.add(close, BorderLayout.EAST);
