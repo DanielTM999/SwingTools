@@ -66,6 +66,8 @@ O layout preserva o renderer, a busca por digitação, o popup e os eventos de s
 
 O popup abre junto à borda visível do campo, sem o espaço reservado à mensagem de erro entre o campo e a lista. Quando não há espaço abaixo, a lista abre acima do campo.
 
+Com FlatLaf, o popup mantém a borda, as margens, as cores, a seleção e o renderer do tema ativo, incluindo as configurações do `UIManager`. A seta aponta para cima enquanto a lista está aberta e volta a apontar para baixo ao fechar ou cancelar. A troca de tema reaplica essa apresentação também no modo editável.
+
 ## Display e renderer
 
 ```java

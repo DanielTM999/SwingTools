@@ -14,6 +14,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicComboBoxEditor;
 import javax.swing.plaf.basic.ComboPopup;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
@@ -24,10 +26,280 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class DropdownFieldLayoutTest {
+    @Test
+    void popupSelectionStaysVisibleAfterSelectingFirstItemAndRepaintingField() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            LookAndFeel original = UIManager.getLookAndFeel();
+            try {
+                for (boolean dark : new boolean[]{false, true}) {
+                    if (dark) FlatDarkLaf.setup(); else FlatLightLaf.setup();
+                    UiTokens.refresh();
+                    DropdownField field = new DropdownField("Novo", "Em andamento", "Fechado");
+                    field.setLabel("Status");
+                    field.setFieldLayoutManager(new MaterialLayout());
+                    JPopupMenu popup = (JPopupMenu) field.getAccessibleContext().getAccessibleChild(0);
+                    JList<?> list = ((ComboPopup) popup).getList();
+                    for (int selected : new int[]{0, 2, 0}) {
+                        list.setSelectedIndex(selected);
+                        paintPopup(popup, 280);
+                        field.setSelectedIndex(selected);
+                        render(field, 280);
+                        assertTrue(((JComponent) field.getRenderer()).isOpaque());
+                        for (int highlighted = 0; highlighted < 3; highlighted++) {
+                            list.setSelectedIndex(highlighted);
+                            BufferedImage image = paintPopup(popup, 280);
+                            int selectedPixels = 0;
+                            for (int y = 0; y < image.getHeight(); y++) {
+                                for (int x = 0; x < image.getWidth(); x++) {
+                                    if (image.getRGB(x, y) == list.getSelectionBackground().getRGB()) selectedPixels++;
+                                }
+                            }
+                            assertTrue(selectedPixels > 280,
+                                    "Selection background disappeared after selecting " + selected + " and highlighting " + highlighted);
+                        }
+                    }
+                    writeSelectionPreview(field, popup, list, dark);
+                    field.setFieldLayoutManager(null);
+                }
+            } finally {
+                try { UIManager.setLookAndFeel(original); }
+                catch (UnsupportedLookAndFeelException e) { throw new RuntimeException(e); }
+                UiTokens.refresh();
+            }
+        });
+    }
+
+    private static void writeSelectionPreview(DropdownField field, JPopupMenu popup, JList<?> list, boolean dark) {
+        String directory = System.getProperty("dropdown.gallery.dir");
+        if (directory == null) return;
+        BufferedImage fieldImage = render(field, 280);
+        list.setSelectedIndex(1);
+        BufferedImage popupImage = paintPopup(popup, 280);
+        Rectangle body = field.getFieldLayoutManager().getFieldBounds(field);
+        int popupY = body.y + body.height;
+        BufferedImage image = new BufferedImage(300, popupY + popupImage.getHeight() + 20, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+        try {
+            g.setColor(UIManager.getColor("Panel.background"));
+            g.fillRect(0, 0, image.getWidth(), image.getHeight());
+            g.drawImage(fieldImage, 10, 0, null);
+            g.drawImage(popupImage, 10, popupY, null);
+            Path output = Path.of(directory);
+            Files.createDirectories(output);
+            ImageIO.write(image, "png", output.resolve(dark ? "selection-dark.png" : "selection-light.png").toFile());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally { g.dispose(); }
+    }
+
+    @Test
+    void fieldPaintingPreservesExplicitTransparencyOfCustomRenderer() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            DropdownField field = new DropdownField("Novo", "Fechado");
+            DefaultListCellRenderer renderer = new DefaultListCellRenderer();
+            renderer.setOpaque(false);
+            field.setCustomRenderer(renderer);
+            field.setFieldLayoutManager(new MaterialLayout());
+            field.setSelectedIndex(0);
+            JPopupMenu popup = (JPopupMenu) field.getAccessibleContext().getAccessibleChild(0);
+            for (int i = 0; i < 3; i++) {
+                paintPopup(popup, 280);
+                render(field, 280);
+                assertFalse(renderer.isOpaque());
+            }
+            field.setFieldLayoutManager(null);
+        });
+    }
+
+    @Test
+    void materialPopupKeepsNativeThemeBorderPaddingColorsAndRenderer() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            LookAndFeel original = UIManager.getLookAndFeel();
+            Map<String, Object> previous = new LinkedHashMap<>();
+            try {
+                for (boolean dark : new boolean[]{false, true}) {
+                    if (dark) FlatDarkLaf.setup(); else FlatLightLaf.setup();
+                    Map<String, Object> values = Map.of(
+                            "ComboBox.popupBackground", new Color(0x314154),
+                            "ComboBox.selectionBackground", new Color(0x52718F),
+                            "ComboBox.selectionForeground", Color.YELLOW,
+                            "ComboBox.padding", new Insets(5, 9, 5, 9),
+                            "ComboBox.popupInsets", new Insets(3, 4, 3, 4),
+                            "PopupMenu.border", BorderFactory.createLineBorder(new Color(0x667788), 2));
+                    for (var entry : values.entrySet()) {
+                        Object old = UIManager.put(entry.getKey(), entry.getValue());
+                        if (!previous.containsKey(entry.getKey())) previous.put(entry.getKey(), old);
+                    }
+                    for (boolean editable : new boolean[]{false, true}) {
+                        DropdownField nativeField = new DropdownField("minutos", "horas", "dias", "meses", "anos");
+                        nativeField.setEditable(editable);
+                        DropdownField material = new DropdownField("minutos", "horas", "dias", "meses", "anos");
+                        material.setEditable(editable);
+                        material.setLabel("Unidade de tempo");
+                        material.setSelectedItem("meses");
+                        material.setFieldLayoutManager(new MaterialLayout());
+                        SwingUtilities.updateComponentTreeUI(material);
+                        assertInstanceOf(FlatFieldLayoutComboBoxUI.class, material.getUI());
+                        var expected = (JPopupMenu) nativeField.getAccessibleContext().getAccessibleChild(0);
+                        var actual = (JPopupMenu) material.getAccessibleContext().getAccessibleChild(0);
+                        JList<?> expectedList = ((ComboPopup) expected).getList();
+                        JList<?> actualList = ((ComboPopup) actual).getList();
+                        assertEquals(expected.getInsets(), actual.getInsets());
+                        assertEquals(expected.getBackground(), actual.getBackground());
+                        assertEquals(expectedList.getBackground(), actualList.getBackground());
+                        assertEquals(expectedList.getSelectionBackground(), actualList.getSelectionBackground());
+                        assertEquals(expectedList.getSelectionForeground(), actualList.getSelectionForeground());
+                        assertEquals(expectedList.getCellBounds(0, 0).height, actualList.getCellBounds(0, 0).height);
+                        var expectedScroller = (JScrollPane) expected.getComponent(0);
+                        var actualScroller = (JScrollPane) actual.getComponent(0);
+                        assertEquals(expectedScroller.getViewportBorder().getBorderInsets(expectedScroller),
+                                actualScroller.getViewportBorder().getBorderInsets(actualScroller));
+                        if (!editable) writePopupComparison(nativeField, material, expected, actual, dark);
+                        AtomicInteger rendered = new AtomicInteger();
+                        material.setCustomRenderer((list, value, index, selected, focused) -> {
+                            rendered.incrementAndGet();
+                            return new JLabel("Valor: " + value);
+                        });
+                        actualList.getCellBounds(0, 0);
+                        assertTrue(rendered.get() > 0);
+                        render(material, 280);
+                        var popup = (FlatFieldLayoutComboBoxUI.FieldPopup) actual;
+                        Rectangle body = material.getFieldLayoutManager().getFieldBounds(material);
+                        assertEquals(body.y + body.height,
+                                popup.computePopupBounds(0, material.getHeight(), 280, 120).y);
+                        material.setFieldLayoutManager(null);
+                    }
+                }
+            } finally {
+                previous.forEach(UIManager::put);
+                try { UIManager.setLookAndFeel(original); }
+                catch (UnsupportedLookAndFeelException e) { throw new RuntimeException(e); }
+                UiTokens.refresh();
+            }
+        });
+    }
+
+    @Test
+    void arrowChangesDirectionWhenPopupOpensAndClosesWithoutLeakingListeners() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            LookAndFeel original = UIManager.getLookAndFeel();
+            try {
+                for (String theme : new String[]{UIManager.getCrossPlatformLookAndFeelClassName(),
+                        FlatLightLaf.class.getName(), FlatDarkLaf.class.getName()}) {
+                    UIManager.setLookAndFeel(theme);
+                    AtomicBoolean open = new AtomicBoolean();
+                    DropdownField field = new DropdownField("Um", "Dois") {
+                        @Override
+                        public boolean isPopupVisible() { return open.get(); }
+                    };
+                    field.getAccessibleContext();
+                    int listeners = field.getPopupMenuListeners().length;
+                    for (int i = 0; i < 3; i++) {
+                        field.setFieldLayoutManager(new MaterialLayout());
+                        render(field, 280);
+                        JButton arrow = (JButton) java.util.Arrays.stream(field.getComponents())
+                                .filter(component -> component instanceof JButton).findFirst().orElseThrow();
+                        BufferedImage closed = paintArrow(arrow);
+                        open.set(true);
+                        PopupMenuEvent event = new PopupMenuEvent(field);
+                        for (PopupMenuListener listener : field.getPopupMenuListeners()) listener.popupMenuWillBecomeVisible(event);
+                        BufferedImage opened = paintArrow(arrow);
+                        int difference = 0;
+                        for (int y = 0; y < closed.getHeight(); y++) {
+                            for (int x = 0; x < closed.getWidth(); x++) {
+                                if (closed.getRGB(x, y) != opened.getRGB(x, y)) difference++;
+                            }
+                        }
+                        assertTrue(difference > 0);
+                        open.set(false);
+                        for (PopupMenuListener listener : field.getPopupMenuListeners()) listener.popupMenuWillBecomeInvisible(event);
+                        BufferedImage closedAgain = paintArrow(arrow);
+                        for (int y = 0; y < closed.getHeight(); y++) {
+                            for (int x = 0; x < closed.getWidth(); x++) {
+                                assertEquals(closed.getRGB(x, y), closedAgain.getRGB(x, y));
+                            }
+                        }
+                        field.setFieldLayoutManager(null);
+                        assertEquals(listeners, field.getPopupMenuListeners().length);
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                try { UIManager.setLookAndFeel(original); }
+                catch (UnsupportedLookAndFeelException e) { throw new RuntimeException(e); }
+                UiTokens.refresh();
+            }
+        });
+    }
+
+    private static BufferedImage paintArrow(JButton arrow) {
+        BufferedImage image = new BufferedImage(arrow.getWidth(), arrow.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        try { arrow.paint(g); }
+        finally { g.dispose(); }
+        return image;
+    }
+
+    private static void writePopupComparison(DropdownField nativeField, DropdownField material,
+                                             JPopupMenu nativePopup, JPopupMenu materialPopup, boolean dark) {
+        String directory = System.getProperty("dropdown.gallery.dir");
+        if (directory == null) return;
+        BufferedImage gallery = new BufferedImage(640, 300, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = gallery.createGraphics();
+        try {
+            g.setColor(UIManager.getColor("Panel.background"));
+            g.fillRect(0, 0, gallery.getWidth(), gallery.getHeight());
+            g.drawImage(render(nativeField, 280), 20, 20, null);
+            g.drawImage(render(material, 280), 340, 20, null);
+            g.drawImage(paintPopup(nativePopup, 280), 20, 20 + nativeField.getHeight(), null);
+            Rectangle body = material.getFieldLayoutManager().getFieldBounds(material);
+            g.drawImage(paintPopup(materialPopup, 280), 340, 20 + body.y + body.height, null);
+            Path output = Path.of(directory);
+            Files.createDirectories(output);
+            ImageIO.write(gallery, "png", output.resolve(dark ? "popup-dark.png" : "popup-light.png").toFile());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally { g.dispose(); }
+    }
+
+    private static BufferedImage paintPopup(JPopupMenu popup, int width) {
+        JList<?> list = ((ComboPopup) popup).getList();
+        Rectangle cells = list.getModel().getSize() == 0 ? new Rectangle(0, 0, width, 1)
+                : list.getCellBounds(0, list.getModel().getSize() - 1);
+        JScrollPane scroller = (JScrollPane) popup.getComponent(0);
+        Insets viewport = scroller.getViewportBorder() == null ? new Insets(0, 0, 0, 0)
+                : scroller.getViewportBorder().getBorderInsets(scroller);
+        Insets scrollInsets = scroller.getInsets();
+        Insets popupInsets = popup.getInsets();
+        Dimension scrollSize = new Dimension(width - popupInsets.left - popupInsets.right,
+                cells.height + viewport.top + viewport.bottom + scrollInsets.top + scrollInsets.bottom);
+        scroller.setPreferredSize(scrollSize);
+        scroller.setMinimumSize(scrollSize);
+        scroller.setMaximumSize(scrollSize);
+        popup.setSize(width, scrollSize.height + popupInsets.top + popupInsets.bottom);
+        layoutTree(popup);
+        BufferedImage image = new BufferedImage(width, popup.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        try { popup.paint(g); }
+        finally { g.dispose(); }
+        return image;
+    }
+
+    private static void layoutTree(Container container) {
+        container.doLayout();
+        for (Component component : container.getComponents()) {
+            if (component instanceof Container child) layoutTree(child);
+        }
+    }
+
     @Test
     void popupAnchorsToVisibleFieldInsteadOfErrorFooter() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
@@ -352,7 +624,7 @@ class DropdownFieldLayoutTest {
                     render(field, 280);
                 }
                 field.setFieldLayoutManager(null);
-                assertFalse(field.getUI() instanceof FieldLayoutComboBoxUI);
+                assertFalse(FieldLayoutComboBoxUI.isInstalled(field.getUI()));
                 assertEquals("Pendente", field.getEditor().getItem());
             } finally {
                 try { UIManager.setLookAndFeel(original); }
@@ -424,7 +696,7 @@ class DropdownFieldLayoutTest {
                             String pending = field.isEditable() ? field.getEditor().getItem().toString() : null;
                             field.updateUI();
                             assertSame(layout, field.getFieldLayoutManager());
-                            assertInstanceOf(FieldLayoutComboBoxUI.class, field.getUI());
+                            assertTrue(FieldLayoutComboBoxUI.isInstalled(field.getUI()));
                             if (field.isEditable()) assertEquals(pending, field.getEditor().getItem().toString());
                             BufferedImage rendered = render(field, 290);
                             assertTrue(field.getFieldContentBounds().height > 0);

@@ -14,6 +14,8 @@ import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListDataEvent;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.plaf.ComboBoxUI;
 import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
@@ -37,6 +39,16 @@ public class DropdownFieldListener<T> extends JComboBox<T> implements EventListe
     private Document layoutDocument;
     private Border originalEditorBorder;
     private boolean originalEditorOpaque;
+    private final PopupMenuListener layoutPopupListener = new PopupMenuListener() {
+        @Override
+        public void popupMenuWillBecomeVisible(PopupMenuEvent e) { repaint(); }
+
+        @Override
+        public void popupMenuWillBecomeInvisible(PopupMenuEvent e) { repaint(); }
+
+        @Override
+        public void popupMenuCanceled(PopupMenuEvent e) { repaint(); }
+    };
     private final DocumentListener layoutDocumentListener = new DocumentListener() {
         @Override
         public void insertUpdate(DocumentEvent e) { fieldContentChanged(); }
@@ -115,6 +127,7 @@ public class DropdownFieldListener<T> extends JComboBox<T> implements EventListe
     @Override
     public Rectangle getFieldContentBounds() {
         if (getUI() instanceof FieldLayoutComboBoxUI ui) return ui.getContentBounds();
+        if (getUI() instanceof FlatFieldLayoutComboBoxUI ui) return ui.getContentBounds();
         Insets insets = getInsets();
         return new Rectangle(insets.left, insets.top,
                 Math.max(0, getWidth() - insets.left - insets.right),
@@ -126,15 +139,18 @@ public class DropdownFieldListener<T> extends JComboBox<T> implements EventListe
     }
 
     private void installFieldUI() {
-        if (!(getUI() instanceof FieldLayoutComboBoxUI)) {
+        if (!FieldLayoutComboBoxUI.isInstalled(getUI())) {
             conventionalUI = getUI();
-            replaceFieldUI(new FieldLayoutComboBoxUI());
+            replaceFieldUI(FieldLayoutComboBoxUI.create(conventionalUI));
         }
+        removePopupMenuListener(layoutPopupListener);
+        addPopupMenuListener(layoutPopupListener);
         setOpaque(false);
         bindLayoutEditor();
     }
 
     private void restoreFieldUI() {
+        removePopupMenuListener(layoutPopupListener);
         unbindLayoutEditor();
         if (conventionalUI != null) {
             ComboBoxUI previous = conventionalUI;
