@@ -1,6 +1,6 @@
 # MaterialLayout
 
-`MaterialLayout` aplica borda contornada, rótulo flutuante animado e mensagem de erro ao próprio campo Swing. O recurso é herdado de `JTextFieldListener` por `MaskedTextField`, `CurrencyField`, `NumberField`, `SearchTextField`, `PathTextField` e `PathSearchTextField`. `PasswordField` oferece a mesma API e aplica o layout ao seu `JPasswordField` nativo.
+`MaterialLayout` aplica borda contornada, rótulo flutuante animado e mensagem de erro ao próprio campo Swing. O recurso é herdado de `JTextFieldListener` por `MaskedTextField`, `CurrencyField`, `NumberField`, `SearchTextField`, `PathTextField` e `PathSearchTextField`. `DropdownField` oferece suporte nos modos normal e editável. `PasswordField` oferece a mesma API e aplica o layout ao seu `JPasswordField` nativo.
 
 ## Uso
 
@@ -54,9 +54,13 @@ Os setters do `MaterialLayout` retornam o próprio layout para encadeamento. Cad
 
 ## Criar outra estratégia
 
+`JTextFieldListener` e `DropdownFieldListener` implementam `FieldLayoutConfigurable`, que estende `FieldLayoutTarget` e declara `FieldLayoutManager getFieldLayoutManager()` e `void setFieldLayoutManager(FieldLayoutManager next)`. A interface define o contrato; cada componente implementa a instalação, o ciclo de vida e a pintura. `DropdownField` herda esse suporte nos modos normal e editável. `PasswordField` continua implementando apenas `FieldLayoutTarget` e mantém seu setter encadeável.
+
+`FieldLayoutTarget.getFieldComponent()` retorna agora `JComponent` para permitir campos que não são textuais. Os getters concretos de texto e senha continuam retornando `JTextField` e `JPasswordField`. Código que acessa recursos específicos de texto por uma referência `FieldLayoutTarget` deve verificar o tipo do componente antes de usá-los. Consumidores compilados contra o retorno anterior da interface devem ser recompilados.
+
 `FieldLayoutManager`, no pacote `dtm.stools.component.inputfields.textfield.layout`, é um contrato de apresentação independente de `java.awt.LayoutManager`. Ele não substitui o layout dos filhos, como os breadcrumbs.
 
-Os métodos recebem um `FieldLayoutTarget`, implementado por `JTextFieldListener` e `PasswordField`. Use `getFieldComponent()` para acessar o editor Swing, seus listeners, foco, fonte e dimensões. `getLabel()`, `isFieldContentEmpty()` e `getFieldContentBounds()` fornecem os dados do campo; no campo de senha, a verificação de vazio usa o comprimento do documento.
+Os métodos recebem um `FieldLayoutTarget`, implementado por `JTextFieldListener`, `DropdownFieldListener` e `PasswordField`. Use `getFieldComponent()` para acessar o componente Swing, seus listeners, foco, fonte e dimensões. `getLabel()`, `isFieldContentEmpty()` e `getFieldContentBounds()` fornecem os dados do campo; no campo de senha, a verificação de vazio usa o comprimento do documento.
 
 Implemente `getInsets`, `getFieldBounds` e `getPreferredSize`; opcionalmente personalize `getMinimumSize`, `paintBackground`, `paintBorder`, `paintOverlay` e `isPlaceholderVisible`. As margens excluem os espaços dos ícones e do botão de limpar, que são acrescentados pela classe base. A pintura do editor fica recortada à área útil; a decoração é pintada após os filhos.
 
@@ -64,4 +68,4 @@ Os hooks `install` / `uninstall`, `fieldChanged`, `fieldShown` / `fieldRemoved` 
 
 ## Exemplo executável
 
-`src/test/java/dtm/stools/examples/MaterialLayoutExample.java` demonstra campos simples, CPF com máscara, número, autocomplete, breadcrumbs, estado desabilitado, erro persistente, troca de cor, troca de tema e ativação/remoção do layout.
+`src/test/java/dtm/stools/examples/MaterialLayoutExample.java` demonstra campos simples, CPF com máscara, número, autocomplete, breadcrumbs, dropdown normal e editável, estado desabilitado, erro persistente, troca de cor, troca de tema e ativação/remoção do layout.

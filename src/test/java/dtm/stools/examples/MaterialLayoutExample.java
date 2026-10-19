@@ -3,6 +3,7 @@ package dtm.stools.examples;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 import dtm.stools.component.events.EventType;
+import dtm.stools.component.inputfields.selectfield.DropdownField;
 import dtm.stools.component.inputfields.textfield.*;
 import dtm.stools.component.inputfields.textfield.layout.MaterialLayout;
 
@@ -34,9 +35,17 @@ public class MaterialLayoutExample {
         JTextFieldListener disabled = configure(new JTextFieldListener(20), "Desabilitado");
         disabled.setText("Texto");
         disabled.setEnabled(false);
+        DropdownField statusField = new DropdownField("Novo", "Em andamento", "Fechado");
+        statusField.setLabel("Status");
+        statusField.setPlaceholder("Selecione um status");
+        statusField.setFieldLayoutManager(new MaterialLayout());
+        DropdownField editableStatus = new DropdownField("Novo", "Em andamento", "Fechado");
+        editableStatus.setEditable(true);
+        editableStatus.setLabel("Status editável");
+        editableStatus.setFieldLayoutManager(new MaterialLayout().setError("Escolha ou digite um status."));
 
         int row = 0;
-        for (JTextFieldListener field : new JTextFieldListener[]{name, cpf, number, search, path, disabled}) {
+        for (JComponent field : new JComponent[]{name, cpf, number, search, path, disabled, statusField, editableStatus}) {
             GridBagConstraints c = new GridBagConstraints();
             c.gridx = 0;
             c.gridy = row++;

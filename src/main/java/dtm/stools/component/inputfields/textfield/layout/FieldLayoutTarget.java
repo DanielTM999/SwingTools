@@ -1,10 +1,10 @@
 package dtm.stools.component.inputfields.textfield.layout;
 
-import javax.swing.JTextField;
+import javax.swing.JComponent;
 import java.awt.Rectangle;
 
 public interface FieldLayoutTarget {
-    JTextField getFieldComponent();
+    JComponent getFieldComponent();
     String getLabel();
     boolean isFieldContentEmpty();
     Rectangle getFieldContentBounds();

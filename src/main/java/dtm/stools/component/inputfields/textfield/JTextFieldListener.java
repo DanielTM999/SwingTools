@@ -7,7 +7,7 @@ import dtm.stools.component.events.EventType;
 
 import dtm.stools.component.icon.FittedIcon;
 import dtm.stools.component.inputfields.textfield.layout.FieldLayoutManager;
-import dtm.stools.component.inputfields.textfield.layout.FieldLayoutTarget;
+import dtm.stools.component.inputfields.textfield.layout.FieldLayoutConfigurable;
 import dtm.stools.utils.ColorUtils;
 import dtm.stools.utils.PaintUtils;
 
@@ -28,7 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class JTextFieldListener extends JTextField implements EventListenerComponent, FieldLayoutTarget {
+public class JTextFieldListener extends JTextField implements EventListenerComponent, FieldLayoutConfigurable {
 
     @Override
     public javax.accessibility.AccessibleContext getAccessibleContext() {
@@ -118,9 +118,10 @@ public class JTextFieldListener extends JTextField implements EventListenerCompo
         refreshLayout();
     }
 
+    @Override
     public FieldLayoutManager getFieldLayoutManager() { return fieldLayoutManager; }
 
-    /** null restaura o visual convencional; chamadas repetidas com a mesma instância são inócuas. */
+    @Override
     public void setFieldLayoutManager(FieldLayoutManager next) {
         FieldLayoutManager previous = fieldLayoutManager;
         if (previous == next) return;

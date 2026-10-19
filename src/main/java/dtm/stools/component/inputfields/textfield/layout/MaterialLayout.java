@@ -4,28 +4,33 @@ import dtm.stools.configs.UiTokens;
 import dtm.stools.utils.PaintUtils;
 
 import javax.swing.Timer;
+import javax.swing.SwingUtilities;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
+import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerAdapter;
+import java.awt.event.ContainerEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.Area;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
-/**
- * Layout contornado com rótulo flutuante e erro persistente. Use uma instância por campo,
- * configurada na EDT. O rótulo pertence ao campo; mensagem e cor do erro pertencem ao layout.
- */
 public class MaterialLayout implements FieldLayoutManager {
     private static final long ANIMATION_NANOS = 150_000_000L;
     private FieldLayoutTarget owner;
@@ -34,16 +39,41 @@ public class MaterialLayout implements FieldLayoutManager {
     private String previousDescription;
     private String appliedDescription;
     private boolean focused;
+    private Component focusedComponent;
     private float labelProgress;
     private float animationFrom;
     private float animationTarget;
     private long animationStarted;
     private final Timer animationTimer = new Timer(16, e -> tickAnimation());
+    private final Set<Component> focusComponents = Collections.newSetFromMap(new IdentityHashMap<>());
     private final FocusAdapter focusListener = new FocusAdapter() {
         @Override
-        public void focusGained(FocusEvent e) { focused = true; updateLabelState(); }
+        public void focusGained(FocusEvent e) {
+            focusedComponent = e.getComponent();
+            focused = true;
+            updateLabelState();
+        }
         @Override
-        public void focusLost(FocusEvent e) { focused = false; updateLabelState(); }
+        public void focusLost(FocusEvent e) {
+            focusedComponent = e.getOppositeComponent();
+            focused = containsFocus(focusedComponent);
+            updateLabelState();
+        }
+    };
+    private final ContainerAdapter containerListener = new ContainerAdapter() {
+        @Override
+        public void componentAdded(ContainerEvent e) { trackFocus(e.getChild()); }
+
+        @Override
+        public void componentRemoved(ContainerEvent e) {
+            untrackFocus(e.getChild());
+            if (focusedComponent != null && (focusedComponent == e.getChild()
+                    || SwingUtilities.isDescendingFrom(focusedComponent, e.getChild()))) {
+                focusedComponent = null;
+                focused = false;
+                updateLabelState();
+            }
+        }
     };
     private final ComponentAdapter componentListener = new ComponentAdapter() {
         @Override
@@ -62,7 +92,6 @@ public class MaterialLayout implements FieldLayoutManager {
 
     public String getError() { return error; }
 
-    /** null ou vazio remove a mensagem; editar ou limpar o campo mantém o erro. */
     public MaterialLayout setError(String error) {
         this.error = error == null || error.isEmpty() ? null : error;
         updateAccessibleDescription();
@@ -72,7 +101,6 @@ public class MaterialLayout implements FieldLayoutManager {
 
     public Color getErrorColor() { return errorColor == null ? UiTokens.danger() : errorColor; }
 
-    /** null restaura a cor danger do tema. */
     public MaterialLayout setErrorColor(Color color) {
         errorColor = color;
         refresh();
@@ -89,8 +117,9 @@ public class MaterialLayout implements FieldLayoutManager {
         owner = field;
         previousDescription = field.getFieldComponent().getAccessibleContext().getAccessibleDescription();
         appliedDescription = previousDescription;
-        focused = field.getFieldComponent().hasFocus();
-        field.getFieldComponent().addFocusListener(focusListener);
+        focusedComponent = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        focused = containsFocus(focusedComponent);
+        trackFocus(field.getFieldComponent());
         field.getFieldComponent().addComponentListener(componentListener);
         field.getFieldComponent().addPropertyChangeListener(propertyListener);
         updateAccessibleDescription();
@@ -102,7 +131,7 @@ public class MaterialLayout implements FieldLayoutManager {
     public void uninstall(FieldLayoutTarget field) {
         if (owner != field) return;
         animationTimer.stop();
-        field.getFieldComponent().removeFocusListener(focusListener);
+        untrackFocus(field.getFieldComponent());
         field.getFieldComponent().removeComponentListener(componentListener);
         field.getFieldComponent().removePropertyChangeListener(propertyListener);
         if (Objects.equals(field.getFieldComponent().getAccessibleContext().getAccessibleDescription(), appliedDescription)) {
@@ -111,6 +140,7 @@ public class MaterialLayout implements FieldLayoutManager {
         owner = null;
         previousDescription = appliedDescription = null;
         focused = false;
+        focusedComponent = null;
     }
 
     @Override
@@ -121,7 +151,8 @@ public class MaterialLayout implements FieldLayoutManager {
     @Override
     public void fieldShown(FieldLayoutTarget field) {
         if (owner != field) return;
-        focused = field.getFieldComponent().hasFocus();
+        focusedComponent = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        focused = containsFocus(focusedComponent);
         updateLabelState();
     }
 
@@ -129,6 +160,7 @@ public class MaterialLayout implements FieldLayoutManager {
     public void fieldRemoved(FieldLayoutTarget field) {
         if (owner != field) return;
         focused = false;
+        focusedComponent = null;
         settleLabel();
     }
 
@@ -136,6 +168,29 @@ public class MaterialLayout implements FieldLayoutManager {
     public void themeChanged(FieldLayoutTarget field) {
         UiTokens.refresh();
         refresh();
+    }
+
+    private boolean containsFocus(Component component) {
+        return owner != null && component != null && (component == owner.getFieldComponent()
+                || SwingUtilities.isDescendingFrom(component, owner.getFieldComponent()));
+    }
+
+    private void trackFocus(Component component) {
+        if (!focusComponents.add(component)) return;
+        component.addFocusListener(focusListener);
+        if (component instanceof Container container) {
+            container.addContainerListener(containerListener);
+            for (Component child : container.getComponents()) trackFocus(child);
+        }
+    }
+
+    private void untrackFocus(Component component) {
+        if (!focusComponents.remove(component)) return;
+        component.removeFocusListener(focusListener);
+        if (component instanceof Container container) {
+            container.removeContainerListener(containerListener);
+            for (Component child : container.getComponents()) untrackFocus(child);
+        }
     }
 
     private void updateAccessibleDescription() {
@@ -184,7 +239,6 @@ public class MaterialLayout implements FieldLayoutManager {
         owner.getFieldComponent().repaint();
     }
 
-    /** Progresso para subclasses que personalizam a pintura (0 interno, 1 elevado). */
     protected float getLabelProgress() { return labelProgress; }
 
     @Override

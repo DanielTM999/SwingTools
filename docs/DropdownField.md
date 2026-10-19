@@ -40,6 +40,31 @@ O valor selecionado segue a API de `JComboBox`: `getSelectedItem()` pode devolve
 | `setTypeAheadSelectionEnabled(boolean)` | Liga/desliga selecao por digitacao |
 | `isTypeAheadSelectionEnabled()` | Retorna se selecao por digitacao esta ativa |
 | `isEmpty()` / `getItemSize()` | Estado |
+| `setLabel(String)` / `getLabel()` | Rótulo do layout e nome acessível |
+| `setFieldLayoutManager(FieldLayoutManager)` / `getFieldLayoutManager()` | Configura ou consulta o layout; `null` restaura o visual convencional |
+
+## MaterialLayout
+
+`DropdownFieldListener` implementa `FieldLayoutConfigurable`, também implementada por `JTextFieldListener`. O suporte é herdado por `DropdownField` e funciona nos modos normal e editável.
+
+```java
+DropdownField status = new DropdownField("Novo", "Em andamento", "Fechado");
+status.setLabel("Status");
+status.setPlaceholder("Selecione um status");
+status.setFieldLayoutManager(new MaterialLayout());
+
+FieldLayoutConfigurable field = status;
+field.setFieldLayoutManager(new MaterialLayout().setError("Selecione um status."));
+field.setFieldLayoutManager(null);
+```
+
+Importe `FieldLayoutConfigurable` e `MaterialLayout` de `dtm.stools.component.inputfields.textfield.layout`. Use uma instância de `MaterialLayout` por campo e configure na EDT.
+
+Sem seleção, o dropdown normal é considerado vazio. No modo editável, o conteúdo atual do editor determina esse estado, mesmo antes de confirmar a seleção. O foco no editor eleva o rótulo. O placeholder do renderer aguarda o rótulo elevado para aparecer. Mensagens de erro permanecem até serem removidas explicitamente.
+
+O layout preserva o renderer, a busca por digitação, o popup e os eventos de seleção. A apresentação convencional é restaurada ao passar `null`, e o texto pendente do editor é mantido durante a instalação, remoção e troca de tema.
+
+O popup abre junto à borda visível do campo, sem o espaço reservado à mensagem de erro entre o campo e a lista. Quando não há espaço abaixo, a lista abre acima do campo.
 
 ## Display e renderer
 
