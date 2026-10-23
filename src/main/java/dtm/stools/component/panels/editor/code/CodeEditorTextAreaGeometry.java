@@ -273,6 +273,14 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
     }
 
     protected void scrollToCaret() {
+        scrollToCaret(caretScrollLeftMargin, caretScrollRightMargin);
+    }
+
+    protected void scrollToCaretWithoutMargins() {
+        scrollToCaret(0, 0);
+    }
+
+    private void scrollToCaret(int preferredLeftMargin, int preferredRightMargin) {
         Rectangle caretBounds = caretBoundsForScroll();
 
         JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, this);
@@ -285,7 +293,9 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         Point targetPosition = calculateCaretScrollPosition(
                 currentPosition,
                 viewport.getExtentSize(),
-                caretBounds
+                caretBounds,
+                preferredLeftMargin,
+                preferredRightMargin
         );
         if (!targetPosition.equals(currentPosition)) {
             viewport.setViewPosition(targetPosition);
@@ -396,6 +406,15 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
     protected Point calculateCaretScrollPosition(Point viewPosition,
                                                  Dimension extentSize,
                                                  Rectangle caretBounds) {
+        return calculateCaretScrollPosition(viewPosition, extentSize, caretBounds,
+                caretScrollLeftMargin, caretScrollRightMargin);
+    }
+
+    protected Point calculateCaretScrollPosition(Point viewPosition,
+                                                 Dimension extentSize,
+                                                 Rectangle caretBounds,
+                                                 int preferredLeftMargin,
+                                                 int preferredRightMargin) {
         int extentWidth = Math.max(0, extentSize.width);
         int extentHeight = Math.max(0, extentSize.height);
         if (extentWidth == 0 || extentHeight == 0) {
@@ -403,8 +422,8 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
         }
 
         int horizontalMarginSpace = Math.max(0, extentWidth - caretBounds.width);
-        int leftMargin = Math.min(Math.max(0, caretScrollLeftMargin), horizontalMarginSpace / 2);
-        int rightMargin = Math.min(Math.max(0, caretScrollRightMargin), horizontalMarginSpace - leftMargin);
+        int leftMargin = Math.min(Math.max(0, preferredLeftMargin), horizontalMarginSpace / 2);
+        int rightMargin = Math.min(Math.max(0, preferredRightMargin), horizontalMarginSpace - leftMargin);
 
         int x = viewPosition.x;
         int leftBoundary = viewPosition.x + leftMargin;

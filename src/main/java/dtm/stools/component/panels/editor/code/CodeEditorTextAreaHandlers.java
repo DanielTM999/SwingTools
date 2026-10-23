@@ -955,7 +955,7 @@ public abstract class CodeEditorTextAreaHandlers extends CodeEditorTextAreaInput
             caretLine = pos[0];
             caretCol = pos[1];
             desiredCaretCol = -1;
-            scrollToCaret();
+            scrollToCaretWithoutMargins();
             resetCaretBlink();
             repaint();
             fireStateChangedIfNeeded();
