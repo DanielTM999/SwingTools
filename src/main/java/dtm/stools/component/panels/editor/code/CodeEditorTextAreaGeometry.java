@@ -460,15 +460,46 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
                 (startCol, endCol, visualCol, run, style, font, runFm, x, runWidth, runRow) -> {
                     if (runRow < safeRow) return true;
                     if (runRow > safeRow) return false;
-                    for (int c = Math.max(startCol, rowStart); c <= Math.min(endCol, rowEnd); c++) {
-                        int cx = (c == startCol)
-                                ? x
-                                : x + runFm.stringWidth(expandTabs(lineText.substring(startCol, c), visualCol));
-                        int dist = Math.abs(mx - (cx + ghostPushWidthBeforeColumn(line, c, fm)));
+                    int from = Math.max(startCol, rowStart);
+                    int to = Math.min(endCol, rowEnd);
+                    if (from > to) return true;
+                    int lo = from;
+                    int hi = to;
+                    while (lo < hi) {
+                        int mid = (lo + hi) >>> 1;
+                        if (columnXInRun(line, lineText, startCol, mid, visualCol, x, runFm, fm) < mx) {
+                            lo = mid + 1;
+                        } else {
+                            hi = mid;
+                        }
+                    }
+                    int before = -1;
+                    int beforeX = 0;
+                    if (lo - 1 >= from) {
+                        beforeX = columnXInRun(line, lineText, startCol, lo - 1, visualCol, x, runFm, fm);
+                        int plo = from;
+                        int phi = lo - 1;
+                        while (plo < phi) {
+                            int mid = (plo + phi) >>> 1;
+                            if (columnXInRun(line, lineText, startCol, mid, visualCol, x, runFm, fm) < beforeX) {
+                                plo = mid + 1;
+                            } else {
+                                phi = mid;
+                            }
+                        }
+                        before = plo;
+                    }
+                    if (before >= 0) {
+                        int dist = Math.abs(mx - beforeX);
                         if (dist < best[1]) {
                             best[1] = dist;
-                            best[0] = c;
+                            best[0] = before;
                         }
+                    }
+                    int dist = Math.abs(mx - columnXInRun(line, lineText, startCol, lo, visualCol, x, runFm, fm));
+                    if (dist < best[1]) {
+                        best[1] = dist;
+                        best[0] = lo;
                     }
                     return true;
                 });
@@ -479,6 +510,14 @@ public abstract class CodeEditorTextAreaGeometry extends CodeEditorTextAreaState
             }
         }
         return best[0];
+    }
+
+    private int columnXInRun(int line, String lineText, int startCol, int col, int visualCol,
+                             int runX, FontMetrics runFm, FontMetrics fm) {
+        int cx = col == startCol
+                ? runX
+                : runX + runFm.stringWidth(expandTabs(lineText.substring(startCol, col), visualCol));
+        return cx + ghostPushWidthBeforeColumn(line, col, fm);
     }
 
     protected int wrapRowAtY(int line, int y) {

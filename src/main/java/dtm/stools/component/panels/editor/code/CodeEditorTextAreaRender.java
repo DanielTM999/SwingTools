@@ -78,22 +78,24 @@ public abstract class CodeEditorTextAreaRender extends CodeEditorTextAreaGeometr
                 ghostPushApplied = true;
             }
 
-            TextStyle style = getStyleAt(lineOffset + col);
-            int runEnd = col + 1;
-            while (runEnd < renderLength && getStyleAt(lineOffset + runEnd) == style) {
-                runEnd++;
-            }
+            int runLimit = renderLength;
             if (pushHintIndex < pushHints.size()) {
                 int pushCol = inlayHintColumn(pushHints.get(pushHintIndex), lineText);
-                if (pushCol > col && pushCol < runEnd) {
-                    runEnd = pushCol;
+                if (pushCol > col && pushCol < runLimit) {
+                    runLimit = pushCol;
                 }
             }
-            if (ghostPushCol > col && ghostPushCol < runEnd) {
-                runEnd = ghostPushCol;
+            if (ghostPushCol > col && ghostPushCol < runLimit) {
+                runLimit = ghostPushCol;
             }
-            if (breakIndex < breaks.length && breaks[breakIndex] < runEnd) {
-                runEnd = breaks[breakIndex];
+            if (breakIndex < breaks.length && breaks[breakIndex] < runLimit) {
+                runLimit = breaks[breakIndex];
+            }
+
+            TextStyle style = getStyleAt(lineOffset + col);
+            int runEnd = col + 1;
+            while (runEnd < runLimit && getStyleAt(lineOffset + runEnd) == style) {
+                runEnd++;
             }
 
             String run = expandTabs(lineText.substring(col, runEnd), visualCol);
