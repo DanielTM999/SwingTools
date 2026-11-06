@@ -105,6 +105,13 @@ public class PdfCanvas extends JComponent implements Scrollable {
         BufferedImage image = editor.getRenderer().page(page, resolution, () -> repaintPage(page));
         if (image != null && similar(image, box)) g.drawImage(image, box.x, box.y, box.width, box.height, null);
         else if (image == null) paintLoading(g, box);
+        Graphics2D highlightGraphics = (Graphics2D) g.create();
+        try {
+            highlightGraphics.clip(box);
+            highlightGraphics.setColor(new Color(255, 205, 0, 100));
+            for (var highlight : editor.getSearchHighlights(page))
+                highlightGraphics.fill(layout.toView(page, highlight));
+        } finally { highlightGraphics.dispose(); }
         g.setColor(UiTokens.isDarkTheme() ? new Color(0, 0, 0, 90) : new Color(0, 0, 0, 38));
         g.drawRect(box.x, box.y, box.width - 1, box.height - 1);
     }

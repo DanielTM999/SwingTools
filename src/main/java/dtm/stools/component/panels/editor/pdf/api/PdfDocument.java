@@ -18,6 +18,8 @@ public interface PdfDocument extends AutoCloseable {
     default int pageRotation(int page) { return 0; }
     BufferedImage render(int page, float dpi) throws IOException;
     String text(int page) throws IOException;
+    default PdfTextContent textContent(int page) throws IOException { return PdfTextContent.empty(); }
+    default List<Rectangle2D.Float> findText(int page, String query) throws IOException { return List.of(); }
     void save(Path destination) throws IOException;
     byte[] snapshot() throws IOException;
     void rotate(int page, int degrees) throws IOException;

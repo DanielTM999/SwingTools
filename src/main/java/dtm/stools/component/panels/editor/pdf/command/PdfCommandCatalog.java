@@ -45,7 +45,7 @@ public final class PdfCommandCatalog {
         commands.add("pdf.cut", "Recortar", editor::cutSelection).icon("cut").tip("Recortar (Ctrl+X)").edits()
                 .when(() -> !editor.getSelection().isEmpty());
         commands.add("pdf.copy", "Copiar", editor::copySelection).icon("copy").tip("Copiar (Ctrl+C)")
-                .when(() -> !editor.getSelection().isEmpty());
+                .when(() -> !editor.getSelection().isEmpty() || !editor.getSelectedText().isEmpty());
         commands.add("pdf.duplicate", "Duplicar", editor::duplicateSelection).icon("duplicate").tip("Duplicar (Ctrl+D)").edits()
                 .when(() -> !editor.getSelection().isEmpty());
     }
@@ -133,6 +133,8 @@ public final class PdfCommandCatalog {
                 .selected(() -> editor.getViewMode() == PdfViewMode.CONTINUOUS);
         commands.add("pdf.viewMode", "Páginas", () -> editor.setViewMode(editor.getViewMode() == PdfViewMode.SINGLE_PAGE
                 ? PdfViewMode.CONTINUOUS : PdfViewMode.SINGLE_PAGE)).icon("view-continuous");
+        commands.add("pdf.toggleRibbon", "Faixa de opções", () -> editor.setRibbonVisible(!editor.getConfig().ribbonVisible()))
+                .icon("page-up").selected(() -> editor.getConfig().ribbonVisible());
         commands.add("pdf.toggleSidebar", "Painel lateral", () -> editor.setSidebarVisible(!editor.getConfig().thumbnailsVisible()))
                 .icon("sidebar").selected(() -> editor.getConfig().thumbnailsVisible());
         commands.add("pdf.toggleStatus", "Barra de status", () -> editor.setStatusVisible(!editor.getConfig().statusVisible()))

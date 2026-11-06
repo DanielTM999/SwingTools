@@ -109,6 +109,7 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
     }
 
     public void escape() {
+        if (!editor.getSelectedText().isEmpty()) { editor.clearTextSelection(); return; }
         if (drag != PdfDragMode.NONE) { reset(); canvas.repaint(); return; }
         if (!editor.getSelection().isEmpty()) { editor.clearSelection(); return; }
         editor.selectTool(PdfEditor.TOOL_VIEW);
@@ -360,7 +361,7 @@ public class PdfSelectionController extends MouseAdapter implements PdfCanvasOve
         String tool = editor.getActiveTool();
         if (PdfEditor.TOOL_VIEW.equals(tool)) {
             brush = null;
-            canvas.setCursor(Cursor.getDefaultCursor());
+            canvas.setCursor(Cursor.getPredefinedCursor(at >= 0 ? Cursor.TEXT_CURSOR : Cursor.DEFAULT_CURSOR));
             setHover(null, -1);
             return;
         }

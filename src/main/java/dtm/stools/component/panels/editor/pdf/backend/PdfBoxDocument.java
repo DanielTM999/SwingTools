@@ -10,6 +10,7 @@ import dtm.stools.component.panels.editor.pdf.api.PdfShapeKind;
 import dtm.stools.component.panels.editor.pdf.api.PdfShapeStyle;
 import dtm.stools.component.panels.editor.pdf.api.PdfTarget;
 import dtm.stools.component.panels.editor.pdf.api.PdfTextStyle;
+import dtm.stools.component.panels.editor.pdf.api.PdfTextContent;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFreeText;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationMarkup;
@@ -105,9 +106,22 @@ final class PdfBoxDocument implements PdfDocument {
         page(page);
         if (!canExtractContent()) throw new IOException("Extração de texto não permitida neste PDF");
         PDFTextStripper stripper = new PDFTextStripper();
+        stripper.setSortByPosition(true);
         stripper.setStartPage(page + 1);
         stripper.setEndPage(page + 1);
         return stripper.getText(document);
+    }
+    @Override
+    public synchronized List<Rectangle2D.Float> findText(int page, String query) throws IOException {
+        page(page);
+        if (!canExtractContent()) throw new IOException("Extração de texto não permitida neste PDF");
+        return PdfBoxTextSearch.find(document, page, query);
+    }
+    @Override
+    public synchronized PdfTextContent textContent(int page) throws IOException {
+        page(page);
+        if (!canExtractContent()) return PdfTextContent.empty();
+        return PdfBoxTextSearch.content(document, page);
     }
     @Override
     public synchronized void save(Path destination) throws IOException { document.save(destination.toFile()); }

@@ -23,6 +23,8 @@ import javax.swing.JToggleButton;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
@@ -135,11 +137,24 @@ public class PdfSidebar extends JPanel {
         search.putClientProperty("JTextField.showClearButton", true);
         search.setName("pdf.sidebar.search");
         search.addActionListener(event -> runSearch());
+        search.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent event) { clear(); }
+            @Override
+            public void removeUpdate(DocumentEvent event) { clear(); }
+            @Override
+            public void changedUpdate(DocumentEvent event) { clear(); }
+            private void clear() {
+                clearSearchResults();
+                editor.clearSearchHighlights();
+            }
+        });
+        resultList.setName("pdf.sidebar.searchResults");
         resultList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         resultList.setVisibleRowCount(5);
         resultList.addListSelectionListener(event -> {
             int index = resultList.getSelectedIndex();
-            if (!event.getValueIsAdjusting() && index >= 0 && index < resultPages.size()) editor.setCurrentPage(resultPages.get(index));
+            if (!event.getValueIsAdjusting() && index >= 0 && index < resultPages.size()) editor.showSearchResult(resultPages.get(index));
         });
         JScrollPane resultScroll = new JScrollPane(resultList);
         resultScroll.setPreferredSize(new Dimension(180, 110));
@@ -170,9 +185,11 @@ public class PdfSidebar extends JPanel {
 
     private void runSearch() {
         String query = search.getText();
-        results.clear();
-        resultPages.clear();
-        if (query == null || query.isBlank()) return;
+        clearSearchResults();
+        if (query == null || query.isBlank()) {
+            editor.clearSearchHighlights();
+            return;
+        }
         results.addElement("Buscando…");
         editor.searchAsync(query, found -> {
             results.clear();
@@ -182,7 +199,20 @@ public class PdfSidebar extends JPanel {
                 results.addElement("Página " + (entry.getKey() + 1) + " — " + entry.getValue());
             }
             if (found.isEmpty()) results.addElement("Nenhum resultado");
+            else resultList.setSelectedIndex(0);
         });
+    }
+
+    public void search(String query) {
+        if (!editor.getConfig().thumbnailsVisible()) editor.setSidebarVisible(true);
+        show("text");
+        search.setText(query == null ? "" : query);
+        runSearch();
+    }
+
+    public void clearSearchResults() {
+        results.clear();
+        resultPages.clear();
     }
 
     public void show(String id) {

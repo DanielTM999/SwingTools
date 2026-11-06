@@ -42,6 +42,7 @@ import dtm.stools.component.panels.editor.pdf.provider.PdfSignatureProvider;
 import dtm.stools.component.panels.editor.pdf.provider.PdfToolbarProvider;
 import dtm.stools.component.panels.editor.pdf.provider.PdfTrustProvider;
 import dtm.stools.component.panels.editor.pdf.ui.PdfCanvas;
+import dtm.stools.component.panels.editor.pdf.ui.PdfIcon;
 import dtm.stools.component.panels.editor.pdf.ui.PdfPageGeometry;
 import dtm.stools.component.panels.editor.pdf.ui.PdfPageLayout;
 import dtm.stools.component.panels.editor.pdf.ui.PdfRenderScheduler;
@@ -52,12 +53,15 @@ import dtm.stools.component.panels.editor.pdf.ui.PdfSelectionController;
 import dtm.stools.component.panels.editor.pdf.ui.PdfSidebar;
 import dtm.stools.component.panels.editor.pdf.ui.PdfStatusBar;
 import dtm.stools.component.panels.editor.pdf.ui.PdfTextOverlay;
+import dtm.stools.component.panels.editor.pdf.ui.PdfTextSelectionController;
+import dtm.stools.component.panels.editor.pdf.api.PdfTextContent;
 import dtm.stools.component.panels.editor.pdf.ui.PdfUiFactory;
 import dtm.stools.configs.UiTokens;
 
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -100,6 +104,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.regex.Pattern;
 
 public class PdfEditor extends BlockingPanel implements AutoCloseable {
     public static final String TOOL_VIEW = "pdf.view", TOOL_SELECT = "pdf.select", TOOL_AREA = "pdf.selectArea", TOOL_ERASER = "pdf.eraser";
@@ -121,9 +126,11 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     private final JScrollPane scroll;
     private final JComponent ribbon;
     private final PdfRibbon defaultRibbon;
+    private final JButton ribbonToggle = new JButton();
     private final PdfSidebar sidebar;
     private final PdfStatusBar status;
     private final PdfSelectionController controller;
+    private final PdfTextSelectionController textSelection;
     private final JSplitPane split;
     private final JPanel providerBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
     private PdfEditorConfig config;
@@ -144,6 +151,8 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     private PdfTextOverlay textOverlay;
     private boolean closed, programmaticScroll;
     private int sidebarWidth = 214;
+    private long searchVersion;
+    private Map<Integer, List<Rectangle2D.Float>> searchHighlights = Map.of();
     private Consumer<Throwable> errorHandler = error -> firePropertyChange("error", null, error);
 
     public PdfEditor() { this(PdfEditorConfig.defaults(), PdfServices.defaults()); }
@@ -175,6 +184,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
         sidebar.setTools(toolActions());
         controller = Objects.requireNonNull(ui.createSelectionController(this, canvas));
         controller.install();
+        textSelection = new PdfTextSelectionController(this, canvas);
         scroll = new JScrollPane(canvas);
         scroll.setBorder(BorderFactory.createEmptyBorder());
         scroll.getVerticalScrollBar().setUnitIncrement(32);
@@ -199,9 +209,18 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
         providerBar.setName("pdf.providerBar");
         JPanel north = new JPanel();
         north.setLayout(new BoxLayout(north, BoxLayout.Y_AXIS));
-        ribbon.setAlignmentX(LEFT_ALIGNMENT);
+        JPanel ribbonRow = new JPanel(new BorderLayout());
+        ribbonRow.setAlignmentX(LEFT_ALIGNMENT);
+        ribbonToggle.setName("pdf.ribbon.toggle");
+        ribbonToggle.putClientProperty("JButton.buttonType", "toolBarButton");
+        ribbonToggle.setFocusable(false);
+        ribbonToggle.addActionListener(event -> execute("pdf.toggleRibbon"));
+        JPanel ribbonControls = new JPanel(new BorderLayout());
+        ribbonControls.add(ribbonToggle, BorderLayout.NORTH);
+        ribbonRow.add(ribbon, BorderLayout.CENTER);
+        ribbonRow.add(ribbonControls, BorderLayout.EAST);
         providerBar.setAlignmentX(LEFT_ALIGNMENT);
-        north.add(ribbon);
+        north.add(ribbonRow);
         north.add(providerBar);
         add(north, BorderLayout.NORTH);
         add(split, BorderLayout.CENTER);
@@ -405,6 +424,10 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
 
     private void applyConfig() {
         ribbon.setVisible(config.ribbonVisible());
+        String ribbonTip = config.ribbonVisible() ? "Recolher faixa de opções" : "Expandir faixa de opções";
+        ribbonToggle.setIcon(PdfIcon.small(config.ribbonVisible() ? "page-up" : "page-down"));
+        ribbonToggle.setToolTipText(ribbonTip);
+        ribbonToggle.getAccessibleContext().setAccessibleName(ribbonTip);
         status.setVisible(config.statusVisible());
         boolean show = config.thumbnailsVisible();
         if (sidebar.isVisible() != show) {
@@ -418,6 +441,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
 
     public void setSidebarVisible(boolean value) { setConfig(config.withThumbnailsVisible(value)); }
     public void setStatusVisible(boolean value) { setConfig(config.withStatusVisible(value)); }
+    public void setRibbonVisible(boolean value) { setConfig(config.withRibbonVisible(value)); }
 
     public String getActiveTool() { return activeFactory != null ? activeFactory : activeTool; }
     public PdfElementFactory getActiveFactory() { return activeFactory == null ? null : factories.get(activeFactory); }
@@ -425,6 +449,7 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
 
     public void selectTool(String id) {
         ensureOpen();
+        textSelection.clear();
         commitTextInput();
         if (factories.containsKey(id)) {
             activeFactory = id;
@@ -722,7 +747,15 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     public void arrangeSelection(boolean forward) { operations.arrangeSelection(forward); }
     public void alignSelection(String mode) { operations.alignSelection(mode); }
     public void setPastePoint(int page, Point2D.Float point) { operations.setPastePoint(page, point); }
-    public void copySelection() { operations.copySelection(); }
+    public String getSelectedText() { return textSelection == null ? "" : textSelection.selectedText(); }
+    public void clearTextSelection() { textSelection.clear(); commands.refresh(); }
+    public void refreshTextSelection() { commands.refresh(); }
+    public void copySelection() {
+        String text = getSelectedText();
+        if (TOOL_VIEW.equals(getActiveTool()) && !text.isEmpty())
+            java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new java.awt.datatransfer.StringSelection(text), null);
+        else operations.copySelection();
+    }
     public void cutSelection() { operations.cutSelection(); }
     public void pasteClipboard() { operations.pasteClipboard(); }
     public boolean hasClipboard() { return operations.hasClipboard(); }
@@ -765,22 +798,58 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     }
 
     public void searchAsync(String query, Consumer<Map<Integer, String>> result) {
+        clearSearchHighlights();
+        long version = searchVersion;
         PdfDocument source = document;
-        Locale locale = config.locale();
+        if (query == null || query.isBlank()) {
+            result.accept(Map.of());
+            return;
+        }
         workers.execute(() -> {
             Map<Integer, String> found = new LinkedHashMap<>();
+            Map<Integer, List<Rectangle2D.Float>> highlights = new LinkedHashMap<>();
             try {
-                String needle = query.toLowerCase(locale);
+                Pattern pattern = Pattern.compile(Pattern.quote(query), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
                 for (int page = 0; page < source.pageCount(); page++) {
                     String text = source.text(page);
-                    int index = text.toLowerCase(locale).indexOf(needle);
-                    if (index < 0) continue;
-                    int start = Math.max(0, index - 20), end = Math.min(text.length(), index + needle.length() + 30);
+                    var matcher = pattern.matcher(text);
+                    if (!matcher.find()) continue;
+                    int start = Math.max(0, matcher.start() - 20), end = Math.min(text.length(), matcher.end() + 30);
                     found.put(page, text.substring(start, end).replaceAll("\\s+", " ").strip());
+                    highlights.put(page, source.findText(page, query));
                 }
-            } catch (Throwable error) { SwingUtilities.invokeLater(() -> reportError(error)); }
-            SwingUtilities.invokeLater(() -> { if (!closed) result.accept(found); });
+            } catch (Throwable error) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!closed && source == document && version == searchVersion) reportError(error);
+                });
+            }
+            SwingUtilities.invokeLater(() -> {
+                if (closed || source != document || version != searchVersion) return;
+                searchHighlights = Map.copyOf(highlights);
+                canvas.repaint();
+                result.accept(found);
+            });
         });
+    }
+
+    public List<Rectangle2D.Float> getSearchHighlights(int page) {
+        return searchHighlights.getOrDefault(page, List.of()).stream()
+                .map(box -> new Rectangle2D.Float(box.x, box.y, box.width, box.height)).toList();
+    }
+
+    public void clearSearchHighlights() {
+        searchVersion++;
+        searchHighlights = Map.of();
+        canvas.repaint();
+    }
+
+    public void showSearchResult(int page) {
+        setCurrentPage(page);
+        List<Rectangle2D.Float> highlights = getSearchHighlights(page);
+        if (highlights.isEmpty() || !canvas.getPageLayout().contains(page)) return;
+        Rectangle bounds = canvas.getPageLayout().toView(page, highlights.getFirst()).getBounds();
+        bounds.grow(24, 24);
+        canvas.scrollRectToVisible(bounds);
     }
 
     public void pageTextAsync(int page, Consumer<String> result) {
@@ -791,6 +860,23 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
             catch (Throwable error) { text = ""; }
             String value = text;
             SwingUtilities.invokeLater(() -> { if (!closed) result.accept(value); });
+        });
+    }
+
+    public void textContentAsync(int page, Consumer<PdfTextContent> result) {
+        PdfDocument source = document;
+        long version = elementVersion;
+        workers.execute(() -> {
+            try {
+                PdfTextContent content = source.textContent(page);
+                SwingUtilities.invokeLater(() -> {
+                    if (!closed && document == source && elementVersion == version) result.accept(content);
+                });
+            } catch (Throwable error) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!closed && document == source && elementVersion == version) reportError(error);
+                });
+            }
         });
     }
 
@@ -966,6 +1052,9 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     }
 
     private void applyChange(PdfChange change) {
+        textSelection.clear();
+        clearSearchHighlights();
+        sidebar.clearSearchResults();
         refreshPages();
         if (change.structural()) selectedPages.clear();
         if (change.structural()) {
@@ -997,6 +1086,9 @@ public class PdfEditor extends BlockingPanel implements AutoCloseable {
     }
 
     private void documentReplaced() {
+        textSelection.clear();
+        clearSearchHighlights();
+        sidebar.clearSearchResults();
         refreshPages();
         selectedPages.clear();
         renderer.clear();
