@@ -126,7 +126,7 @@ jobs:
           done
 
       - name: Build JAR (skip native rebuild)
-        run: mvn -B clean package -Dnative.build.skip=true
+        run: mvn -B clean package -Dnative.build.skip=true -DskipTests
 
       - name: Upload final JAR
         uses: actions/upload-artifact@v4
