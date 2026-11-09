@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <mutex>
+#include <utility>
 
 namespace {
 
@@ -194,35 +195,59 @@ Java_dtm_stools_component_inputfields_osfilepicker_OsFilePicker_nSaveFile(
 }
 
 struct FolderCapture {
-    bool openClicked = false;
-    bool folderRequested = false;
-    std::string capturedFolder;
     GtkWidget* dlg = nullptr;
+    GtkFileChooser* chooser = nullptr;
+    bool folderRequested = false;
+    std::vector<std::string> capturedPaths;
 };
 
-static void on_open_clicked(GtkButton*, gpointer data) {
-    auto* cap = static_cast<FolderCapture*>(data);
-    cap->openClicked = true;
+static bool capture_selected_folders(FolderCapture* cap) {
+    GSList* selected = gtk_file_chooser_get_filenames(cap->chooser);
+    std::vector<std::string> paths;
+    bool containsDirectory = false;
+
+    for (GSList* item = selected; item; item = item->next) {
+        const char* path = static_cast<const char*>(item->data);
+        if (path) {
+            paths.emplace_back(path);
+            if (g_file_test(path, G_FILE_TEST_IS_DIR))
+                containsDirectory = true;
+        }
+        g_free(item->data);
+    }
+    g_slist_free(selected);
+
+    if (!containsDirectory) return false;
+
+    cap->capturedPaths = std::move(paths);
+    cap->folderRequested = true;
+    // Finaliza ANTES de a resposta padrao do GTK navegar na pasta.
+    gtk_dialog_response(GTK_DIALOG(cap->dlg), GTK_RESPONSE_ACCEPT);
+    return true;
 }
 
-static void on_current_folder_changed(GtkFileChooser* chooser, gpointer data) {
-    auto* cap = static_cast<FolderCapture*>(data);
-    if (!cap->openClicked) return;
-    cap->openClicked = false;
-    char* folder = gtk_file_chooser_get_current_folder(chooser);
-    if (folder) {
-        cap->capturedFolder = folder;
-        cap->folderRequested = true;
-        g_free(folder);
-        gtk_dialog_response(GTK_DIALOG(cap->dlg), GTK_RESPONSE_ACCEPT);
-    }
+static gboolean on_open_button_press(GtkWidget*, GdkEventButton* event, gpointer data) {
+    if (event->type != GDK_BUTTON_PRESS || event->button != GDK_BUTTON_PRIMARY)
+        return FALSE;
+    return capture_selected_folders(static_cast<FolderCapture*>(data)) ? TRUE : FALSE;
+}
+
+static gboolean on_open_button_key_press(GtkWidget*, GdkEventKey* event, gpointer data) {
+    if (event->keyval != GDK_KEY_Return && event->keyval != GDK_KEY_KP_Enter &&
+        event->keyval != GDK_KEY_space)
+        return FALSE;
+    return capture_selected_folders(static_cast<FolderCapture*>(data)) ? TRUE : FALSE;
 }
 
 static void hook_open_button(GtkWidget* dlg, FolderCapture* cap) {
-    GtkWidget* openBtn = gtk_dialog_get_widget_for_response(GTK_DIALOG(dlg), GTK_RESPONSE_ACCEPT);
-    if (openBtn) {
-        g_signal_connect(openBtn, "clicked", G_CALLBACK(on_open_clicked), cap);
-    }
+    GtkWidget* openBtn = gtk_dialog_get_widget_for_response(
+        GTK_DIALOG(dlg), GTK_RESPONSE_ACCEPT);
+    if (!openBtn) return;
+
+    g_signal_connect(openBtn, "button-press-event",
+        G_CALLBACK(on_open_button_press), cap);
+    g_signal_connect(openBtn, "key-press-event",
+        G_CALLBACK(on_open_button_key_press), cap);
 }
 
 JNIEXPORT jstring JNICALL
@@ -243,14 +268,14 @@ Java_dtm_stools_component_inputfields_osfilepicker_OsFilePicker_nOpenFileOrDirec
 
     FolderCapture cap;
     cap.dlg = dlg;
-    g_signal_connect(chooser, "current-folder-changed",
-                     G_CALLBACK(on_current_folder_changed), &cap);
+    cap.chooser = chooser;
     hook_open_button(dlg, &cap);
 
     jstring result = nullptr;
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
         if (cap.folderRequested) {
-            result = utf8_to_jstring(env, cap.capturedFolder.c_str());
+            if (!cap.capturedPaths.empty())
+                result = utf8_to_jstring(env, cap.capturedPaths.front().c_str());
         } else {
             char* fname = gtk_file_chooser_get_filename(chooser);
             if (fname) {
@@ -283,19 +308,20 @@ Java_dtm_stools_component_inputfields_osfilepicker_OsFilePicker_nOpenFilesOrDire
 
     FolderCapture cap;
     cap.dlg = dlg;
-    g_signal_connect(chooser, "current-folder-changed",
-                     G_CALLBACK(on_current_folder_changed), &cap);
+    cap.chooser = chooser;
     hook_open_button(dlg, &cap);
 
     jobjectArray result = nullptr;
     jclass strClass = env->FindClass("java/lang/String");
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
         if (cap.folderRequested) {
-            jstring js = utf8_to_jstring(env, cap.capturedFolder.c_str());
-            if (js) {
-                result = env->NewObjectArray(1, strClass, nullptr);
-                env->SetObjectArrayElement(result, 0, js);
-                env->DeleteLocalRef(js);
+            result = env->NewObjectArray(static_cast<jsize>(cap.capturedPaths.size()), strClass, nullptr);
+            for (jsize i = 0; i < static_cast<jsize>(cap.capturedPaths.size()); ++i) {
+                jstring js = utf8_to_jstring(env, cap.capturedPaths[i].c_str());
+                if (js) {
+                    env->SetObjectArrayElement(result, i, js);
+                    env->DeleteLocalRef(js);
+                }
             }
         } else {
             GSList* list = gtk_file_chooser_get_filenames(chooser);
